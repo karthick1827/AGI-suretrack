@@ -1,9 +1,12 @@
 ---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-06T05:37:50.902Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 1.2 — Pixel-exact Login page with the Fidelity check'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
-status: In Review
 story_key: 1-2-pixel-exact-login-page-with-the-fidelity-check
 jira: SCRUM-27 (AC1), SCRUM-31
 review_loop_iteration: 0
