@@ -1,6 +1,9 @@
 ---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-06T06:20:15.012Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 1.2 — Pixel-exact Login page with the Fidelity check'
-status: In Review
 type: story-review
 story_key: 1-2-pixel-exact-login-page-with-the-fidelity-check
 epic: 1
