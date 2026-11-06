@@ -6,6 +6,10 @@
  * Fidelity check. These rules point at the packages' latin WOFF2 files and use
  * font-display: block instead. No CDN, no Google Fonts link.
  *
+ * Roboto metric overrides (ascent 92.77%, descent 24.41%, line gap 0) match the
+ * Roboto build Figma renders with, so text sits on Figma's baselines (approved
+ * by the user in Story 1.2; the bundled build otherwise reports 95% / 25%).
+ *
  * Roboto 400-800 (AD-14 / NFR-2), Inter 400-700 (FR-4: "83% Fill" and the
  * SF Pro fallback).
  */
@@ -13,6 +17,9 @@
 @font-face {
   font-family: "Roboto";
   font-style: normal;
+  ascent-override: 92.77%;
+  descent-override: 24.41%;
+  line-gap-override: 0%;
   font-weight: 400;
   font-display: block;
   src: url("@fontsource/roboto/files/roboto-latin-400-normal.woff2") format("woff2");
@@ -22,6 +29,9 @@
 @font-face {
   font-family: "Roboto";
   font-style: normal;
+  ascent-override: 92.77%;
+  descent-override: 24.41%;
+  line-gap-override: 0%;
   font-weight: 500;
   font-display: block;
   src: url("@fontsource/roboto/files/roboto-latin-500-normal.woff2") format("woff2");
@@ -31,6 +41,9 @@
 @font-face {
   font-family: "Roboto";
   font-style: normal;
+  ascent-override: 92.77%;
+  descent-override: 24.41%;
+  line-gap-override: 0%;
   font-weight: 600;
   font-display: block;
   src: url("@fontsource/roboto/files/roboto-latin-600-normal.woff2") format("woff2");
@@ -40,6 +53,9 @@
 @font-face {
   font-family: "Roboto";
   font-style: normal;
+  ascent-override: 92.77%;
+  descent-override: 24.41%;
+  line-gap-override: 0%;
   font-weight: 700;
   font-display: block;
   src: url("@fontsource/roboto/files/roboto-latin-700-normal.woff2") format("woff2");
@@ -49,6 +65,9 @@
 @font-face {
   font-family: "Roboto";
   font-style: normal;
+  ascent-override: 92.77%;
+  descent-override: 24.41%;
+  line-gap-override: 0%;
   font-weight: 800;
   font-display: block;
   src: url("@fontsource/roboto/files/roboto-latin-800-normal.woff2") format("woff2");

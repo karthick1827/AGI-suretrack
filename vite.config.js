@@ -973,5 +973,6 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
-  test: { environment: 'jsdom' },
+  // Vitest runs unit tests only; tests/fidelity is Playwright (npm run test:fidelity).
+  test: { environment: 'jsdom', include: ['tests/unit/**/*.test.{js,jsx}'] },
 })

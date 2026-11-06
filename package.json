@@ -12,7 +12,8 @@
     "lint": "oxlint && node scripts/check-css-literals.mjs",
     "test": "vitest run",
     "preview": "vite preview",
-    "build:images": "node scripts/build-images.mjs"
+    "build:images": "node scripts/build-images.mjs",
+    "test:fidelity": "playwright test"
   },
   "dependencies": {
     "@fontsource/inter": "5.3.0",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@playwright/test": "1.64.1",
     "@rolldown/plugin-babel": "^0.2.4",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",

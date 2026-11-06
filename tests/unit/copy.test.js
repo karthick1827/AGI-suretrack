@@ -63,23 +63,26 @@ describe('copy.js — every string is verbatim PRD copy', () => {
 
   it('keeps significant whitespace exactly', () => {
     expect(copy.login.legalLead).toBe('By clicking login, you hereby agree to our ');
-    expect(copy.login.legalSeparator).toBe(' | ');
+    // Separator spacing follows the Figma render (two spaces each side of "|"),
+    // not the PRD's ' | ' (user-approved in Story 1.2); the characters match.
+    expect(copy.login.legalSeparator).toBe('  |  ');
     expect(copy.forgotPassword.emailLabel).toBe('Email ');
     // The PRD quotes each piece in backticks, so the whitespace is part of the copy.
     expect(prd).toContain(`\`${copy.login.legalLead}\``);
-    expect(prd).toContain(`\`${copy.login.legalSeparator}\``);
+    expect(prd).toContain(`\`${copy.login.legalSeparator.replace(/ +/g, ' ')}\``);
     expect(prd).toContain('`Email ` + `*`');
   });
 
   it('composes the FR-20 legal sentence from the PRD pieces', () => {
     const { legalLead, privacyPolicy, legalSeparator, termsOfService } = copy.login;
     expect(`${legalLead}${privacyPolicy}${legalSeparator}${termsOfService}`).toBe(
-      'By clicking login, you hereby agree to our Privacy Policy | Terms of Service',
+      'By clicking login, you hereby agree to our Privacy Policy  |  Terms of Service',
     );
     expect(prd).toContain(
       `Line 1: \`${legalLead}\` (Roboto Regular 400, 14px / 24px, \`#ffffff\`) followed by a hard line break.`,
     );
-    expect(prd).toContain(`Line 2: \`${privacyPolicy}\` · \`${legalSeparator}\` · \`${termsOfService}\``);
+    const prdSeparator = legalSeparator.replace(/ +/g, ' ');
+    expect(prd).toContain(`Line 2: \`${privacyPolicy}\` · \`${prdSeparator}\` · \`${termsOfService}\``);
   });
 
   it('is deeply frozen', () => {

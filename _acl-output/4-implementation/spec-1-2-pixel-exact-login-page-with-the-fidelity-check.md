@@ -8,7 +8,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
 baseline_commit: 'abc380359e9a600c19934bec1c3b01f3ad4761c7'
-implementation_status: in-progress
+implementation_status: in-review
 story_key: 1-2-pixel-exact-login-page-with-the-fidelity-check
 jira: SCRUM-27 (AC1), SCRUM-31
 review_loop_iteration: 0
@@ -74,16 +74,16 @@ Sign-in behaviour is not part of this story; it comes in Story 1.3.
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `package.json`: add `@playwright/test@1.64.1` (dev) and the `test:fidelity` script.
-- [ ] `src/app/App.jsx`: `/login` renders `LoginPage`; every other app path redirects to `paths.login()` (FR-11).
-- [ ] `src/pages/Login/LoginPage.jsx` and `LoginPage.module.css`: the frame, the two mirrored photo layers, the green panel SVG, the 9×13 triangle and the form column, at exact FR-12–FR-15 geometry, with a `data-fid` on each.
-- [ ] `src/features/auth/LoginForm.jsx` and `LoginForm.module.css`: the `Login` title and labels (FR-16), inputs with a 1.5 px `#a4dfbb` border and 4 px radius on a transparent fill (FR-17), the white button with its `#004b27` label (FR-18), the Forgot link as a non-functional button (FR-19), and the legal text and links (FR-20, SCRUM-31). Submit is a no-op.
-- [ ] `playwright.config.js`: Chromium, viewport 1366×768, `deviceScaleFactor: 1`, `webServer: npm run dev`, `VITE_DATA_LATENCY_MS=0`.
-- [ ] `tests/fidelity/support/fidelity.js`: helpers to load all font weights, run the measurement audit over `data-fid` against an expected-values table, and run the copy audit.
-- [ ] `tests/fidelity/login.spec.js`: `toHaveScreenshot('login-6026-60111.png', { maxDiffPixelRatio: 0.005, threshold: 0.1, mask: [photo] })`, plus the measurement audit (±1 px) and copy audit for every FR-12–FR-20 element.
-- [ ] `tests/fidelity/expected/login.json`: the expected `{fid: {x, y, w, h, color, fontFamily, fontWeight, fontSize, lineHeight, letterSpacing, radius}}` values, transcribed from PRD FR-12–FR-20.
-- [ ] `tests/unit/login.test.jsx`: the redirect, the legal links' `target`/`rel`/`href` from config, and that no user-visible text is written literally in JSX.
-- [ ] `.github/workflows/ci.yml`: a `macos-latest` job running `npx playwright install chromium` and `npm run test:fidelity`, uploading `test-results/` on failure.
+- [x] `package.json`: add `@playwright/test@1.64.1` (dev) and the `test:fidelity` script.
+- [x] `src/app/App.jsx`: `/login` renders `LoginPage`; every other app path redirects to `paths.login()` (FR-11).
+- [x] `src/pages/Login/LoginPage.jsx` and `LoginPage.module.css`: the frame, the two mirrored photo layers, the green panel SVG, the 9×13 triangle and the form column, at exact FR-12–FR-15 geometry, with a `data-fid` on each.
+- [x] `src/features/auth/LoginForm.jsx` and `LoginForm.module.css`: the `Login` title and labels (FR-16), inputs with a 1.5 px `#a4dfbb` border and 4 px radius on a transparent fill (FR-17), the white button with its `#004b27` label (FR-18), the Forgot link as a non-functional button (FR-19), and the legal text and links (FR-20, SCRUM-31). Submit is a no-op.
+- [x] `playwright.config.js`: Chromium, viewport 1366×768, `deviceScaleFactor: 1`, `webServer: npm run dev`, `VITE_DATA_LATENCY_MS=0`.
+- [x] `tests/fidelity/support/fidelity.js`: helpers to load all font weights, run the measurement audit over `data-fid` against an expected-values table, and run the copy audit.
+- [x] `tests/fidelity/login.spec.js`: `toHaveScreenshot('login-6026-60111.png', { maxDiffPixelRatio: 0.005, threshold: 0.1, mask: [photo] })`, plus the measurement audit (±1 px) and copy audit for every FR-12–FR-20 element.
+- [x] `tests/fidelity/expected/login.json`: the expected `{fid: {x, y, w, h, color, fontFamily, fontWeight, fontSize, lineHeight, letterSpacing, radius}}` values, transcribed from PRD FR-12–FR-20.
+- [x] `tests/unit/login.test.jsx`: the redirect, the legal links' `target`/`rel`/`href` from config, and that no user-visible text is written literally in JSX.
+- [x] `.github/workflows/ci.yml`: a `macos-latest` job running `npx playwright install chromium` and `npm run test:fidelity`, uploading `test-results/` on failure.
 
 **Acceptance Criteria:**
 - Given `npm run lint && npm run build && npm test`, when run, then all pass with zero errors (CSS-literal gate included).

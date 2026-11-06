@@ -31,3 +31,8 @@ _acl/atlassian-config.json
 # Oversized Figma source rasters (kept locally; derivatives are committed)
 _acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/figma-assets/login/981df.png
 _acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/figma-assets/dashboard/avatar1.png
+
+# Playwright (Fidelity check)
+test-results
+playwright-report
+tests/fidelity/.baselines-masked

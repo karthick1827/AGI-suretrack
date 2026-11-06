@@ -1,0 +1,73 @@
+/*
+ * Login frame 6026:60111 (FR-12–FR-14, AD-4). Fixed 1366×768 canvas,
+ * left-aligned, clips its content. Geometry copied verbatim from PRD FR-12–FR-14
+ * and addendum Part A §2 (fractional px kept).
+ */
+
+.frame {
+  position: relative;
+  width: 1366px;
+  height: 768px;
+  overflow: hidden;
+  background: var(--primitives-color-base-white);
+}
+
+/* 6026:60116 "…0b 1": image rect x 386.34, y −249.42, 1571.09×1048.26, mirrored. */
+.photoRight {
+  position: absolute;
+  left: 386.34px;
+  top: -249.42px;
+  width: 1571.09px;
+  height: 1048.26px;
+  max-width: none;
+  transform: scaleX(-1);
+}
+
+/* 6026:60117 "…0b 3": its container clips it at frame x = 513. */
+.photoLeftClip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 513px;
+  height: 768px;
+  overflow: hidden;
+}
+
+.photoLeft {
+  position: absolute;
+  left: -634.24px;
+  top: -283.1px;
+  width: 1627.24px;
+  height: 1085.39px;
+  max-width: none;
+  transform: scaleX(-1);
+}
+
+/* 6026:60119: only the (1356.83,768)–(1366,768)–(1366,755.32) triangle is in frame.
+   The SVG carries its own #02A45B fill at fill-opacity 0.4. */
+.rightOverlay {
+  position: absolute;
+  left: 1356.833px;
+  top: -55px;
+  width: 1824.1px;
+  height: 823px;
+  max-width: none;
+}
+
+/* 6026:60121: green panel and form column, above both photo layers. */
+.panelGroup {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 692px;
+  height: 768px;
+}
+
+/* 6026:60122: the exported panel SVG (gradient and fill-opacity 0.9 baked in). */
+.greenPanel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 692px;
+  height: 768px;
+}

@@ -1,0 +1,276 @@
+/*
+ * Login form column 6026:60124 (FR-15–FR-20). Geometry copied verbatim from
+ * PRD FR-15–FR-20 and addendum Part A §2.4 / §4. Colours and fonts only via
+ * var(--…) (AD-2). Undesigned states live in the trailing states block (AD-13).
+ */
+
+/* 6026:60124: x 90, y 127.039, 392.4285×513.922; vertical, gap 32, items centred. */
+.column {
+  position: absolute;
+  left: 90px;
+  top: 127.039px;
+  width: 392.4285px;
+  height: 513.922px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+/* 6026:60125: vertical, gap 24 (one visible child). */
+.innerStack {
+  flex: none;
+  width: 392.43px;
+  height: 417.92px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 6026:60126: vertical, gap 40, items start. */
+.logoStack {
+  flex: none;
+  width: 392.43px;
+  height: 417.92px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+/* 6026:60127: e34ba.svg, 392.4305×24. */
+.logo {
+  flex: none;
+  width: 392.4305px;
+  height: 24px;
+}
+
+/* 6026:60133 / 6026:60134: 392.43×353.92 at y 191.04. */
+.formWrapper {
+  flex: none;
+  width: 392.43px;
+  height: 353.92px;
+}
+
+/*
+ * Children are placed at their Figma offsets inside the wrapper (y 191.04):
+ * title 0, Username group 62, Password group 152, button 259, Forgot 333.92.
+ */
+.formStack {
+  position: relative;
+  width: 392.43px;
+  height: 353.92px;
+}
+
+/* 6026:60138: 67.32×30, Roboto SemiBold 600, 20px / 30px. */
+.title {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 67.32px;
+  height: 30px;
+  font-family: var(--font-stack-roboto);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 30px;
+  letter-spacing: 0;
+  color: var(--raw-ffffff);
+  white-space: nowrap;
+}
+
+/* 6026:60140 / 6026:60143: 392.43×66, vertical, gap 6. */
+.field {
+  position: absolute;
+  left: 0;
+  width: 392.43px;
+  height: 66px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.usernameGroup {
+  top: 62px;
+}
+
+.passwordGroup {
+  top: 152px;
+}
+
+/* 6026:60141 / 6026:60144: Roboto Regular 400, 14px / 20px, no wrap. */
+.label {
+  flex: none;
+  display: block;
+  height: 20px;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--weight-regular);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--raw-ffffff);
+  white-space: nowrap;
+}
+
+.usernameLabel {
+  width: 64px;
+}
+
+.passwordLabel {
+  width: 62px;
+}
+
+/*
+ * 6026:60142 / 6026:60145: 392.43×40, transparent, 1.5px #a4dfbb, radius 4px.
+ * Typed text [ASSUMPTION FR-17]: Roboto 400 16px / 24px, white, padding-x 16.
+ * The 1.5px stroke is drawn as an inset box-shadow: Chromium snaps border
+ * widths to whole device pixels (1.5px renders as 1px), while a shadow spread
+ * keeps the fractional, anti-aliased inside stroke Figma renders.
+ */
+.input {
+  flex: none;
+  display: block;
+  width: 392.43px;
+  height: 40px;
+  margin: 0;
+  padding: 0 var(--input-spacing-padding-x);
+  background: transparent;
+  border: 0;
+  box-shadow: inset 0 0 0 var(--border-width-sm) var(--brand-primary-200);
+  border-radius: 4px;
+  outline: none;
+  appearance: none;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--weight-regular);
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--primitives-color-base-white);
+  caret-color: var(--primitives-color-base-white);
+}
+
+/* 6026:60153: 392×40, #ffffff, radius 8, padding-x 16, gap 8, content centred. */
+.loginButton {
+  position: absolute;
+  left: 0;
+  top: 259px;
+  width: 392px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--primitives-color-base-white);
+}
+
+/* I6026:60153;23:2941: Roboto SemiBold 600, 16px / 24px, #004b27. */
+.loginButtonLabel {
+  display: block;
+  height: 24px;
+  font-family: var(--font-stack-roboto);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--brand-primary-700);
+  white-space: nowrap;
+}
+
+/* 6026:60146: x 199 (column offset 109), y 524.96, 197×20, left-aligned. */
+.forgotBox {
+  position: absolute;
+  left: 109px;
+  top: 333.92px;
+  width: 197px;
+  height: 20px;
+}
+
+/* 6026:60147: Roboto Medium 500, 14px / 20px, white, underlined. */
+.forgotLink {
+  display: block;
+  width: 197px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-family: var(--font-stack-roboto);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--raw-ffffff);
+  white-space: nowrap;
+  text-decoration: underline solid;
+  text-decoration-thickness: from-font;
+  text-underline-offset: from-font;
+  text-decoration-skip-ink: none;
+}
+
+/* 6026:60155: 320×64, centred text, top-aligned, Roboto 14px / 24px. */
+.legal {
+  flex: none;
+  width: 320px;
+  height: 64px;
+  text-align: center;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--weight-regular);
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--raw-ffffff);
+  /* Keep line 1's trailing space before the hard break, as Figma does when it
+     centres the line (otherwise the line shifts right by half a space). */
+  white-space: pre-wrap;
+}
+
+/* Privacy Policy / Terms of Service: Medium 500, underlined. */
+.legalLink {
+  font-weight: 500;
+  color: var(--raw-ffffff);
+  text-decoration: underline solid;
+  text-decoration-thickness: from-font;
+  text-underline-offset: from-font;
+  text-decoration-skip-ink: none;
+}
+
+/* " |": Regular 400 in alpha-white/50, not underlined. */
+.separator {
+  font-weight: var(--weight-regular);
+  color: var(--primitives-color-alpha-white-50);
+}
+
+/* The space after "|" is Medium 500. */
+.medium {
+  font-weight: 500;
+}
+
+/* states */
+
+/* FR-17: browser autofill must not repaint the input background or text. */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--primitives-color-base-white);
+  caret-color: var(--primitives-color-base-white);
+  transition: background-color 600000s 0s;
+}
+
+/* FR-9: hover changes only the cursor. */
+.loginButton:hover,
+.forgotLink:hover,
+.legalLink:hover {
+  cursor: pointer;
+}
+
+/* FR-9 / FR-17 / FR-20: 2px white outline, offset 2px, on keyboard focus only. */
+.input:focus-visible,
+.loginButton:focus-visible,
+.forgotLink:focus-visible,
+.legalLink:focus-visible {
+  outline: var(--border-width-md) solid var(--primitives-color-base-white);
+  outline-offset: 2px;
+}

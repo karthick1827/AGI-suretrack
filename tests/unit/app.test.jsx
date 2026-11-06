@@ -1,9 +1,13 @@
-// The app shell renders an empty app root at "/" with no console output.
+// The app shell: "/" redirects to the Login page (Story 1.2) with no console output.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, render, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import App from '../../src/app/App.jsx';
+import { getConfig } from '../../src/data/api.js';
+import { FID } from '../../src/lib/fid.js';
 import { fromRoot } from './support/project.js';
+
+vi.mock('../../src/data/api.js', () => ({ getConfig: vi.fn(() => Promise.resolve({ legal: {} })) }));
 
 afterEach(() => {
   cleanup();
@@ -11,11 +15,13 @@ afterEach(() => {
 });
 
 describe('App', () => {
-  it('renders nothing at / and logs nothing', () => {
+  it('redirects / to /login and logs nothing', async () => {
     const spies = ['error', 'warn', 'log'].map((level) => vi.spyOn(console, level));
     window.history.replaceState(null, '', '/');
     const { container } = render(<App />);
-    expect(container.innerHTML).toBe('');
+    await waitFor(() => expect(getConfig).toHaveBeenCalled());
+    expect(window.location.pathname).toBe('/login');
+    expect(container.querySelector(`[data-fid="${FID.frames.login}"]`)).not.toBeNull();
     for (const spy of spies) expect(spy).not.toHaveBeenCalled();
   });
 

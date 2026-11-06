@@ -1,0 +1,54 @@
+{
+  "$comment": "Login frame 6026:60111 — expected boxes (frame coords, px, ±1 px) and exact computed styles, transcribed from PRD FR-12–FR-20 and addendum Part A §2/§4. Colours are the PRD hex values. insetStroke = the FR-17 1.5px border, drawn as an inset box-shadow (see LoginForm.module.css).",
+  "6026:60111": { "x": 0, "y": 0, "w": 1366, "h": 768, "backgroundColor": "#ffffff" },
+  "6026:60116": { "x": 386.34, "y": -249.42, "w": 1571.09, "h": 1048.26, "opacity": "1" },
+  "6026:60117": { "x": -634.24, "y": -283.1, "w": 1627.24, "h": 1085.39, "opacity": "1" },
+  "6026:60119": { "x": 1356.833, "y": -55, "w": 1824.1, "h": 823 },
+  "6026:60121": { "x": 0, "y": 0, "w": 692, "h": 768 },
+  "6026:60122": { "x": 0, "y": 0, "w": 692, "h": 768 },
+  "6026:60124": { "x": 90, "y": 127.039, "w": 392.4285, "h": 513.922 },
+  "6026:60125": { "x": 90, "y": 127.04, "w": 392.43, "h": 417.92 },
+  "6026:60126": { "x": 90, "y": 127.04, "w": 392.43, "h": 417.92 },
+  "6026:60127": { "x": 90, "y": 127.04, "w": 392.4305, "h": 24 },
+  "6026:60133": { "x": 90, "y": 191.04, "w": 392.43, "h": 353.92 },
+  "6026:60134": { "x": 90, "y": 191.04, "w": 392.43, "h": 353.92 },
+  "6026:60138": {
+    "x": 90, "y": 191.04, "w": 67.32, "h": 30,
+    "color": "#ffffff", "fontFamily": "Roboto", "fontWeight": 600, "fontSize": "20px", "lineHeight": "30px", "letterSpacing": 0
+  },
+  "6026:60140": { "x": 90, "y": 253.04, "w": 392.43, "h": 66 },
+  "6026:60141": {
+    "x": 90, "y": 253.04, "w": 64, "h": 20,
+    "color": "#ffffff", "fontFamily": "Roboto", "fontWeight": 400, "fontSize": "14px", "lineHeight": "20px", "letterSpacing": 0
+  },
+  "6026:60142": {
+    "x": 90, "y": 279.04, "w": 392.43, "h": 40,
+    "backgroundColor": "transparent", "borderWidth": "0px", "insetStroke": "1.5px #a4dfbb", "radius": "4px"
+  },
+  "6026:60143": { "x": 90, "y": 343.04, "w": 392.43, "h": 66 },
+  "6026:60144": {
+    "x": 90, "y": 343.04, "w": 62, "h": 20,
+    "color": "#ffffff", "fontFamily": "Roboto", "fontWeight": 400, "fontSize": "14px", "lineHeight": "20px", "letterSpacing": 0
+  },
+  "6026:60145": {
+    "x": 90, "y": 369.04, "w": 392.43, "h": 40,
+    "backgroundColor": "transparent", "borderWidth": "0px", "insetStroke": "1.5px #a4dfbb", "radius": "4px"
+  },
+  "6026:60153": {
+    "x": 90, "y": 450.04, "w": 392, "h": 40,
+    "backgroundColor": "#ffffff", "radius": "8px"
+  },
+  "I6026:60153;23:2941": {
+    "y": 458.04, "h": 24,
+    "color": "#004b27", "fontFamily": "Roboto", "fontWeight": 600, "fontSize": "16px", "lineHeight": "24px", "letterSpacing": 0
+  },
+  "6026:60146": { "x": 199, "y": 524.96, "w": 197, "h": 20 },
+  "6026:60147": {
+    "x": 199, "y": 524.96, "w": 197, "h": 20,
+    "color": "#ffffff", "fontFamily": "Roboto", "fontWeight": 500, "fontSize": "14px", "lineHeight": "20px", "letterSpacing": 0
+  },
+  "6026:60155": {
+    "x": 126.21, "y": 576.96, "w": 320, "h": 64,
+    "color": "#ffffff", "fontFamily": "Roboto", "fontWeight": 400, "fontSize": "14px", "lineHeight": "24px", "letterSpacing": 0
+  }
+}
