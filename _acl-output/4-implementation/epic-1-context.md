@@ -1,3 +1,10 @@
+---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-06T04:59:37.805Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+---
+
 # Epic 1 Context: Secure sign-in and account recovery
 
 <!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
