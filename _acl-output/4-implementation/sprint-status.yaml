@@ -1,0 +1,79 @@
+# generated: 2026-11-06
+# last_updated: 2026-11-06
+# project: agi-cursor2
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _acl-output/4-implementation
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story starts (via quick-dev's sprint sync)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story starts (via quick-dev's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+#
+# SOURCE: _acl-output/3-solutioning/acl-create-epics-and-stories/epics.md (Approved 2026-11-06)
+# JIRA MAPPING (comments only; SCRUM board = acldigital-team-svdi5ip4, Epic SCRUM-8 "Web", parent SCRUM-5):
+#   1-2 → SCRUM-27 (AC1) + SCRUM-31 · 1-3 → SCRUM-27 · 1-4 → SCRUM-28 · 1-5 → SCRUM-29
+#   2-3, 2-4 → SCRUM-37 · 2-5 → SCRUM-38 · 2-7 → SCRUM-39 · 2-8 → SCRUM-40
+#   NEW (not yet in Jira): 1-1, 2-1, 2-2, 2-6, 3-1
+# DONE RULE (every story): all PRD §4 FR consequences true · build + lint clean ·
+#   Figma frame/region passes the Fidelity check (≤0.5% pixel diff, ±1 px, exact copy) on macOS.
+# PRE-REQ: export Logout icon from Figma 6026:52937 before 2-1.
+
+generated: 2026-11-06
+last_updated: 2026-11-06
+project: agi-cursor2
+project_key: NOKEY
+tracking_system: file-system
+story_location: _acl-output/4-implementation
+
+development_status:
+  epic-1: backlog
+  1-1-project-foundation-on-figmas-design-system: backlog
+  1-2-pixel-exact-login-page-with-the-fidelity-check: backlog
+  1-3-sign-in-and-reach-the-dashboard: backlog
+  1-4-clear-messages-when-sign-in-fails: backlog
+  1-5-request-a-reset-link-forgot-password-modal: backlog
+  epic-1-retrospective: optional
+  epic-2: backlog
+  2-1-signed-in-app-shell-and-header: backlog
+  2-2-dashboard-page-dashboard-states-and-card-shells: backlog
+  2-3-kpi-strip: backlog
+  2-4-equipment-card-with-health-bars: backlog
+  2-5-recent-alerts-card: backlog
+  2-6-fan-activity-card-with-runtime-chart: backlog
+  2-7-grain-on-hand-card: backlog
+  2-8-liquid-on-hand-card: backlog
+  epic-2-retrospective: optional
+  epic-3: backlog
+  3-1-notifications-panel: backlog
+  epic-3-retrospective: optional

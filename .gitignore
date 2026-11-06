@@ -1,0 +1,33 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Secrets (never commit)
+_acl/atlassian-config.json
+.env
+.env.*
+
+# Oversized Figma source rasters (kept locally; derivatives are committed)
+_acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/figma-assets/login/981df.png
+_acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/figma-assets/dashboard/avatar1.png

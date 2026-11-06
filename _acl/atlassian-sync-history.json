@@ -1,0 +1,92 @@
+[
+  {
+    "id": "sync-1793871349259",
+    "timestamp": "2026-11-05T09:35:49.259Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "live-cloud",
+    "totalItems": 103,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 103 stories from JIRA (0 changed set to 'In Review', 103 created, 0 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793864507533",
+    "timestamp": "2026-11-05T07:41:47.533Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "live-cloud",
+    "totalItems": 134,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 134 stories from JIRA (0 changed set to 'In Review', 134 created, 0 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793864121875",
+    "timestamp": "2026-11-05T07:35:21.875Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "live-cloud",
+    "totalItems": 134,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 134 stories from JIRA (57 changed set to 'In Review', 0 created, 77 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793864064719",
+    "timestamp": "2026-11-05T07:34:24.719Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "live-cloud",
+    "totalItems": 134,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 134 stories from JIRA (57 changed set to 'In Review', 0 created, 77 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793864002733",
+    "timestamp": "2026-11-05T07:33:22.733Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "live-cloud",
+    "totalItems": 134,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 134 stories from JIRA (57 changed set to 'In Review', 37 created, 40 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793863880114",
+    "timestamp": "2026-11-05T07:31:20.114Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "live-cloud",
+    "totalItems": 97,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 97 stories from JIRA (0 changed set to 'In Review', 97 created, 0 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793863488792",
+    "timestamp": "2026-11-05T07:24:48.792Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "simulated-demo",
+    "totalItems": 0,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 0 stories from JIRA (0 changed set to 'In Review', 0 created, 0 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793863439876",
+    "timestamp": "2026-11-05T07:23:59.876Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "simulated-demo",
+    "totalItems": 0,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 0 stories from JIRA (0 changed set to 'In Review', 0 created, 0 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793863354427",
+    "timestamp": "2026-11-05T07:22:34.427Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "simulated-demo",
+    "totalItems": 0,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 0 stories from JIRA (0 changed set to 'In Review', 0 created, 0 unchanged preserved)."
+  },
+  {
+    "id": "sync-1793863295986",
+    "timestamp": "2026-11-05T07:21:35.986Z",
+    "action": "JIRA Stories Pull (Fetch)",
+    "mode": "simulated-demo",
+    "totalItems": 0,
+    "projectKey": "SCRUM",
+    "summary": "Pulled 0 stories from JIRA (0 changed set to 'In Review', 0 created, 0 unchanged preserved)."
+  }
+]

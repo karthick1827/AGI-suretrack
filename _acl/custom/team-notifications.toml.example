@@ -1,0 +1,6 @@
+# Copy to team-notifications.toml and set real addresses (do not commit secrets).
+# Used by Markdown Studio POST /api/send-email
+
+[[team]]
+name = "Product Owner"
+email = "po@example.com"
