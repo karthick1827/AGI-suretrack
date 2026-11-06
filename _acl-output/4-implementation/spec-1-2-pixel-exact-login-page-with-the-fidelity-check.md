@@ -7,6 +7,8 @@ title: 'Story 1.2 — Pixel-exact Login page with the Fidelity check'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
+baseline_commit: 'abc380359e9a600c19934bec1c3b01f3ad4761c7'
+implementation_status: in-progress
 story_key: 1-2-pixel-exact-login-page-with-the-fidelity-check
 jira: SCRUM-27 (AC1), SCRUM-31
 review_loop_iteration: 0
