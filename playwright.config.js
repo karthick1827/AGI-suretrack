@@ -1,4 +1,5 @@
-// Fidelity check (FR-10, AD-6, AD-15): Chromium only, 1366×768 at DPR 1.
+// Fidelity check (FR-10, AD-6, AD-15): Chromium only, 1366×768 at DPR 1,
+// against the production bundle (vite build + vite preview), never the dev server.
 // Results are authoritative only from the macos-latest CI job; a Windows or
 // Linux run is advisory (font rasterisation differs).
 //
@@ -43,10 +44,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
+    command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}/login`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    reuseExistingServer: false,
+    timeout: 180_000,
     env: { VITE_DATA_LATENCY_MS: '0' },
   },
 });

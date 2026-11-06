@@ -2,6 +2,9 @@
  * Login form column 6026:60124 (FR-15–FR-20). Geometry copied verbatim from
  * PRD FR-15–FR-20 and addendum Part A §2.4 / §4. Colours and fonts only via
  * var(--…) (AD-2). Undesigned states live in the trailing states block (AD-13).
+ * White is always --raw-ffffff (Part A §1 hard-coded white). Weight 400 uses
+ * --weight-regular; 500 and 600 have no Login token (--font-weight-medium /
+ * -semibold are the Dashboard's SF Pro 510 / 590), so they stay literal.
  */
 
 /* 6026:60124: x 90, y 127.039, 392.4285×513.922; vertical, gap 32, items centred. */
@@ -145,8 +148,8 @@
   font-size: 16px;
   line-height: 24px;
   letter-spacing: 0;
-  color: var(--primitives-color-base-white);
-  caret-color: var(--primitives-color-base-white);
+  color: var(--raw-ffffff);
+  caret-color: var(--raw-ffffff);
 }
 
 /* 6026:60153: 392×40, #ffffff, radius 8, padding-x 16, gap 8, content centred. */
@@ -163,7 +166,7 @@
   padding: 0 16px;
   border: 0;
   border-radius: var(--radius-md);
-  background: var(--primitives-color-base-white);
+  background: var(--raw-ffffff);
 }
 
 /* I6026:60153;23:2941: Roboto SemiBold 600, 16px / 24px, #004b27. */
@@ -237,25 +240,45 @@
   text-decoration-skip-ink: none;
 }
 
-/* " |": Regular 400 in alpha-white/50, not underlined. */
+/*
+ * " |": Regular 400 in alpha-white/50, not underlined. The Figma render has
+ * ~8 px between each link and the "|" (login-6026-60111.png: Privacy Policy
+ * ends at x 268.5, "|" at 276–277, Terms of Service starts at 285.5), one
+ * space wider than the PRD copy " | " sets. The extra width is one Roboto
+ * 14px space: 3.47px Regular before, 3.48px Medium after.
+ */
 .separator {
+  margin-left: 3.47px;
   font-weight: var(--weight-regular);
   color: var(--primitives-color-alpha-white-50);
 }
 
 /* The space after "|" is Medium 500. */
 .medium {
+  margin-right: 3.48px;
   font-weight: 500;
 }
 
 /* states */
 
-/* FR-17: browser autofill must not repaint the input background or text. */
+/*
+ * FR-17: browser autofill must not repaint the transparent field or its text.
+ * Standard and prefixed selectors are separate rules, so a browser that does
+ * not know one of them still applies the other.
+ */
+.input:autofill {
+  background-color: transparent;
+  -webkit-text-fill-color: var(--raw-ffffff);
+  caret-color: var(--raw-ffffff);
+  transition: background-color 600000s 0s;
+}
+
 .input:-webkit-autofill,
 .input:-webkit-autofill:hover,
 .input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--primitives-color-base-white);
-  caret-color: var(--primitives-color-base-white);
+  background-color: transparent;
+  -webkit-text-fill-color: var(--raw-ffffff);
+  caret-color: var(--raw-ffffff);
   transition: background-color 600000s 0s;
 }
 
@@ -271,6 +294,6 @@
 .loginButton:focus-visible,
 .forgotLink:focus-visible,
 .legalLink:focus-visible {
-  outline: var(--border-width-md) solid var(--primitives-color-base-white);
+  outline: var(--border-width-md) solid var(--raw-ffffff);
   outline-offset: 2px;
 }

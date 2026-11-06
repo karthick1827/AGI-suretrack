@@ -42,9 +42,8 @@ test.describe('Login 6026:60111', () => {
     testInfo.annotations.push({ type: 'pixel-diff', description: note });
     process.stdout.write(`[fidelity] ${BASELINE}: ${note}\n`);
 
+    // maxDiffPixelRatio / threshold come from playwright.config.js (single source).
     await expect(page).toHaveScreenshot(BASELINE, {
-      maxDiffPixelRatio: 0.005,
-      threshold: 0.1,
       mask,
       maskColor: MASK_COLOR,
     });
@@ -117,15 +116,20 @@ test.describe('Login 6026:60111', () => {
     page.on('console', (msg) => messages.push(`${msg.type()}: ${msg.text()}`));
     page.on('pageerror', (error) => messages.push(`pageerror: ${error.message}`));
     page.on('request', (request) => {
-      const url = request.url();
-      if (!url.startsWith('data:') && !url.startsWith('blob:') && new URL(url).origin !== appOrigin) external.push(url);
+      let origin;
+      try {
+        origin = new URL(request.url()).origin;
+      } catch {
+        external.push(request.url());
+        return;
+      }
+      // data:, blob: and similar URLs have an opaque origin ('null') and never leave the app.
+      if (origin !== 'null' && origin !== appOrigin) external.push(request.url());
     });
 
     await openLogin(page);
     expect(external).toEqual([]);
-    // Dev-server-only noise (Vite HMR client, React DevTools hint) is not app output.
-    const devNoise = (m) => m.startsWith('debug:') || m.includes('[vite]') || m.includes('React DevTools');
-    expect(messages.filter((m) => !devNoise(m))).toEqual([]);
+    expect(messages).toEqual([]);
 
     await page.getByLabel(t.usernameLabel).fill('farmer');
     for (const [name, url] of [
@@ -148,14 +152,70 @@ test.describe('Login 6026:60111', () => {
     }
   });
 
-  test('keyboard focus shows a ring only on keyboard focus (AD-13)', async ({ page }) => {
+  test('submitting does nothing yet: URL stays /login, typed values kept (Story 1.3 adds sign-in)', async ({
+    page,
+    baseURL,
+  }) => {
     await openLogin(page);
-    const outline = (locator) => locator.evaluate((el) => getComputedStyle(el).outlineStyle);
-    const privacy = page.getByRole('link', { name: t.privacyPolicy });
-    expect(await outline(privacy)).toBe('none');
-    await page.getByRole('button', { name: t.forgotLink }).focus();
-    await page.keyboard.press('Tab');
-    await expect(privacy).toBeFocused();
-    expect(await outline(privacy)).toBe('solid');
+    const username = page.getByLabel(t.usernameLabel);
+    const password = page.getByLabel(t.passwordLabel);
+    await username.fill('farmer');
+    await password.fill('secret');
+    const assertUnchanged = async () => {
+      const url = new URL(page.url());
+      expect(url.href).toBe(new URL('/login', baseURL).href);
+      expect(url.search).toBe('');
+      await expect(username).toHaveValue('farmer');
+      await expect(password).toHaveValue('secret');
+    };
+    await password.press('Enter');
+    await assertUnchanged();
+    await page.getByRole('button', { name: t.submit }).click();
+    await assertUnchanged();
+  });
+
+  test('focus ring: shown on keyboard focus for every control, never at rest (AD-13, FR-9)', async ({ page }) => {
+    await openLogin(page);
+    const controls = [
+      page.getByLabel(t.usernameLabel),
+      page.getByLabel(t.passwordLabel),
+      page.getByRole('button', { name: t.submit }),
+      page.getByRole('button', { name: t.forgotLink }),
+      page.getByRole('link', { name: t.privacyPolicy }),
+      page.getByRole('link', { name: t.termsOfService }),
+    ];
+    const ring = (locator) =>
+      locator.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor} ${cs.outlineOffset}`;
+      });
+    const SHOWN = 'solid 2px rgb(255, 255, 255) 2px';
+
+    // At rest: no ring anywhere.
+    for (const control of controls) expect(await ring(control)).toMatch(/^none /);
+
+    // Keyboard: Tab walks the FR-21 order and each control shows the ring.
+    await page.locator('body').click({ position: { x: 1000, y: 400 } });
+    for (const control of controls) {
+      await page.keyboard.press('Tab');
+      await expect(control).toBeFocused();
+      expect(await ring(control)).toBe(SHOWN);
+    }
+
+    // Mouse: pressing a button or link focuses it without a ring. Text inputs
+    // always match :focus-visible in Chromium, which is what FR-9 asks for
+    // ("text inputs show focus whenever focused"), so they show the ring.
+    for (const [index, control] of controls.entries()) {
+      await page.locator('body').click({ position: { x: 1000, y: 400 } });
+      const box = await control.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await expect(control).toBeFocused();
+      const isInput = index < 2;
+      expect(await ring(control)).toEqual(isInput ? SHOWN : expect.stringMatching(/^none /));
+      // Release away from the control so links do not open a tab.
+      await page.mouse.move(1000, 400);
+      await page.mouse.up();
+    }
   });
 });

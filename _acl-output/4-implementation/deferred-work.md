@@ -29,3 +29,12 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-1-1-project-foundation-on-figmas-design-system.md`
   summary: Consider a separate vitest config (or test.include) so the test run does not load the Markdown Studio aclMarkdownSaverPlugin from vite.config.js.
   evidence: vite.config.js changes are Ask First; currently every test run loads the Studio plugin.
+- source_spec: `_acl-output/4-implementation/spec-1-2-pixel-exact-login-page-with-the-fidelity-check.md`
+  summary: Cache Playwright browsers in the macos-latest CI job and align its Node version with the Ubuntu job.
+  evidence: Each CI run re-downloads Chromium; job settings may drift.
+- source_spec: `_acl-output/4-implementation/spec-1-2-pixel-exact-login-page-with-the-fidelity-check.md`
+  summary: Give the Login and Forgot buttons visible feedback once Stories 1.3 and 1.5 wire them up (currently focusable no-ops by design).
+  evidence: Static Story 1.2 scope; behaviour arrives in 1.3/1.5.
+- source_spec: `_acl-output/4-implementation/spec-1-2-pixel-exact-login-page-with-the-fidelity-check.md`
+  summary: Update the PRD (FR-4/FR-20 notes) to record the user-approved Roboto metric overrides and the Figma-render separator spacing.
+  evidence: Implementation deviates from PRD wording with user approval; PRD should reflect it in its next update.

@@ -4,7 +4,8 @@
 // `…0b 1` (6026:60116), the same photo `…0b 3` (6026:60117) clipped at x = 513,
 // the right overlay whose only visible part is the 9×13 triangle (6026:60119),
 // then the panel group (6026:60121): the green angled panel and the form column.
-// Every position and size lives in LoginPage.module.css, copied from the PRD.
+// Every position and size lives in LoginPage.module.css, copied from the PRD
+// (img width/height attributes are rounded integers; CSS holds the exact px).
 import LoginForm from '../../features/auth/LoginForm.jsx';
 import { FID } from '../../lib/fid.js';
 import loginBgWebp from '../../assets/login-bg.webp';
@@ -32,8 +33,8 @@ export default function LoginPage() {
       <img
         className={styles.rightOverlay}
         src={triangleSvg}
-        width="1824.1"
-        height="823"
+        width={1824}
+        height={823}
         alt=""
         data-fid={FID.login.rightOverlay}
       />
@@ -41,8 +42,8 @@ export default function LoginPage() {
         <img
           className={styles.greenPanel}
           src={panelSvg}
-          width="692"
-          height="768"
+          width={692}
+          height={768}
           alt=""
           data-fid={FID.login.greenPanel}
         />

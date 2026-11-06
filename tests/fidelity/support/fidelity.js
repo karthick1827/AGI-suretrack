@@ -28,16 +28,23 @@ export const BOX_TOLERANCE_PX = 1;
 /* ------------------------------------------------------------------------ */
 
 const FONT_FACES = [
-  ...[400, 500, 600, 700, 800].map((weight) => `${weight} 16px "Roboto"`),
-  ...[400, 500, 600, 700].map((weight) => `${weight} 16px "Inter"`),
+  ...[400, 500, 600, 700, 800].map((weight) => `${weight} 16px Roboto`),
+  ...[400, 500, 600, 700].map((weight) => `${weight} 16px Inter`),
 ];
 
-/** AD-6: load every family and weight, then await document.fonts.ready. */
+/**
+ * AD-6: load every family and weight, await document.fonts.ready, then assert
+ * each face is really available (no silent fallback font in the capture).
+ */
 export async function waitForFonts(page) {
-  await page.evaluate(async (faces) => {
+  const missing = await page.evaluate(async (faces) => {
     await Promise.all(faces.map((face) => document.fonts.load(face)));
     await document.fonts.ready;
+    return faces.filter((face) => !document.fonts.check(face));
   }, FONT_FACES);
+  if (missing.length > 0) {
+    throw new Error(`waitForFonts: these font faces are not available: ${missing.join(', ')}`);
+  }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -52,15 +59,16 @@ const TRIANGLE_LEFT = 1356;
 const STRIP_PX = 8;
 
 /**
- * Integer rectangles covering only the visible silo photo of the Login frame:
- * for each 8 px band, from the panel's right-most edge in that band to the
- * frame edge (stopping short of the 9×13 triangle). Nothing drawn by the app
- * (panel, form, triangle) falls inside them.
+ * Integer rectangles covering the visible silo photo of the Login frame: for
+ * each 8 px band, from the panel edge at the band's BOTTOM row (its smallest
+ * x, since the edge slants left) to the frame edge, stopping short of the 9×13
+ * triangle. No photo sliver is left unmasked; the cost is up to ~1.8 px of the
+ * panel's angled edge per band. The form and the triangle are never masked.
  */
 export const LOGIN_PHOTO_MASK = Object.freeze(
   Array.from({ length: 768 / STRIP_PX }, (_, i) => {
     const top = i * STRIP_PX;
-    const left = Math.ceil(panelEdgeX(top));
+    const left = Math.floor(panelEdgeX(top + STRIP_PX));
     const right = top + STRIP_PX > TRIANGLE_TOP ? TRIANGLE_LEFT : 1366;
     return Object.freeze({ left, top, width: right - left, height: STRIP_PX });
   }),
@@ -91,7 +99,12 @@ export async function installMask(page, rects) {
 /** Write `<name>` from __baselines__ into .baselines-masked with `rects` painted in MASK_COLOR. */
 export async function writeMaskedBaseline(name, rects) {
   const source = path.join(BASELINE_DIR, name);
-  const { data, info } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(source).raw().toBuffer({ resolveWithObject: true });
+  if (info.width !== 1366 || info.height !== 768 || info.channels !== 4) {
+    throw new Error(
+      `writeMaskedBaseline: ${name} must be 1366×768 RGBA; got ${info.width}×${info.height} with ${info.channels} channels`,
+    );
+  }
   for (const { left, top, width, height } of rects) {
     for (let y = Math.max(0, top); y < Math.min(info.height, top + height); y += 1) {
       for (let x = Math.max(0, left); x < Math.min(info.width, left + width); x += 1) {
@@ -168,7 +181,10 @@ const STYLE_PROPS = {
 /** `#rrggbb` / `#rrggbbaa` / `transparent` → the computed-style `rgb()`/`rgba()` form. */
 export function cssColour(value) {
   if (value === 'transparent') return 'rgba(0, 0, 0, 0)';
-  const hex = value.replace('#', '');
+  if (typeof value !== 'string' || !/^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)) {
+    throw new Error(`cssColour: expected #rrggbb or #rrggbbaa, got ${JSON.stringify(value)}`);
+  }
+  const hex = value.slice(1);
   const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
   if (hex.length === 8) {
     const byte = parseInt(hex.slice(6, 8), 16);
@@ -219,7 +235,11 @@ export async function measurementAudit(page, expected) {
   );
 
   const problems = [];
+  const known = new Set([...BOX_KEYS, ...Object.keys(STYLE_PROPS)]);
   for (const [fid, want] of Object.entries(expected)) {
+    for (const key of Object.keys(want)) {
+      if (!known.has(key)) problems.push(`${fid}: unknown expected key "${key}"`);
+    }
     const got = measured[fid];
     if (got.count !== 1) {
       problems.push(`${fid}: expected exactly one element, found ${got.count}`);

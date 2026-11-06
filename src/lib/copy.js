@@ -30,11 +30,9 @@ export const copy = deepFreeze({
     forgotLink: 'Forgot Password or Username?',
     legalLead: 'By clicking login, you hereby agree to our ',
     privacyPolicy: 'Privacy Policy',
-    // Spacing follows the Figma render (login-6026-60111.png, node 6026:60155),
-    // not the PRD's single-space ' | ': the render has ~8 px each side of "|",
-    // i.e. two spaces before and after (approved by the user in Story 1.2).
-    // The characters are unchanged; only the space count differs.
-    legalSeparator: '  |  ',
+    // Exact PRD copy. The wider gap the Figma render shows on each side of "|"
+    // (~8 px) is added in CSS (LoginForm.module.css), not in this string.
+    legalSeparator: ' | ',
     termsOfService: 'Terms of Service',
     errors: {
       usernameRequired: 'Username is required',

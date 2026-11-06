@@ -3,7 +3,8 @@
 // Static at-rest form for Story 1.2: submitting is a no-op (sign-in arrives in
 // Story 1.3) and the Forgot link is a non-functional button (the modal arrives
 // in Story 1.5). Legal URLs come from the runtime config (FR-20, SCRUM-31);
-// until it loads, or if it fails, the links render without an href.
+// until it loads, if it fails, or if a URL is not http(s), a link renders
+// without an href.
 import { useEffect, useId, useState } from 'react';
 import { getConfig } from '../../data/api.js';
 import { copy } from '../../lib/copy.js';
@@ -13,13 +14,23 @@ import styles from './LoginForm.module.css';
 
 const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' };
 
+/** Only absolute http(s) URLs become an href; anything else is dropped. */
+function safeUrl(value) {
+  return typeof value === 'string' && /^https?:\/\//i.test(value) ? value : undefined;
+}
+
 function useLegalUrls() {
   const [legal, setLegal] = useState(null);
   useEffect(() => {
     let active = true;
     getConfig().then(
       (config) => {
-        if (active) setLegal(config?.legal ?? null);
+        if (!active) return;
+        const source = config?.legal;
+        setLegal({
+          privacyPolicyUrl: safeUrl(source?.privacyPolicyUrl),
+          termsOfServiceUrl: safeUrl(source?.termsOfServiceUrl),
+        });
       },
       () => {
         // Config failed to load: the links stay without an href; nothing is logged.
@@ -37,8 +48,10 @@ export default function LoginForm() {
   const passwordId = useId();
   const legal = useLegalUrls();
   const t = copy.login;
-  // FR-20: the spaces before "|" (and "|") are Regular; the spaces after it are Medium.
-  const splitAt = t.legalSeparator.indexOf('|') + 1;
+  // FR-20: the space before "|" (and "|") is Regular; the space after it is
+  // Medium. Without a "|", the whole separator renders Regular.
+  const bar = t.legalSeparator.indexOf('|');
+  const splitAt = bar === -1 ? t.legalSeparator.length : bar + 1;
   const separatorRegular = t.legalSeparator.slice(0, splitAt);
   const separatorMedium = t.legalSeparator.slice(splitAt);
 
@@ -49,8 +62,8 @@ export default function LoginForm() {
           <img
             className={styles.logo}
             src={logoSvg}
-            width="392.4305"
-            height="24"
+            width={392}
+            height={24}
             alt={copy.brand.logoAlt}
             data-fid={FID.login.logo}
           />
