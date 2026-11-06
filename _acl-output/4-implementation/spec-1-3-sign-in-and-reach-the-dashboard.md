@@ -1,9 +1,12 @@
 ---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-06T06:28:22.437Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 1.3 — Sign in and reach the Dashboard'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
-status: In Review
 story_key: 1-3-sign-in-and-reach-the-dashboard
 jira: SCRUM-27
 review_loop_iteration: 0
