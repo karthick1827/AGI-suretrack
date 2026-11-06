@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="13.8462" height="13.8462" viewBox="0 0 13.8462 13.8462" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="Icon" clip-path="url(#clip0_0_22)">
+<path id="Vector" d="M6.71402 12.1154H7.13363C10.2622 12.1154 11.8264 12.1154 12.4587 11.2085C13.0909 10.3016 12.3914 9.06123 10.9923 6.58056L10.7825 6.20857C9.09878 3.22338 8.25695 1.73079 6.92383 1.73079C5.5907 1.73079 4.74887 3.22338 3.0652 6.20857L2.8554 6.58056C1.45628 9.06123 0.756718 10.3016 1.38898 11.2085C2.02124 12.1154 3.5855 12.1154 6.71402 12.1154Z" stroke-width="1.15385" stroke="white"/>
+<path id="Vector_2" d="M6.92383 4.6154V7.50002" stroke-width="1.15385" stroke-linecap="round" stroke="white"/>
+<g id="Vector_3">
+<use xlink:href="#stroke0_0_22" fill="white"/>
+<use xlink:href="#stroke0_0_22" fill="white"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_22">
+<rect width="13.8462" height="13.8462" fill="white"/>
+</clipPath>
+<path id="stroke0_0_22" d="M7.50075 9.23079C7.50075 9.54941 7.24245 9.80771 6.92383 9.80771C6.6052 9.80771 6.34691 9.54941 6.34691 9.23079C6.34691 8.91216 6.6052 8.65386 6.92383 8.65386C7.24245 8.65386 7.50075 8.91216 7.50075 9.23079Z"/>
+</defs>
+</svg>

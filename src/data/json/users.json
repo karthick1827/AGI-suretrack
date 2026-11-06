@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "policy": {
+    "maxFailedAttempts": 5,
+    "lockoutMinutes": 15,
+    "requestTimeoutMs": 15000,
+    "simulatedLatencyMs": 800,
+    "sessionTtlMinutes": 480
+  },
+  "users": [
+    {
+      "username": "demo",
+      "password": "Demo@123",
+      "displayName": "Demo Farmer",
+      "email": "demo@example.com",
+      "status": "active",
+      "lockedUntil": null,
+      "subscriptionActive": true,
+      "passwordExpired": false,
+      "dashboardState": "full",
+      "note": "Primary valid account; lands on Dashboard state full (Figma 6215:58878)."
+    },
+    {
+      "username": "small",
+      "password": "Small@123",
+      "displayName": "Small Farm",
+      "email": "small@example.com",
+      "status": "active",
+      "lockedUntil": null,
+      "subscriptionActive": true,
+      "passwordExpired": false,
+      "dashboardState": "small",
+      "note": "Valid account; lands on Dashboard state small, 1 alert (Figma 6864:4514)."
+    },
+    {
+      "username": "allgood",
+      "password": "AllGood@123",
+      "displayName": "All Good Farm",
+      "email": "allgood@example.com",
+      "status": "active",
+      "lockedUntil": null,
+      "subscriptionActive": true,
+      "passwordExpired": false,
+      "dashboardState": "allgood",
+      "note": "Valid account; lands on Dashboard state allgood (Figma 6879:15603)."
+    },
+    {
+      "username": "locked",
+      "password": "Locked@123",
+      "displayName": "Locked Account",
+      "email": "locked@example.com",
+      "status": "locked",
+      "lockedUntil": null,
+      "subscriptionActive": true,
+      "passwordExpired": false,
+      "dashboardState": "full",
+      "note": "Locked, no unlock time known: message without 'Try again after' (FR-27)."
+    },
+    {
+      "username": "locked-until",
+      "password": "Locked@123",
+      "displayName": "Locked Until Account",
+      "email": "locked-until@example.com",
+      "status": "locked",
+      "lockedUntil": "2099-01-01T09:00:00Z",
+      "subscriptionActive": true,
+      "passwordExpired": false,
+      "dashboardState": "full",
+      "note": "Locked with a known unlock time: message includes 'Try again after {time}' (FR-27)."
+    },
+    {
+      "username": "inactive",
+      "password": "Inactive@123",
+      "displayName": "Inactive Account",
+      "email": "inactive@example.com",
+      "status": "inactive",
+      "lockedUntil": null,
+      "subscriptionActive": true,
+      "passwordExpired": false,
+      "dashboardState": "full",
+      "note": "Inactive account (FR-28)."
+    },
+    {
+      "username": "nosub",
+      "password": "NoSub@123",
+      "displayName": "No Subscription",
+      "email": "nosub@example.com",
+      "status": "active",
+      "lockedUntil": null,
+      "subscriptionActive": false,
+      "passwordExpired": false,
+      "dashboardState": "full",
+      "note": "Active but no active subscription: same message as inactive (FR-28)."
+    },
+    {
+      "username": "expired",
+      "password": "Expired@123",
+      "displayName": "Expired Password",
+      "email": "expired@example.com",
+      "status": "active",
+      "lockedUntil": null,
+      "subscriptionActive": true,
+      "passwordExpired": true,
+      "dashboardState": "full",
+      "note": "Password expired: message with link that opens the Forgot Password modal (FR-29)."
+    },
+    {
+      "username": "slow",
+      "password": "Slow@123",
+      "displayName": "Slow Response",
+      "email": "slow@example.com",
+      "status": "active",
+      "lockedUntil": null,
+      "subscriptionActive": true,
+      "passwordExpired": false,
+      "dashboardState": "full",
+      "simulatedLatencyMs": 16000,
+      "note": "Response slower than policy.requestTimeoutMs: timeout message (FR-31)."
+    }
+  ]
+}

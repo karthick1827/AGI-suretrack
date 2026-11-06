@@ -1,0 +1,89 @@
+{
+  "state": "full",
+  "pageBottomSpacePx": 16,
+  "figmaFrame": "6215:58878",
+  "header": { "activeTab": "Dashboard", "tabs": ["Dashboard", "Equipment", "Alerts"], "bellBadge": 2 },
+  "pageTitle": "Dashboard",
+  "kpi": {
+    "attention": { "value": 7, "label": "Need attention · 2 critical", "critical": 2, "allGood": false },
+    "equipment": {
+      "value": 20, "label": "Equipment", "subCountWeight": 400,
+      "breakdown": [
+        { "value": 7, "label": "Bins", "typeKey": "bins" },
+        { "value": 3, "label": "Piles", "typeKey": "piles" },
+        { "value": 2, "label": "Flats", "typeKey": "flats" },
+        { "value": 6, "label": "Tanks", "typeKey": "tanks" },
+        { "value": 2, "label": "Dryers", "typeKey": "dryers" }
+      ]
+    },
+    "online": { "value": 16, "label": "Online" },
+    "offline": { "value": 4, "label": "Offline" },
+    "fans": { "value": "7 of 24", "running": 7, "total": 24, "label": "Fans running now" }
+  },
+  "equipmentCard": {
+    "title": "Equipment (20)", "subtitle": "Health by type", "link": "View All",
+    "rows": [
+      { "type": "Bins", "typeKey": "bins", "count": 7, "alerts": 3, "offline": 1, "healthy": 3, "caption": "3 alerts · 1 offline · 3 healthy" },
+      { "type": "Piles", "typeKey": "piles", "count": 3, "alerts": 1, "offline": 0, "healthy": 2, "caption": "1 alert · 2 healthy" },
+      { "type": "Flats", "typeKey": "flats", "count": 2, "alerts": 0, "offline": 0, "healthy": 2, "caption": "2 healthy" },
+      { "type": "Tanks", "typeKey": "tanks", "count": 6, "alerts": 1, "offline": 0, "healthy": 5, "caption": "1 alert · 5 healthy" },
+      { "type": "Dryers", "typeKey": "dryers", "count": 2, "alerts": 0, "offline": 0, "healthy": 2, "caption": "2 healthy" }
+    ]
+  },
+  "recentAlerts": {
+    "title": "Recent Alerts", "subtitle": "Most urgent first. Each item links to what to do next.", "link": "View All",
+    "items": [
+      { "id": "a1", "title": "HotSpot Detected", "deviceId": "759", "location": "Wheat Storage", "severity": "Critical", "time": "30 mins ago", "action": "View Hotspot", "actionKey": "hotspot" },
+      { "id": "a2", "title": "Static Pressure", "deviceId": "757", "location": "Oat Silo", "severity": "Critical", "time": "2 hours ago", "action": "Check Fans", "actionKey": "fans" },
+      { "id": "a3", "title": "No Communication", "deviceId": "18086", "location": "Pinto Storage", "severity": "Warning", "time": "3 hours ago", "action": "Check Connection", "actionKey": "connection" },
+      { "id": "a4", "title": "Missing Fan Switched", "deviceId": "753", "location": "Canola East", "severity": "Warning", "time": "1 day ago", "action": "Check Fan Switches", "actionKey": "fan-switches" }
+    ],
+    "empty": null
+  },
+  "fanActivity": {
+    "title": "Fan activity", "subtitle": "All storage fans",
+    "tiles": [
+      { "value": "7", "label": "Running Now" },
+      { "value": "86 h", "label": "Runtime Today" },
+      { "value": "410 kWh", "label": "Energy Today" }
+    ],
+    "chartLabel": "Fan runtime hours for the last 7 days, from 62 to 90 hours",
+    "chart": [
+      { "day": "Wed", "hours": 62, "barPx": 54, "isToday": false },
+      { "day": "Thu", "hours": 70, "barPx": 61, "isToday": false },
+      { "day": "Fri", "hours": 74, "barPx": 66, "isToday": false },
+      { "day": "Sat", "hours": 81, "barPx": 72, "isToday": false },
+      { "day": "Sun", "hours": 77, "barPx": 68, "isToday": false },
+      { "day": "Mon", "hours": 90, "barPx": 79, "isToday": false },
+      { "day": "Today", "hours": 86, "barPx": 76, "isToday": true }
+    ],
+    "caption": "Runtime hours, last 7 days. Higher this week as Auto modes used the cool nights."
+  },
+  "grain": {
+    "title": "Grain On Hand", "subtitle": "All grain inventory",
+    "summaryBold": "1.40M bu", "summaryRest": "of 1.78M bu · 79% full", "fillLabel": "79% Fill",
+    "totalBu": 1400000, "capacityBu": 1780000, "fillPct": 79,
+    "items": [
+      { "name": "Canola", "amountK": 340, "amountBu": 340000, "amountLabel": "340k bu", "subLabel": "340k bu · 1 unit", "units": 1, "color": "#E3C341" },
+      { "name": "Corn", "amountK": 314, "amountBu": 314000, "amountLabel": "314k bu", "subLabel": "314k bu · 1 unit", "units": 1, "color": "#E07B39" },
+      { "name": "Soybeans", "amountK": 268, "amountBu": 268000, "amountLabel": "268k bu", "subLabel": "268k bu · 1 unit", "units": 1, "color": "#6F8F4F" },
+      { "name": "Wheat", "amountK": 224, "amountBu": 224000, "amountLabel": "224k bu", "subLabel": "224k bu · 1 unit", "units": 1, "color": "#C98F2E" },
+      { "name": "Barley", "amountK": 140, "amountBu": 140000, "amountLabel": "140k bu", "subLabel": "140k bu · 1 unit", "units": 1, "color": "#8FB36B" },
+      { "name": "Oats", "amountK": 111, "amountBu": 111000, "amountLabel": "111k bu", "subLabel": "111k bu · 1 unit", "units": 1, "color": "#B9A47A" }
+    ]
+  },
+  "liquid": {
+    "title": "Liquid On Hand", "subtitle": "All liquid storage tanks",
+    "summaryBold": "83k gal", "summaryRest": "of 100k gal · 83% full", "fillLabel": "83% Fill",
+    "totalGal": 83000, "capacityGal": 100000,
+    "items": [
+      { "name": "Propane", "amountK": 20, "amountGal": 20000, "amountLabel": "20k gal", "subLabel": "20k gal · 4 tanks", "tanks": 4, "color": "#0EA5E9" },
+      { "name": "Fuel Oil", "amountK": 18, "amountGal": 18000, "amountLabel": "18k gal", "subLabel": "18k gal · 3 tanks", "tanks": 3, "color": "#00B156" },
+      { "name": "Water", "amountK": 16, "amountGal": 16000, "amountLabel": "16k gal", "subLabel": "16k gal · 4 tanks", "tanks": 4, "color": "#84CC16" },
+      { "name": "Kerosene", "amountK": 10, "amountGal": 10000, "amountLabel": "10k gal", "subLabel": "10k gal · 2 tanks", "tanks": 2, "color": "#14B8A6" },
+      { "name": "Gasoline", "amountK": 8, "amountGal": 8000, "amountLabel": "8k gal", "subLabel": "8k gal · 2 tanks", "tanks": 2, "color": "#A855F7" },
+      { "name": "Diesel", "amountK": 11, "amountGal": 11000, "amountLabel": "11k gal", "subLabel": "11k gal · 2 tanks", "tanks": 2, "color": "#6366F1" }
+    ],
+    "empty": null
+  }
+}

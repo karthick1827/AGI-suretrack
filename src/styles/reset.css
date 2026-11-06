@@ -1,0 +1,67 @@
+/*
+ * Minimal reset (AD-3). Global CSS is limited to reset.css, fonts.css and
+ * tokens.css, imported once in src/app/main.jsx. No colour or font literals
+ * here: anything visual comes from tokens.css.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Fixed 1366 px design canvas, left-aligned (AD-4). */
+#root {
+  min-width: 1366px;
+}

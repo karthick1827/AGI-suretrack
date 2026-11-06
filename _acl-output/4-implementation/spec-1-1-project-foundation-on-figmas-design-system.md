@@ -7,6 +7,8 @@ title: 'Story 1.1 — Project foundation on Figma''s design system'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
+baseline_commit: '464457683d23546fbee2269fccc25012d6e93dc7'
+implementation_status: in-progress
 story_key: 1-1-project-foundation-on-figmas-design-system
 review_loop_iteration: 0
 context:
@@ -75,19 +77,19 @@ No user-visible screen ships in this story; `/` renders an empty app root.
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `package.json` and the lockfile: install the pinned deps; add `engines` and the scripts. This fixes versions per the spine.
-- [ ] `src/styles/tokens.css`: one custom property per Figma variable (`--<path-dashes>`) and per hard-coded colour (`--raw-<hex>`). Include separate tokens for `#C62828`, `#DC2626`, `#FF0000`, `#F3F4F6` and `#F3F4F4`; the shadows `0 2px 2px rgba(39,39,39,0.1)` and `0 12px 20px -2px rgba(39,39,39,0.15)`; the font stacks; and a z-index scale. This is the single token layer (AD-2).
-- [ ] `src/styles/fonts.css`: own `@font-face` rules for Roboto 400–800 and Inter 400–700 latin WOFF2 files from `@fontsource/*/files/`, with `font-display: block`. This fixes the package default of `swap` (AD-6).
-- [ ] `src/styles/reset.css`: a minimal reset; `#root { min-width: 1366px; }`.
-- [ ] `src/assets/icons/`: copy every figma-assets SVG byte-identically. Author `chevron-right.svg` (12×16, `#006A36`) as the only hand-made icon (AD-5).
-- [ ] `scripts/build-images.mjs`: use sharp to derive `src/assets/login-bg.webp` and `.jpg` (2732 px wide, each ≤ 600 KB) from `981df.png`, and copy `avatar3.png` to `src/assets/avatar.png`. Commit the outputs; the 17.6 MB source stays local.
-- [ ] `src/data/json/*.json` and `public/app-config.json`: copy the PRD addendum JSON verbatim. The config holds placeholder legal URLs (`https://example.com/privacy`, `https://example.com/terms`) and the Coach number.
-- [ ] `src/data/api.js`: `getUsers`, `getDashboard`, `getNotifications` and `getConfig`, using `?url` plus `fetch`, `VITE_DATA_LATENCY_MS` latency and the `__fail` seam (dev and test only) (AD-7).
-- [ ] `src/lib/paths.js`, `src/lib/copy.js`, `src/lib/fid.js`: route builders (FR-57/FR-75), every UI string verbatim (U+00B7, U+2019, typos kept) and Figma node-ID constants (AD-10, AD-15, AD-16).
-- [ ] `src/app/main.jsx` and `src/app/App.jsx`: import reset, fonts and tokens once; `BrowserRouter` with an empty route table placeholder; mount `#root`.
-- [ ] `scripts/check-css-literals.mjs`: fail if any `src/**/*.module.css` holds a hex, `rgb(a)` or font-family literal outside `var(--…)`.
-- [ ] `tests/unit/`: token-presence, asset-checksum, JSON-schema, api (the I/O matrix) and copy-encoding tests.
-- [ ] `.github/workflows/ci.yml`: an Ubuntu job running `npm ci`, `npm run lint`, `npm run build` and `npm test`.
+- [x] `package.json` and the lockfile: install the pinned deps; add `engines` and the scripts. This fixes versions per the spine.
+- [x] `src/styles/tokens.css`: one custom property per Figma variable (`--<path-dashes>`) and per hard-coded colour (`--raw-<hex>`). Include separate tokens for `#C62828`, `#DC2626`, `#FF0000`, `#F3F4F6` and `#F3F4F4`; the shadows `0 2px 2px rgba(39,39,39,0.1)` and `0 12px 20px -2px rgba(39,39,39,0.15)`; the font stacks; and a z-index scale. This is the single token layer (AD-2).
+- [x] `src/styles/fonts.css`: own `@font-face` rules for Roboto 400–800 and Inter 400–700 latin WOFF2 files from `@fontsource/*/files/`, with `font-display: block`. This fixes the package default of `swap` (AD-6).
+- [x] `src/styles/reset.css`: a minimal reset; `#root { min-width: 1366px; }`.
+- [x] `src/assets/icons/`: copy every figma-assets SVG byte-identically. Author `chevron-right.svg` (12×16, `#006A36`) as the only hand-made icon (AD-5).
+- [x] `scripts/build-images.mjs`: use sharp to derive `src/assets/login-bg.webp` and `.jpg` (2732 px wide, each ≤ 600 KB) from `981df.png`, and copy `avatar3.png` to `src/assets/avatar.png`. Commit the outputs; the 17.6 MB source stays local.
+- [x] `src/data/json/*.json` and `public/app-config.json`: copy the PRD addendum JSON verbatim. The config holds placeholder legal URLs (`https://example.com/privacy`, `https://example.com/terms`) and the Coach number.
+- [x] `src/data/api.js`: `getUsers`, `getDashboard`, `getNotifications` and `getConfig`, using `?url` plus `fetch`, `VITE_DATA_LATENCY_MS` latency and the `__fail` seam (dev and test only) (AD-7).
+- [x] `src/lib/paths.js`, `src/lib/copy.js`, `src/lib/fid.js`: route builders (FR-57/FR-75), every UI string verbatim (U+00B7, U+2019, typos kept) and Figma node-ID constants (AD-10, AD-15, AD-16).
+- [x] `src/app/main.jsx` and `src/app/App.jsx`: import reset, fonts and tokens once; `BrowserRouter` with an empty route table placeholder; mount `#root`.
+- [x] `scripts/check-css-literals.mjs`: fail if any `src/**/*.module.css` holds a hex, `rgb(a)` or font-family literal outside `var(--…)`.
+- [x] `tests/unit/`: token-presence, asset-checksum, JSON-schema, api (the I/O matrix) and copy-encoding tests.
+- [x] `.github/workflows/ci.yml`: an Ubuntu job running `npm ci`, `npm run lint`, `npm run build` and `npm test`.
 
 **Acceptance Criteria:**
 - Given a fresh clone, when `npm ci && npm run lint && npm run build && npm test` run, then all pass with zero errors and zero warnings.

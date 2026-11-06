@@ -1,0 +1,11 @@
+{
+  "legal": {
+    "privacyPolicyUrl": "https://example.com/privacy",
+    "termsOfServiceUrl": "https://example.com/terms"
+  },
+  "coach": {
+    "name": "SureTrack Coach",
+    "phone": "(855) 293-5607",
+    "tel": "tel:+18552935607"
+  }
+}

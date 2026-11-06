@@ -1,0 +1,19 @@
+{
+  "title": "Notifications",
+  "unreadOnlyDefault": true,
+  "unreadOnlyLabel": "Unread Only",
+  "chips": [
+    { "label": "All", "tag": null },
+    { "label": "App", "tag": "App" },
+    { "label": "Equipment", "tag": "Equipment" },
+    { "label": "Promotions", "tag": "Promotion" }
+  ],
+  "items": [
+    { "id": "n1", "message": "SureTrack app version 3.2 is available with offline field logging. Update now.", "tag": "App", "time": "Feb 25 | 11:20 am", "unread": true },
+    { "id": "n2", "message": "Your farm profile is 80% complete. Add your land records.", "tag": "App", "time": "Feb 25 | 11:20 am", "unread": true },
+    { "id": "n3", "message": "Get 15% off on drip irrigation kits this week. Offer ends Feb 28, 2026", "tag": "Promotion", "time": "Feb 25 | 3:20 pm", "unread": true },
+    { "id": "n4", "message": "Free soil testing for your first field\nwhen you book on Mar 5, 2026.", "tag": "Promotion", "time": "Feb 24 | 3:20 am", "unread": true },
+    { "id": "n5", "message": "Tractor TR-02 is due for service in 3 days (engine hours: 248 of 250).", "tag": "Equipment", "time": "Feb 25 | 8:40 am", "unread": true },
+    { "id": "n6", "message": "Your rental of Harvester HV-11 ends on Feb 27, 2026. Extend or schedule return.", "tag": "Equipment", "time": "Feb 24 | 3:20 am", "unread": true }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "state": "allgood",
+  "pageBottomSpacePx": 24,
+  "figmaFrame": "6879:15603",
+  "header": { "activeTab": "Dashboard", "tabs": ["Dashboard", "Equipment", "Alerts"], "bellBadge": 2 },
+  "pageTitle": "Dashboard",
+  "kpi": {
+    "attention": { "value": 0, "label": "Need attention · all good", "critical": 0, "allGood": true },
+    "equipment": {
+      "value": 1, "label": "Equipment", "subCountWeight": 700,
+      "breakdown": [
+        { "value": 1, "label": "Bin", "typeKey": "bins" }
+      ]
+    },
+    "online": { "value": 1, "label": "Online" },
+    "offline": { "value": 0, "label": "Offline" },
+    "fans": { "value": "2 of 3", "running": 2, "total": 3, "label": "Fans running now" }
+  },
+  "equipmentCard": {
+    "title": "Equipment (1)", "subtitle": "Health by type", "link": "View All",
+    "rows": [
+      { "type": "Bin", "typeKey": "bins", "count": 1, "alerts": 0, "offline": 0, "healthy": 1, "caption": "1 healthy" }
+    ]
+  },
+  "recentAlerts": {
+    "title": "Recent Alerts", "subtitle": "Most urgent first. Each item links to what to do next.", "link": "View All",
+    "items": [],
+    "empty": {
+      "title": "No Alerts Right Now",
+      "body": "Everything is on track with your storage, dryers, and tanks. We’ll notify you as soon as anything needs attention."
+    }
+  },
+  "fanActivity": {
+    "title": "Fan activity", "subtitle": "All storage fans",
+    "tiles": [
+      { "value": "2 of 3", "label": "Running Now" },
+      { "value": "7 h 24 m", "label": "Runtime Today" },
+      { "value": "38 kWh", "label": "Energy Today" }
+    ],
+    "chartLabel": "Fan runtime hours for the last 7 days, from 62 to 90 hours",
+    "chart": [
+      { "day": "Wed", "hours": 62, "barPx": 54, "isToday": false },
+      { "day": "Thu", "hours": 70, "barPx": 61, "isToday": false },
+      { "day": "Fri", "hours": 74, "barPx": 66, "isToday": false },
+      { "day": "Sat", "hours": 81, "barPx": 72, "isToday": false },
+      { "day": "Sun", "hours": 77, "barPx": 68, "isToday": false },
+      { "day": "Mon", "hours": 90, "barPx": 79, "isToday": false },
+      { "day": "Today", "hours": 86, "barPx": 76, "isToday": true }
+    ],
+    "caption": "Runtime hours, last 7 days. Higher this week as Auto modes used the cool nights."
+  },
+  "grain": {
+    "title": "Grain On Hand", "subtitle": "All grain inventory",
+    "summaryBold": "21,050 bu", "summaryRest": "of 25,000 bu · 79% full", "fillLabel": "84% Fill",
+    "totalBu": 21050, "capacityBu": 25000, "fillPct": 84,
+    "items": [
+      { "name": "Wheat", "amountK": 21.05, "amountBu": 21050, "amountLabel": "21,050 bu", "subLabel": "21,050 bu · 1 unit · Wheat Storage", "units": 1, "color": "#C98F2E", "segmentPx": 321, "segmentTopPx": -0.5 }
+    ]
+  },
+  "liquid": {
+    "title": "Liquid On Hand", "subtitle": "All liquid storage tanks",
+    "summaryBold": null, "summaryRest": null, "fillLabel": null,
+    "totalGal": null, "capacityGal": null,
+    "items": [],
+    "empty": {
+      "title": "No Tanks Monitored Yet",
+      "body": "Keep an eye on propane, diesel and water levels here, and get an alert before a tank runs low."
+    }
+  }
+}

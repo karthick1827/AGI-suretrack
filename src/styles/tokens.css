@@ -1,0 +1,258 @@
+/*
+ * Design tokens — the single token layer (AD-2, FR-1..FR-5).
+ *
+ * Every value is copied verbatim from the Figma extraction in
+ * _acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/addendum.md
+ * (Part A §1, Part B §1.1–1.5). Never round, merge or "fix" a value here:
+ * near-duplicates (#F3F4F6 / #F3F4F4) and the three reds (#C62828, #DC2626,
+ * #FF0000) are separate on purpose.
+ *
+ * Naming:
+ *   --<figma-variable-path-with-dashes>   Figma variables (lower-cased, every
+ *                                         run of non-alphanumerics → "-")
+ *   --raw-<hex>                           hard-coded Figma colours (no variable)
+ *   --raw-rgba-<r>-<g>-<b>-<a>            hard-coded Figma rgba() colours
+ *
+ * Bare Figma variable names that exist in both files with different values
+ * (`sm`, `md`, `lg`, `xl`, `xs`) are prefixed with their frame:
+ * --modal-* (Forgot Password modal 6026:62907) and --dashboard-* (6215:58878).
+ *
+ * Hex, rgb()/rgba() and font-family literals are allowed ONLY in this file
+ * (enforced for *.module.css by scripts/check-css-literals.mjs).
+ */
+
+:root {
+  /* ------------------------------------------------------------------ */
+  /* Figma variables — Login frame 6026:60111 (addendum Part A §1)       */
+  /* ------------------------------------------------------------------ */
+  --primitives-color-base-white: #ffffff;
+  --brand-primary-200: #a4dfbb;
+  --brand-primary-700: #004b27;
+  --primitives-color-alpha-white-50: #ffffff80;
+  --weight-regular: 400;
+
+  /* ------------------------------------------------------------------ */
+  /* Figma variables — Forgot Password modal 6026:62907 (Part A §1)      */
+  /* ------------------------------------------------------------------ */
+  --semantic-color-bg-white: #ffffff;
+  --semantic-color-bg-primary: #ffffff;
+  --semantic-color-text-primary: #111827;
+  --semantic-color-text-secondary: #374151;
+  --semantic-color-text-placeholder: #6b7280;
+  --semantic-color-fg-quaternary: #6b7280;
+  --semantic-color-text-white: #ffffff;
+  --semantic-color-border-primary: #d1d5db;
+  --table-row-border: #d1d5db;
+  --component-input-text-default: #111827;
+  --component-badge-text-error: #dc2626;
+  --brand-primary-500: #006a36;
+  --brand-gray-50: #fbfbfb;
+
+  --space-0: 0px;
+  --space-2: 4px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 20px;
+  --space-8: 24px;
+  --input-spacing-padding-x: 16px;
+  --modal-sm: 8px;   /* button gap */
+  --modal-md: 10px;  /* button padding-y */
+  --modal-xl: 16px;  /* button padding-x */
+  --modal-lg: 8px;   /* button radius */
+
+  --radius-none: 0px;
+  --radius-md: 8px;
+  --brand-radius-md: 8px;
+  --radius-xl: 16px;
+
+  --border-width-hairline: 1px;
+  --border-width-sm: 1.5px;
+  --border-width-md: 2px;
+
+  --body-sm: 14px;
+  --label-md: 12px;
+  --line-height-body-sm-content: 22px;
+  --line-height-label-md: 16px;
+  --line-height-body-md: 24px;
+  --line-height-heading-md: 24px;
+  --size-text-sm: 14px;
+  --line-height-text-sm: 20px;
+
+  /* ------------------------------------------------------------------ */
+  /* Figma variables — Dashboard 6215:58878 (addendum Part B §1.1)       */
+  /* ------------------------------------------------------------------ */
+  /* font/family is "SF Pro" in Figma; SF Pro cannot be self-hosted, so it
+     resolves to the system stack ending in Inter (AD-6, brief rule 4). */
+  --font-family: var(--font-stack-sf-pro);
+  --font-weight-regular: 400;
+  --font-weight-medium: 510;
+  --font-weight-semibold: 590;
+  --heading-font-size-md: 20px;
+  --heading-font-size-xs: 14px;
+  --text-font-size-md: 16px;
+  --text-font-size-xs: 12px;
+  --type-heading-24-size: 24px;
+
+  --semantic-color-fg-brand-primary: #005c2f;
+  --brand-primary-50: #eaf8ef;
+  --brand-primary-600: #005c2f;
+  --brand-secondary-500: #00b156;
+  --brand-gray-200: #e4e5e4;
+  --brand-gray-300: #cfd0d0;
+  --semantic-color-fg-primary: #111827;
+  --semantic-color-border-secondary: #9ca3af;
+  --component-input-border-error: #dc2626;
+  --component-nav-text-default: #374151;
+  --component-button-secondary-icon: #111827;
+  --content-content-primary: #09090b;
+  --table-row-bg-selected: #f0fff8;
+  --primitives-color-alpha-black-80: #000000cc;
+  --primitives-color-alpha-black-70: #000000b2;
+  --primitives-color-amber-600: #d97706;
+  --primitives-color-sky-500: #0ea5e9;
+  --primitives-color-lime-500: #84cc16;
+  --primitives-color-indigo-500: #6366f1;
+  --primitives-color-violet-100: #ede9fe;
+  --primitives-color-blue-50: #eff6ff;
+  --primitives-color-base-black: #000000;
+
+  --dashboard-xs: 6px;
+  --dashboard-md: 6px;
+  --icons-16px: 1.33;
+
+  /* Empty-state library variables (Part B §1.1, second table) */
+  --color-grey-96: #f4f5f6;
+  --color-azure-11: #111827;
+  --color-azure-34: #4b5563;
+  --corner-radius-12: 12px;
+  --item-spacing-10: 10px;
+  --item-spacing-14: 14px; /* used as a font size */
+  --font-size-16: 16px;
+  --line-height-20-3: 20.3px;
+  --font-family-font-1: var(--font-stack-roboto);
+
+  /* ------------------------------------------------------------------ */
+  /* Hard-coded colours — Login / modal (Part A §1, FR-1)                */
+  /* ------------------------------------------------------------------ */
+  --raw-009926: #009926; /* green panel gradient stop 0 */
+  --raw-006633: #006633; /* green panel gradient stop 1 */
+  --raw-02a45b: #02A45B; /* right overlay (used at opacity 0.4) */
+  --raw-ffffff: #ffffff; /* Login title, labels, Forgot link */
+  --raw-6b7280: #6B7280; /* close "X" stroke */
+  --raw-9ca3af: #9CA3AF; /* help "?" stroke; offline hatch stripe */
+
+  /* ------------------------------------------------------------------ */
+  /* Hard-coded colours — Dashboard palette (Part B §1.4)                */
+  /* ------------------------------------------------------------------ */
+  /* Surfaces */
+  --raw-f3f4f6: #F3F4F6; /* page background (sampled) */
+  --raw-f3f4f4: #F3F4F4; /* page-title strip — NOT the same as the page */
+  --raw-d1d5db: #D1D5DB; /* card border; offline hatch stripe */
+  --raw-e6e8eb: #E6E8EB; /* row dividers, KPI vertical dividers */
+  --raw-rgba-30-42-44-0-15: rgba(30,42,44,0.15); /* alert row separator */
+  --raw-f4f5f6: #F4F5F6; /* stat tile, empty state, offline KPI tile */
+
+  /* Text */
+  --raw-1f2937: #1F2937; /* card title */
+  --raw-111827: #111827;
+  --raw-374151: #374151;
+  --raw-4b5563: #4B5563;
+  --raw-rgba-0-0-0-0-8: rgba(0,0,0,0.8);
+  --raw-rgba-0-0-0-0-7: rgba(0,0,0,0.7);
+  --raw-09090b: #09090B; /* page title */
+
+  /* Brand and links */
+  --raw-005c2f: #005C2F;
+  --raw-006a36: #006A36; /* chevrons, active nav underline */
+  --raw-f0fff8: #F0FFF8; /* active nav background */
+
+  /* Semantic — three distinct reds, never merged */
+  --raw-c62828: #C62828; /* health-bar alert, KPI "Need attention" */
+  --raw-fdecec: #FDECEC; /* KPI alert icon tile */
+  --raw-dc2626: #DC2626; /* critical severity text / icon circle */
+  --raw-ff0000: #FF0000; /* bell badge (Figma bg-[red]) */
+  --raw-d97706: #D97706; /* warning severity text */
+  --raw-ffa526: #FFA526; /* warning alert icon circle */
+  --raw-15803d: #15803D; /* healthy green */
+  --raw-eaf8ef: #EAF8EF;
+  --raw-eff6ff: #EFF6FF;
+  --raw-ede9fe: #EDE9FE;
+  --raw-1c447e: #1C447E; /* avatar fallback disc (Part B §2.2) */
+
+  /* Fan chart */
+  --raw-0b7a3b: #0B7A3B; /* normal bar */
+  --raw-0a5c30: #0A5C30; /* "Today" bar */
+
+  /* Grain commodities */
+  --raw-e3c341: #E3C341; /* Canola */
+  --raw-e07b39: #E07B39; /* Corn */
+  --raw-6f8f4f: #6F8F4F; /* Soybeans */
+  --raw-c98f2e: #C98F2E; /* Wheat */
+  --raw-8fb36b: #8FB36B; /* Barley */
+  --raw-b9a47a: #B9A47A; /* Oats */
+  --raw-eef1ef: #EEF1EF; /* remaining / available capacity track */
+
+  /* Liquid products */
+  --raw-0ea5e9: #0EA5E9; /* Propane */
+  --raw-00b156: #00B156; /* Fuel Oil */
+  --raw-84cc16: #84CC16; /* Water */
+  --raw-14b8a6: #14B8A6; /* Kerosene */
+  --raw-a855f7: #A855F7; /* Gasoline */
+  --raw-6366f1: #6366F1; /* Diesel */
+
+  /* Notifications panel */
+  --raw-rgba-175-195-188-0-4: rgba(175,195,188,0.4); /* title divider */
+  --raw-d9dcd6: #D9DCD6;
+  --raw-1d1f1c: #1D1F1C;
+  --raw-666666: #666666;
+  --raw-e6f2ea: #E6F2EA; /* tag App bg */
+  --raw-17703a: #17703A; /* tag App text */
+  --raw-fdf1dc: #FDF1DC; /* tag Promotion bg */
+  --raw-8a5a00: #8A5A00; /* tag Promotion text */
+  --raw-e3eef8: #E3EEF8; /* tag Equipment bg */
+  --raw-1f5b8f: #1F5B8F; /* tag Equipment text */
+  --raw-rgba-120-120-128-0-1: rgba(120,120,128,0.1); /* inactive chip bg */
+  --raw-rgba-0-0-0-0-16: rgba(0,0,0,0.16); /* active chip border */
+  --raw-000000: #000000; /* chip and toggle label text */
+  --raw-1e2a2c: #1E2A2C; /* close icon */
+
+  /* Profile menu */
+  --raw-e05400: #E05400; /* "Logout" text */
+
+  /* ------------------------------------------------------------------ */
+  /* Elevation (Part A §1 Effect style, Part B §1.1, §1.5, FR-5)         */
+  /* ------------------------------------------------------------------ */
+  --shadow-lg: 0 12px 20px -2px rgba(39,39,39,0.15);       /* Shadow/Lg (box-shadow) */
+  --shadow-2: 0 2px 4px 0 #2727271A;                       /* Shadow/2 token as defined */
+  --shadow-card: 0 2px 2px rgba(39,39,39,0.1);             /* use as filter: drop-shadow(var(--shadow-card)); header + 5 cards */
+  --shadow-kpi: 0px 2px 4px 0px rgba(39,39,39,0.15);       /* KPI strip box-shadow */
+  --shadow-chip-1: 0 3px 4px rgba(0,0,0,0.12);             /* "All" chip drop-shadow #1 */
+  --shadow-chip-2: 0 3px 0.5px rgba(0,0,0,0.04);           /* "All" chip drop-shadow #2 */
+
+  /* ------------------------------------------------------------------ */
+  /* Font stacks (AD-6)                                                  */
+  /* ------------------------------------------------------------------ */
+  --font-stack-roboto: "Roboto", sans-serif;
+  --font-stack-inter: "Inter", sans-serif;
+  --font-stack-sf-pro: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", sans-serif;
+
+  /* ------------------------------------------------------------------ */
+  /* Opacity                                                             */
+  /* ------------------------------------------------------------------ */
+  --opacity-green-panel: 0.9;     /* 6026:60122 fill-opacity */
+  --opacity-right-overlay: 0.4;   /* 6026:60119 */
+  --opacity-nav-inactive: 0.7;    /* inactive Nav tab label + icon */
+  --opacity-hidden: 0;            /* modal close X group (6026:62910) */
+
+  /* ------------------------------------------------------------------ */
+  /* Z-index scale (AD-12 — overlays take z-index from tokens only)      */
+  /* ------------------------------------------------------------------ */
+  --z-base: 0;
+  --z-header: 10;
+  --z-overlay-panel: 100;   /* Notifications panel */
+  --z-overlay-menu: 110;    /* profile menu */
+  --z-overlay-backdrop: 200;
+  --z-overlay-modal: 210;   /* Forgot Password modal */
+  --z-tooltip: 300;
+}

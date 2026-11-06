@@ -1,0 +1,159 @@
+// Data port behaviour — the spec's I/O & edge-case matrix (AD-7).
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { fromRoot } from './support/project.js';
+
+// Serve fetch() from disk: Vite's `?url` gives a root-relative path for
+// src/ files, and public/ files are served from the web root.
+function fileForUrl(url) {
+  const pathname = decodeURIComponent(new URL(String(url), 'http://localhost/').pathname);
+  const candidates = [fromRoot(pathname.replace(/^\//, '')), fromRoot('public', pathname.replace(/^\//, ''))];
+  return candidates.find((file) => existsSync(file));
+}
+
+function diskFetch(url) {
+  const file = fileForUrl(url);
+  if (!file) return Promise.resolve(new Response('not found', { status: 404 }));
+  return Promise.resolve(new Response(readFileSync(file), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+}
+
+const readJson = (file) => JSON.parse(readFileSync(fromRoot(file), 'utf8'));
+
+async function loadApi() {
+  vi.resetModules();
+  return import('../../src/data/api.js');
+}
+
+beforeEach(() => {
+  vi.stubEnv('VITE_DATA_LATENCY_MS', '0');
+  vi.stubGlobal('fetch', vi.fn(diskFetch));
+  window.history.replaceState(null, '', '/');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+  window.history.replaceState(null, '', '/');
+});
+
+describe('getDashboard', () => {
+  it.each(['full', 'small', 'allgood'])("getDashboard('%s') resolves the exact JSON object", async (state) => {
+    const { getDashboard } = await loadApi();
+    await expect(getDashboard(state)).resolves.toEqual(readJson(`src/data/json/dashboard.${state}.json`));
+  });
+
+  it('loads through a real fetch request (interceptable)', async () => {
+    const { getDashboard } = await loadApi();
+    await getDashboard('small');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(String(fetch.mock.calls[0][0])).toMatch(/dashboard\.small\.json/);
+  });
+
+  it("getDashboard('xyz') rejects with NOT_FOUND and does not throw", async () => {
+    const { getDashboard } = await loadApi();
+    let promise;
+    expect(() => {
+      promise = getDashboard('xyz');
+    }).not.toThrow();
+    await expect(promise).rejects.toEqual({ code: 'NOT_FOUND', message: expect.any(String) });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('?__fail=dashboard forces getDashboard() to reject with FORCED_FAIL', async () => {
+    window.history.replaceState(null, '', '/dashboard?__fail=dashboard');
+    const { getDashboard, getNotifications } = await loadApi();
+    await expect(getDashboard()).rejects.toEqual({ code: 'FORCED_FAIL', message: expect.any(String) });
+    await expect(getNotifications()).resolves.toEqual(readJson('src/data/json/notifications.json'));
+  });
+
+  it('?__fail accepts a comma-separated list', async () => {
+    window.history.replaceState(null, '', '/?__fail=users,notifications');
+    const { getUsers, getNotifications } = await loadApi();
+    await expect(getUsers()).rejects.toMatchObject({ code: 'FORCED_FAIL' });
+    await expect(getNotifications()).rejects.toMatchObject({ code: 'FORCED_FAIL' });
+  });
+
+  it('?__fail is ignored in production builds', async () => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('PROD', true);
+    window.history.replaceState(null, '', '/dashboard?__fail=dashboard');
+    const { getDashboard } = await loadApi();
+    await expect(getDashboard('full')).resolves.toEqual(readJson('src/data/json/dashboard.full.json'));
+  });
+
+  it('rejects with LOAD_FAILED on a non-OK response or a network error', async () => {
+    const { getDashboard } = await loadApi();
+    fetch.mockResolvedValueOnce(new Response('', { status: 500 }));
+    await expect(getDashboard('full')).rejects.toMatchObject({ code: 'LOAD_FAILED' });
+    fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(getDashboard('full')).rejects.toMatchObject({ code: 'LOAD_FAILED' });
+    fetch.mockResolvedValueOnce(new Response('{not json', { status: 200 }));
+    await expect(getDashboard('full')).rejects.toMatchObject({ code: 'LOAD_FAILED' });
+  });
+});
+
+describe('getUsers / getNotifications', () => {
+  it('resolve the exact JSON objects', async () => {
+    const { getUsers, getNotifications } = await loadApi();
+    await expect(getUsers()).resolves.toEqual(readJson('src/data/json/users.json'));
+    await expect(getNotifications()).resolves.toEqual(readJson('src/data/json/notifications.json'));
+  });
+});
+
+describe('getConfig', () => {
+  it('resolves public/app-config.json', async () => {
+    const { getConfig } = await loadApi();
+    const config = await getConfig();
+    expect(config).toEqual(readJson('public/app-config.json'));
+    expect(String(fetch.mock.calls[0][0])).toMatch(/\/app-config\.json$/);
+  });
+
+  it('rejects { code: LOAD_FAILED } on a non-OK fetch', async () => {
+    const { getConfig } = await loadApi();
+    fetch.mockResolvedValueOnce(new Response('missing', { status: 404 }));
+    await expect(getConfig()).rejects.toEqual({ code: 'LOAD_FAILED', message: expect.any(String) });
+  });
+});
+
+describe('latency (VITE_DATA_LATENCY_MS)', () => {
+  it('waits the configured delay before requesting', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('VITE_DATA_LATENCY_MS', '300');
+    const { getNotifications } = await loadApi();
+    const pending = getNotifications();
+    await vi.advanceTimersByTimeAsync(299);
+    expect(fetch).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(pending).resolves.toMatchObject({ title: 'Notifications' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('defaults to 0 under Vitest when unset', async () => {
+    vi.stubEnv('VITE_DATA_LATENCY_MS', undefined);
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const pending = getUsers();
+    await vi.advanceTimersByTimeAsync(0);
+    await expect(pending).resolves.toMatchObject({ version: 1 });
+  });
+});
+
+describe('data access boundary', () => {
+  it('only src/data/api.js references src/data/json', async () => {
+    const { readdirSync, statSync } = await import('node:fs');
+    const path = await import('node:path');
+    const offenders = [];
+    const walk = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const full = path.join(dir, name);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (/\.(jsx?|mjs)$/.test(name) && /data\/json\/|\.\/json\//.test(readFileSync(full, 'utf8'))) {
+          offenders.push(path.relative(fromRoot(), full).replace(/\\/g, '/'));
+        }
+      }
+    };
+    walk(fromRoot('src'));
+    expect(offenders).toEqual(['src/data/api.js']);
+  });
+});
