@@ -357,6 +357,8 @@ So that every screen built afterwards matches the design by construction instead
 
 ### Story 1.2: Pixel-exact Login page with the Fidelity check (SCRUM-27 AC1 · SCRUM-31)
 
+- [x] Story 1.2 completed — Manager approved 2026-11-06 (story-1.2.md + spec); feature/1-2-login-page
+
 As a signed-out farm customer,
 I want the Login page to look exactly like AGI's design,
 So that I recognise SureTrack and trust where I'm signing in.
