@@ -1,3 +1,10 @@
+---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-06T05:34:30.518Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+---
+
 - source_spec: `_acl-output/4-implementation/spec-1-1-project-foundation-on-figmas-design-system.md`
   summary: Add a build-level CI check (vite build --manifest) that every src/data/json/*.json is emitted as a separate asset, never inlined as a data: URL.
   evidence: api.js is not imported by the app yet, so dist/ has no JSON assets; the unit test passes with or without &no-inline. Implement once Story 1.2/1.3 imports api.js.

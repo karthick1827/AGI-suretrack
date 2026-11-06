@@ -311,6 +311,8 @@ A farm customer can open SureTrack, sign in through a pixel-exact Login page, un
 
 ### Story 1.1: Project foundation on Figma's design system (NEW)
 
+- [x] Story 1.1 completed — Manager approved 2026-11-06 (story-1.1.md); commits 4644576..e572846 on feature/1-1-project-foundation
+
 As the AGI product owner,
 I want the web app set up on Figma's exact Design tokens, fonts and assets,
 So that every screen built afterwards matches the design by construction instead of by eye.

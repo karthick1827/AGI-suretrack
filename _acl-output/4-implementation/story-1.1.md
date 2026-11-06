@@ -1,6 +1,9 @@
 ---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-06T05:35:30.921Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 1.1 — Project foundation on Figma''s design system'
-status: In Review
 type: story-review
 story_key: 1-1-project-foundation-on-figmas-design-system
 epic: 1
