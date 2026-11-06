@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-06T05:37:50.902Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-06T05:37:50.902Z
 title: 'Story 1.2 — Pixel-exact Login page with the Fidelity check'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
 baseline_commit: 'abc380359e9a600c19934bec1c3b01f3ad4761c7'
-implementation_status: in-review
+implementation_status: review
 story_key: 1-2-pixel-exact-login-page-with-the-fidelity-check
 jira: SCRUM-27 (AC1), SCRUM-31
 review_loop_iteration: 0
@@ -98,3 +97,48 @@ Sign-in behaviour is not part of this story; it comes in Story 1.3.
 
 **Manual checks:**
 - Open `/login` beside `figma-reference/login-6026-60111.png` at 100% zoom: the panel edge, logo, inputs, button, links and legal text should line up.
+
+## Spec Change Log
+
+- 2026-11-06 — **User-approved deviations (Ask First items), pending Manager sign-off via story-1.2.md:** (1) Roboto `@font-face` rules gain `ascent-override: 92.77%; descent-override: 24.41%; line-gap-override: 0%` (Figma's Roboto metrics; bundled Roboto otherwise renders every line 1–1.5 px higher) — screenshot diff went 0.565% → 0.436%. (2) Legal-line separator keeps PRD copy `' | '` verbatim; the wider gap seen in the Figma render (~3.5 px extra each side) is applied in CSS. (3) Fidelity screenshot mask uses 8 px strips over the photo right of the panel edge (Playwright cannot match a masked photo against a Figma export otherwise). KEEP: Figma metrics, CSS-only spacing, production-build fidelity runs.
+
+## Suggested Review Order
+
+**Login frame (exact Figma geometry)**
+
+- Frame, mirrored photo layers, green panel and triangle — every box tagged with its Figma node id.
+  [`LoginPage.jsx:1`](../../src/pages/Login/LoginPage.jsx#L1)
+- Exact px/colour values from PRD FR-12–FR-15.
+  [`LoginPage.module.css:1`](../../src/pages/Login/LoginPage.module.css#L1)
+
+**Form column**
+
+- Title, labels, inputs, button, Forgot link, legal line; copy from copy.js, URLs from config (http/https only).
+  [`LoginForm.jsx:1`](../../src/features/auth/LoginForm.jsx#L1)
+- 1.5 px input edge as inset shadow, separator spacing in CSS, states block last.
+  [`LoginForm.module.css:1`](../../src/features/auth/LoginForm.module.css#L1)
+- Figma Roboto metrics (user-approved).
+  [`fonts.css:1`](../../src/styles/fonts.css#L1)
+
+**Routing**
+
+- `/login` route; every other path redirects (FR-11).
+  [`App.jsx:1`](../../src/app/App.jsx#L1)
+
+**Fidelity check (the 100%-match proof)**
+
+- Screenshot ≤0.5% vs 1× Figma, ±1 px measurement audit, copy audit, submit/focus/redirect checks.
+  [`login.spec.js:1`](../../tests/fidelity/login.spec.js#L1)
+- Font-load assertion, baseline-size guard, mask strips, audits.
+  [`fidelity.js:1`](../../tests/fidelity/support/fidelity.js#L1)
+- Expected values transcribed from the PRD.
+  [`login.json:1`](../../tests/fidelity/expected/login.json#L1)
+- Production build + preview, Chromium 1366×768 DPR 1.
+  [`playwright.config.js:1`](../../playwright.config.js#L1)
+
+**Peripherals**
+
+- macOS fidelity CI job.
+  [`ci.yml:1`](../../.github/workflows/ci.yml#L1)
+- Unit tests: redirects, legal links, JSX-literal check, submit no-op, font metrics.
+  [`login.test.jsx:1`](../../tests/unit/login.test.jsx#L1)
