@@ -48,6 +48,24 @@ describe('paths.js — FR-57 / FR-75 routes', () => {
     expect(() => paths.equipmentDetail('')).toThrow(TypeError);
   });
 
+  it.each([[''], ['   '], ['.'], ['..'], [759], [null], [undefined]])(
+    'deviceId builders reject %j',
+    (deviceId) => {
+      expect(() => paths.equipmentDetail(deviceId)).toThrow(TypeError);
+      expect(() => paths.alertAction(deviceId, 'hotspot')).toThrow(TypeError);
+    },
+  );
+
+  it('encodes a deviceId as one path segment', () => {
+    expect(paths.equipmentDetail('a/b')).toBe('/equipment/a%2Fb');
+  });
+
+  it('treats null options like no options, as dashboard(null) does', () => {
+    expect(paths.equipment(null)).toBe('/equipment');
+    expect(paths.equipment({ type: null })).toBe('/equipment');
+    expect(paths.dashboard(null)).toBe('/dashboard');
+  });
+
   it('never claims a Markdown Studio path (/api/*, /markdown*)', () => {
     for (const pattern of Object.values(routePatterns)) {
       for (const prefix of RESERVED_PREFIXES) expect(pattern.startsWith(prefix)).toBe(false);

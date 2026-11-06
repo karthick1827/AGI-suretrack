@@ -31,8 +31,8 @@ function assertOneOf(value, allowed, name) {
 }
 
 function assertDeviceId(deviceId) {
-  if (typeof deviceId !== 'string' || deviceId === '') {
-    throw new TypeError(`deviceId must be a non-empty string; got ${String(deviceId)}`);
+  if (typeof deviceId !== 'string' || deviceId.trim() === '' || deviceId === '.' || deviceId === '..') {
+    throw new TypeError(`deviceId must be a non-empty string other than "." or ".."; got ${String(deviceId)}`);
   }
 }
 
@@ -49,15 +49,19 @@ export const paths = Object.freeze({
   },
 
   /** `/equipment`, `/equipment?type=<type>` or `/equipment?status=<status>` (FR-57, FR-64, FR-72). */
-  equipment: ({ type, status } = {}) => {
-    if (type !== undefined && status !== undefined) {
+  // null / undefined options (and null fields) mean "no filter", like dashboard(null).
+  equipment: (opts) => {
+    const { type, status } = opts ?? {};
+    const hasType = type !== undefined && type !== null;
+    const hasStatus = status !== undefined && status !== null;
+    if (hasType && hasStatus) {
       throw new TypeError('equipment() takes either type or status, not both');
     }
-    if (type !== undefined) {
+    if (hasType) {
       assertOneOf(type, EQUIPMENT_TYPES, 'type');
       return `${routePatterns.equipment}?type=${type}`;
     }
-    if (status !== undefined) {
+    if (hasStatus) {
       assertOneOf(status, EQUIPMENT_STATUSES, 'status');
       return `${routePatterns.equipment}?status=${status}`;
     }

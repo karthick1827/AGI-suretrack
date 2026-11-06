@@ -61,6 +61,27 @@ describe('copy.js — every string is verbatim PRD copy', () => {
     expect(prd.includes(text.trim())).toBe(true);
   });
 
+  it('keeps significant whitespace exactly', () => {
+    expect(copy.login.legalLead).toBe('By clicking login, you hereby agree to our ');
+    expect(copy.login.legalSeparator).toBe(' | ');
+    expect(copy.forgotPassword.emailLabel).toBe('Email ');
+    // The PRD quotes each piece in backticks, so the whitespace is part of the copy.
+    expect(prd).toContain(`\`${copy.login.legalLead}\``);
+    expect(prd).toContain(`\`${copy.login.legalSeparator}\``);
+    expect(prd).toContain('`Email ` + `*`');
+  });
+
+  it('composes the FR-20 legal sentence from the PRD pieces', () => {
+    const { legalLead, privacyPolicy, legalSeparator, termsOfService } = copy.login;
+    expect(`${legalLead}${privacyPolicy}${legalSeparator}${termsOfService}`).toBe(
+      'By clicking login, you hereby agree to our Privacy Policy | Terms of Service',
+    );
+    expect(prd).toContain(
+      `Line 1: \`${legalLead}\` (Roboto Regular 400, 14px / 24px, \`#ffffff\`) followed by a hard line break.`,
+    );
+    expect(prd).toContain(`Line 2: \`${privacyPolicy}\` · \`${legalSeparator}\` · \`${termsOfService}\``);
+  });
+
   it('is deeply frozen', () => {
     expect(Object.isFrozen(copy)).toBe(true);
     expect(Object.isFrozen(copy.login.errors)).toBe(true);
@@ -81,6 +102,14 @@ describe('copy.js — helpers', () => {
     );
     expect(equipmentRowLabel({ type: 'Bin', count: 1, caption: '1 alert' })).toBe('Bin, 1: 1 alert');
     expect(runtimeValueLabel(62)).toBe('62h');
+    expect(runtimeValueLabel(0)).toBe('0h');
+  });
+
+  it('missing values hit the missing-slot error, never a TypeError or "undefinedh"', () => {
+    expect(() => fill(copy.login.errors.tooManyAttempts, null)).toThrow(/missing value for \{time\}/);
+    expect(() => runtimeValueLabel(undefined)).toThrow(/missing value for \{hours\}/);
+    expect(() => runtimeValueLabel(null)).toThrow(/missing value for \{hours\}/);
+    expect(() => equipmentRowLabel({ type: 'Bins', count: 7 })).toThrow(/missing value for \{caption\}/);
   });
 });
 

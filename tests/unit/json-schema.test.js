@@ -22,11 +22,44 @@ describe('src/data/json — verbatim copies of the PRD addendum', () => {
 });
 
 // Minimal JSON Schema (2020-12) subset: exactly the keywords addendum §A.2 uses.
+// Anything else throws, so a schema change can never be silently ignored.
+const SUPPORTED_KEYWORDS = new Set([
+  '$schema', '$id', '$defs', '$ref', 'title', 'description',
+  'type', 'const', 'enum', 'not', 'minimum', 'minLength', 'pattern', 'format',
+  'minItems', 'items', 'required', 'properties', 'additionalProperties', 'if', 'then',
+]);
+const SUPPORTED_FORMATS = new Set(['email', 'date-time']);
+
+function resolveRef(ref, root) {
+  if (!ref.startsWith('#')) throw new Error(`Unsupported $ref (only local refs): ${ref}`);
+  const pointer = ref.slice(1);
+  if (pointer === '') return root;
+  if (!pointer.startsWith('/')) throw new Error(`Unsupported $ref (not a JSON pointer): ${ref}`);
+  return pointer
+    .slice(1)
+    .split('/')
+    .map((token) => decodeURIComponent(token).replace(/~1/g, '/').replace(/~0/g, '~'))
+    .reduce((node, key) => {
+      if (node === null || typeof node !== 'object' || !Object.hasOwn(node, key)) {
+        throw new Error(`$ref target not found: ${ref} (missing "${key}")`);
+      }
+      return node[key];
+    }, root);
+}
+
 function validate(schema, value, root = schema, at = '$') {
   const errors = [];
+  for (const keyword of Object.keys(schema)) {
+    if (!SUPPORTED_KEYWORDS.has(keyword)) throw new Error(`Unsupported schema keyword "${keyword}" at ${at}`);
+  }
+  if (schema.format !== undefined && !SUPPORTED_FORMATS.has(schema.format)) {
+    throw new Error(`Unsupported format "${schema.format}" at ${at}`);
+  }
+  if (schema.additionalProperties !== undefined && schema.additionalProperties !== false) {
+    throw new Error(`Unsupported additionalProperties value at ${at} (only false)`);
+  }
   if (schema.$ref) {
-    const target = schema.$ref.replace(/^#\//, '').split('/').reduce((node, key) => node[key], root);
-    return validate(target, value, root, at);
+    return validate(resolveRef(schema.$ref, root), value, root, at);
   }
   const typeOf = (v) => (v === null ? 'null' : Array.isArray(v) ? 'array' : Number.isInteger(v) ? 'integer' : typeof v);
   if (schema.type) {
@@ -78,6 +111,13 @@ describe('users.json — addendum §A.2 schema and §A rules', () => {
     broken.users[1].lockedUntil = '2099-01-01T09:00:00Z';
     delete broken.policy.lockoutMinutes;
     expect(validate(schema, broken)).toHaveLength(3);
+  });
+
+  it('the validator refuses what it cannot check', () => {
+    expect(() => validate({ maxLength: 3 }, 'abcd')).toThrow(/Unsupported schema keyword "maxLength"/);
+    expect(() => validate({ type: 'string', format: 'uri' }, 'x')).toThrow(/Unsupported format "uri"/);
+    expect(() => validate({ $ref: '#/$defs/missing', $defs: {} }, 1)).toThrow(/\$ref target not found/);
+    expect(validate({ $ref: '#/$defs/a~1b~0c', $defs: { 'a/b~c': { type: 'integer' } } }, 1)).toEqual([]);
   });
 
   it('usernames are unique, case-insensitively', () => {

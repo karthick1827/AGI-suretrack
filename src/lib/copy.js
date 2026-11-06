@@ -105,7 +105,8 @@ export const copy = deepFreeze({
  * Fill `{name}` slots in a copy template. Throws if a slot has no value, so a
  * missing runtime value can never leak a raw "{slot}" onto the screen.
  */
-export function fill(template, values = {}) {
+export function fill(template, values) {
+  values = values ?? {};
   return template.replace(/\{(\w+)\}/g, (match, key) => {
     if (!Object.hasOwn(values, key) || values[key] === undefined || values[key] === null) {
       throw new Error(`copy: missing value for {${key}}`);
@@ -119,11 +120,11 @@ export function equipmentRowLabel({ type, count, caption }) {
   return fill(copy.dashboard.equipmentRowLabel, {
     type,
     count,
-    caption: caption.split(' · ').join(', '),
+    caption: typeof caption === 'string' ? caption.split(' · ').join(', ') : caption,
   });
 }
 
-/** FR-81 value label: `<hours>h`. */
+/** FR-81 value label: `<hours>h`. A null/undefined value hits fill's missing-slot error. */
 export function runtimeValueLabel(hours) {
-  return fill(copy.dashboard.runtimeValue, { hours: String(hours) });
+  return fill(copy.dashboard.runtimeValue, { hours });
 }

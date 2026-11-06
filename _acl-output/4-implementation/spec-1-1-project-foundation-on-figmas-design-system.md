@@ -8,7 +8,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
 baseline_commit: '464457683d23546fbee2269fccc25012d6e93dc7'
-implementation_status: in-progress
+implementation_status: in-review
 story_key: 1-1-project-foundation-on-figmas-design-system
 review_loop_iteration: 0
 context:

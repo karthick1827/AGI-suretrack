@@ -13,8 +13,29 @@ import {
 
 const tokensCss = readText(fromRoot('src/styles/tokens.css'));
 const tokens = customProperties(tokensCss);
+// Normalise one CSS value or component: lower-case, no whitespace inside it.
 const norm = (value) => value.replace(/\s+/g, '').toLowerCase();
-const tokenValues = [...tokens.values()].map(norm);
+
+/** Top-level components of a CSS value (split on whitespace and commas outside parentheses). */
+function components(value) {
+  const parts = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of value) {
+    if (ch === '(') depth += 1;
+    if (ch === ')') depth -= 1;
+    if (depth === 0 && /[\s,]/.test(ch)) {
+      if (current) parts.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current) parts.push(current);
+  return parts.map(norm);
+}
+
+const tokenValues = [...tokens.values()];
 
 const brief = readText(path.join(BRIEF_DIR, 'addendum.md'));
 const partA = section(brief, '## Part A', '## Part B');
@@ -34,8 +55,10 @@ function colourLiterals(text) {
 }
 
 function isTokenised(literal) {
+  // A whole token value, or a whole component of one (the colour inside a
+  // shadow token) — never a substring, so #ffffff does not match #ffffff80.
   const wanted = norm(EQUIVALENT[literal] ?? literal);
-  return tokenValues.some((value) => value === wanted || value.includes(wanted));
+  return tokenValues.some((value) => norm(value) === wanted || components(value).includes(wanted));
 }
 
 describe('tokens.css — every Figma colour is a token, verbatim', () => {

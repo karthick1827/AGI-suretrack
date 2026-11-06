@@ -91,6 +91,29 @@ describe('getDashboard', () => {
     fetch.mockResolvedValueOnce(new Response('{not json', { status: 200 }));
     await expect(getDashboard('full')).rejects.toMatchObject({ code: 'LOAD_FAILED' });
   });
+
+  it.each([['null'], ['[]'], ['[{"state":"full"}]'], ['42'], ['"text"']])(
+    'rejects with LOAD_FAILED when the body is %s (not a JSON object)',
+    async (body) => {
+      const { getDashboard } = await loadApi();
+      fetch.mockResolvedValueOnce(new Response(body, { status: 200 }));
+      await expect(getDashboard('full')).rejects.toEqual({ code: 'LOAD_FAILED', message: expect.any(String) });
+    },
+  );
+
+  it('?__fail is case-insensitive and trims entries', async () => {
+    window.history.replaceState(null, '', '/?__fail=%20Dashboard%20,NOTIFICATIONS');
+    const { getDashboard, getNotifications } = await loadApi();
+    await expect(getDashboard('full')).rejects.toMatchObject({ code: 'FORCED_FAIL' });
+    await expect(getNotifications()).rejects.toMatchObject({ code: 'FORCED_FAIL' });
+  });
+
+  it('forced failure wins over NOT_FOUND (one order for every call)', async () => {
+    window.history.replaceState(null, '', '/?__fail=dashboard');
+    const { getDashboard } = await loadApi();
+    await expect(getDashboard('xyz')).rejects.toMatchObject({ code: 'FORCED_FAIL' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
 
 describe('getUsers / getNotifications', () => {
@@ -137,6 +160,51 @@ describe('latency (VITE_DATA_LATENCY_MS)', () => {
     await vi.advanceTimersByTimeAsync(0);
     await expect(pending).resolves.toMatchObject({ version: 1 });
   });
+
+  it.each([[undefined], ['500']])('production build (DEV=false) never waits, VITE_DATA_LATENCY_MS=%s', async (value) => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('PROD', true);
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_DATA_LATENCY_MS', value);
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const pending = getUsers();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await expect(pending).resolves.toMatchObject({ version: 1 });
+  });
+
+  it.each([[undefined], ['   ']])('npm run dev (DEV=true, MODE=development) defaults to 300 ms when %j', async (value) => {
+    vi.stubEnv('DEV', true);
+    vi.stubEnv('MODE', 'development');
+    vi.stubEnv('VITE_DATA_LATENCY_MS', value);
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const pending = getUsers();
+    await vi.advanceTimersByTimeAsync(299);
+    expect(fetch).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(pending).resolves.toMatchObject({ version: 1 });
+  });
+
+  it.each([['-5'], ['abc'], ['Infinity']])('ignores an invalid value (%s) and uses the mode default', async (value) => {
+    vi.stubEnv('VITE_DATA_LATENCY_MS', value);
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const pending = getUsers();
+    await vi.advanceTimersByTimeAsync(0);
+    await expect(pending).resolves.toMatchObject({ version: 1 });
+  });
+
+  it('clamps a huge value to the setTimeout maximum instead of firing at once', async () => {
+    vi.stubEnv('VITE_DATA_LATENCY_MS', '99999999999');
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const pending = getUsers();
+    pending.catch(() => {});
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
 
 describe('data access boundary', () => {
@@ -148,7 +216,10 @@ describe('data access boundary', () => {
       for (const name of readdirSync(dir)) {
         const full = path.join(dir, name);
         if (statSync(full).isDirectory()) walk(full);
-        else if (/\.(jsx?|mjs)$/.test(name) && /data\/json\/|\.\/json\//.test(readFileSync(full, 'utf8'))) {
+        else if (
+          /\.(jsx?|mjs|cjs|tsx?)$/.test(name) &&
+          /data[\\/]json|\.\/json|\.\.\/json/.test(readFileSync(full, 'utf8'))
+        ) {
           offenders.push(path.relative(fromRoot(), full).replace(/\\/g, '/'));
         }
       }

@@ -5,7 +5,10 @@ import { readFileSync } from 'node:fs';
 import App from '../../src/app/App.jsx';
 import { fromRoot } from './support/project.js';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe('App', () => {
   it('renders nothing at / and logs nothing', () => {
@@ -14,7 +17,6 @@ describe('App', () => {
     const { container } = render(<App />);
     expect(container.innerHTML).toBe('');
     for (const spy of spies) expect(spy).not.toHaveBeenCalled();
-    spies.forEach((spy) => spy.mockRestore());
   });
 
   it('imports react-router (never react-router-dom) and the three global stylesheets once', () => {

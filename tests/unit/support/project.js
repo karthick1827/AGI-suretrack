@@ -25,8 +25,11 @@ export function section(text, startHeading, endHeading, from = 0) {
 export function jsonBlockAfter(text, heading) {
   const at = text.indexOf(heading);
   if (at < 0) throw new Error(`heading not found: ${heading}`);
-  const open = text.indexOf('```json\n', at) + '```json\n'.length;
+  const fence = text.indexOf('```json\n', at);
+  if (fence < 0) throw new Error(`no \`\`\`json fence after heading: ${heading}`);
+  const open = fence + '```json\n'.length;
   const close = text.indexOf('\n```', open);
+  if (close < 0) throw new Error(`unclosed \`\`\`json fence after heading: ${heading}`);
   return text.slice(open, close) + '\n';
 }
 
