@@ -8,7 +8,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
 baseline_commit: '51514cfdc6574f1f670090dbc75c0f3059c027fa'
-implementation_status: in-progress
+implementation_status: in-review
 story_key: 1-3-sign-in-and-reach-the-dashboard
 jira: SCRUM-27
 review_loop_iteration: 0
@@ -73,14 +73,14 @@ Failure messages (wrong credentials, locked, expired and so on) come in Story 1.
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/lib/session.js`: `createSessionRecord`, `getSession(now)`, `signIn`, `signOut` and a `subscribe` for cross-tab sync via the `storage` event plus the `suretrack.signout` key.
-- [ ] `src/app/RequireSession.jsx`: redirects to `paths.login()` with `{ from, reason }`.
-- [ ] `src/pages/Placeholder/Placeholder.jsx` and `.module.css`: a minimal "Coming soon" placeholder using copy from `copy.js`.
-- [ ] `src/app/App.jsx`: routes for `/login` (redirects when signed in) and the protected `/dashboard` and other app paths; subscribe to sign-out.
-- [ ] `src/features/auth/useSignIn.js`: validation, the loading guard, the `getUsers` match and the Session write. Unknown-user and wrong-password outcomes return an `{ outcome }` code with no UI (Story 1.4).
-- [ ] `src/features/auth/LoginForm.jsx` and `.module.css`: wire submit, field error text, `aria-invalid` and the loading state in the `/* states */` block.
-- [ ] `tests/unit/session.test.js` and `signin.test.jsx`: every I/O-matrix row.
-- [ ] `tests/fidelity/signin.spec.js`: Playwright checks for the valid sign-in redirect, tab order and cross-tab sign-out.
+- [x] `src/lib/session.js`: `createSessionRecord`, `getSession(now)`, `signIn`, `signOut` and a `subscribe` for cross-tab sync via the `storage` event plus the `suretrack.signout` key.
+- [x] `src/app/RequireSession.jsx`: redirects to `paths.login()` with `{ from, reason }`.
+- [x] `src/pages/Placeholder/Placeholder.jsx` and `.module.css`: a minimal "Coming soon" placeholder using copy from `copy.js`.
+- [x] `src/app/App.jsx`: routes for `/login` (redirects when signed in) and the protected `/dashboard` and other app paths; subscribe to sign-out.
+- [x] `src/features/auth/useSignIn.js`: validation, the loading guard, the `getUsers` match and the Session write. Unknown-user and wrong-password outcomes return an `{ outcome }` code with no UI (Story 1.4).
+- [x] `src/features/auth/LoginForm.jsx` and `.module.css`: wire submit, field error text, `aria-invalid` and the loading state in the `/* states */` block.
+- [x] `tests/unit/session.test.js` and `signin.test.jsx`: every I/O-matrix row.
+- [x] `tests/fidelity/signin.spec.js`: Playwright checks for the valid sign-in redirect, tab order and cross-tab sign-out.
 
 **Acceptance Criteria:**
 - Given `npm run lint && npm run build && npm test && npm run test:fidelity`, when run, then all pass. The Story 1.2 screenshot still passes at ≤ 0.5%.

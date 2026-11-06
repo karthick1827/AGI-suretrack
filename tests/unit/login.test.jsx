@@ -1,22 +1,23 @@
-// Story 1.2 — Login route, legal links and copy discipline (FR-11, FR-20, AD-16).
+// Story 1.2 / 1.3 — Login route, legal links and copy discipline (FR-11, FR-20, AD-16).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { parse } from '@babel/parser';
 import { readFileSync } from 'node:fs';
 import App from '../../src/app/App.jsx';
-import { getConfig } from '../../src/data/api.js';
+import { getConfig, getUsers } from '../../src/data/api.js';
 import { copy } from '../../src/lib/copy.js';
 import { FID } from '../../src/lib/fid.js';
 import { paths } from '../../src/lib/paths.js';
 import { fromRoot } from './support/project.js';
 
-vi.mock('../../src/data/api.js', () => ({ getConfig: vi.fn() }));
+vi.mock('../../src/data/api.js', () => ({ getConfig: vi.fn(), getUsers: vi.fn() }));
 
 const config = JSON.parse(readFileSync(fromRoot('public/app-config.json'), 'utf8'));
 const t = copy.login;
 let consoleSpies;
 
 beforeEach(() => {
+  localStorage.clear();
   consoleSpies = ['error', 'warn', 'log', 'info'].map((level) => vi.spyOn(console, level));
   vi.mocked(getConfig).mockResolvedValue(config);
 });
@@ -110,8 +111,9 @@ describe('legal links (FR-20, SCRUM-31)', () => {
   });
 });
 
-describe('submit is a no-op in Story 1.2', () => {
+describe('submit with unknown credentials (Story 1.3 shows no message until Story 1.4)', () => {
   it('Enter and the Login button keep the URL at /login and the typed values', async () => {
+    vi.mocked(getUsers).mockResolvedValue({ policy: { sessionTtlMinutes: 480 }, users: [] });
     await renderAt(paths.login());
     const username = screen.getByLabelText(t.usernameLabel);
     const password = screen.getByLabelText(t.passwordLabel);
@@ -119,6 +121,8 @@ describe('submit is a no-op in Story 1.2', () => {
     fireEvent.change(password, { target: { value: 'secret' } });
     fireEvent.submit(password.form);
     fireEvent.click(screen.getByRole('button', { name: t.submit }));
+    await waitFor(() => expect(getUsers).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: t.submit }).hasAttribute('aria-busy')).toBe(false));
     expect(window.location.pathname).toBe(paths.login());
     expect(window.location.search).toBe('');
     expect(username.value).toBe('farmer');
@@ -127,7 +131,13 @@ describe('submit is a no-op in Story 1.2', () => {
 });
 
 describe('copy and Figma ids are never literal in JSX (AD-15, AD-16)', () => {
-  const files = ['src/pages/Login/LoginPage.jsx', 'src/features/auth/LoginForm.jsx', 'src/app/App.jsx'];
+  const files = [
+    'src/pages/Login/LoginPage.jsx',
+    'src/features/auth/LoginForm.jsx',
+    'src/app/App.jsx',
+    'src/app/RequireSession.jsx',
+    'src/pages/Placeholder/Placeholder.jsx',
+  ];
   const TEXT_ATTRIBUTES = new Set(['alt', 'aria-label', 'title', 'placeholder']);
 
   /**

@@ -98,9 +98,23 @@ async function load(failKey, resolveSource) {
   return loadJson(url, label);
 }
 
-/** Dummy accounts and sign-in policy (PRD addendum §A). */
-export function getUsers() {
-  return load('users', () => ({ url: usersUrl, label: 'users.json' }));
+/**
+ * Dummy accounts and sign-in policy (PRD addendum §A).
+ *
+ * With `{ signIn: true }` the promise also waits `policy.simulatedLatencyMs`
+ * (800 ms) after loading, in every build, so the Login loading state is
+ * observable (FR-23, AD-7, AD-14). This is the only place that latency lives.
+ * @param {{ signIn?: boolean }} [options]
+ */
+export async function getUsers(options) {
+  const users = await load('users', () => ({ url: usersUrl, label: 'users.json' }));
+  if (options?.signIn) await wait(signInLatencyMs(users));
+  return users;
+}
+
+function signInLatencyMs(users) {
+  const value = Number(users?.policy?.simulatedLatencyMs);
+  return Number.isFinite(value) && value > 0 ? Math.min(value, MAX_TIMEOUT_MS) : 0;
 }
 
 /**

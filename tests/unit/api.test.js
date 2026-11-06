@@ -207,6 +207,40 @@ describe('latency (VITE_DATA_LATENCY_MS)', () => {
   });
 });
 
+describe('sign-in latency (users.json policy, AD-14)', () => {
+  it.each([
+    ['development', true],
+    ['production', false],
+  ])('getUsers({ signIn: true }) waits policy.simulatedLatencyMs after loading (%s build)', async (mode, dev) => {
+    vi.stubEnv('DEV', dev);
+    vi.stubEnv('PROD', !dev);
+    vi.stubEnv('MODE', mode);
+    vi.stubEnv('VITE_DATA_LATENCY_MS', '0');
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const latency = readJson('src/data/json/users.json').policy.simulatedLatencyMs;
+    expect(latency).toBe(800);
+    let settled = false;
+    const pending = getUsers({ signIn: true }).then((value) => {
+      settled = true;
+      return value;
+    });
+    await vi.advanceTimersByTimeAsync(latency - 1);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(pending).resolves.toEqual(readJson('src/data/json/users.json'));
+  });
+
+  it('plain getUsers() does not add the sign-in latency', async () => {
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const pending = getUsers();
+    await vi.advanceTimersByTimeAsync(0);
+    await expect(pending).resolves.toMatchObject({ version: 1 });
+  });
+});
+
 describe('data access boundary', () => {
   it('only src/data/api.js references src/data/json', async () => {
     const { readdirSync, statSync } = await import('node:fs');

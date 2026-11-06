@@ -1,0 +1,19 @@
+/*
+ * Minimal "Coming soon" placeholder (undesigned). Fixed 1366 px canvas,
+ * left-aligned (AD-4); colours and fonts only via var(--…) (AD-2).
+ */
+.page {
+  width: 1366px;
+  min-height: 768px;
+  padding: var(--space-8);
+  background: var(--primitives-color-base-white);
+}
+
+.message {
+  margin: 0;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--weight-regular);
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--brand-primary-700);
+}

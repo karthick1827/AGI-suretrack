@@ -297,3 +297,108 @@
   outline: var(--border-width-md) solid var(--raw-ffffff);
   outline-offset: 2px;
 }
+
+/*
+ * FR-22 [ASSUMPTION]: required-field message, Roboto 400 12px / 16px, white,
+ * 4px (--space-2) below the input. The field's flex gap is 6px, so the
+ * message pulls up by 2px. The input stroke turns --component-input-border-error
+ * at the same 1.5px width, and the message is the input's description.
+ */
+.fieldError {
+  flex: none;
+  height: 16px;
+  margin: calc(var(--space-2) - 6px) 0 0;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--weight-regular);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--raw-ffffff);
+  white-space: nowrap;
+}
+
+.input[aria-invalid='true'] {
+  box-shadow: inset 0 0 0 var(--border-width-sm) var(--component-input-border-error);
+}
+
+/*
+ * FR-22 [ASSUMPTION]: while a message shows, everything below it moves down by
+ * the message height (4px gap + 16px line = 20px); the column's top stays at
+ * y 127.039. One shift per message: Username moves the Password group, the
+ * button, the Forgot link and the legal line; Password moves the last three.
+ */
+.field.fieldInvalid {
+  height: 86px;
+}
+
+.usernameInvalid .passwordGroup {
+  top: 172px;
+}
+
+.usernameInvalid .loginButton,
+.passwordInvalid .loginButton {
+  top: 279px;
+}
+
+.usernameInvalid.passwordInvalid .loginButton {
+  top: 299px;
+}
+
+.usernameInvalid .forgotBox,
+.passwordInvalid .forgotBox {
+  top: 353.92px;
+}
+
+.usernameInvalid.passwordInvalid .forgotBox {
+  top: 373.92px;
+}
+
+.usernameInvalid .innerStack,
+.usernameInvalid .logoStack,
+.passwordInvalid .innerStack,
+.passwordInvalid .logoStack {
+  height: 437.92px;
+}
+
+.usernameInvalid.passwordInvalid .innerStack,
+.usernameInvalid.passwordInvalid .logoStack {
+  height: 457.92px;
+}
+
+.usernameInvalid .formWrapper,
+.usernameInvalid .formStack,
+.passwordInvalid .formWrapper,
+.passwordInvalid .formStack {
+  height: 373.92px;
+}
+
+.usernameInvalid.passwordInvalid .formWrapper,
+.usernameInvalid.passwordInvalid .formStack {
+  height: 393.92px;
+}
+
+/*
+ * FR-23 [ASSUMPTION]: loading keeps the button's size, white background and
+ * "Login" label, and adds a 16×16 spinner (2px --brand-primary-700 stroke)
+ * left of the label, 8px gap (the button's own gap). Repeat clicks are ignored.
+ */
+.loginButton[aria-busy='true'] {
+  cursor: progress;
+}
+
+.spinner {
+  flex: none;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--brand-primary-700);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: login-spin 0.8s linear infinite;
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
