@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-06T04:59:33.288Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-06T04:59:33.288Z
 title: 'Story 1.1 — Project foundation on Figma''s design system'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
 baseline_commit: '464457683d23546fbee2269fccc25012d6e93dc7'
-implementation_status: in-review
+implementation_status: review
 story_key: 1-1-project-foundation-on-figmas-design-system
 review_loop_iteration: 0
 context:
@@ -105,3 +104,60 @@ No user-visible screen ships in this story; `/` renders an empty app root.
 - `npm run build`: expected `dist/` built with no warnings.
 - `npm test`: expected all unit tests to pass.
 - `node -e "require('./package.json').dependencies['react-router-dom'] && process.exit(1)"`: expected exit code 0.
+
+## Suggested Review Order
+
+**Design-token layer (exact Figma values)**
+
+- Single token layer; every Figma variable and hard-coded colour copied verbatim, never merged.
+  [`tokens.css:24`](../../src/styles/tokens.css#L24)
+- The three reds stay separate tokens, as drawn in Figma (AD-2).
+  [`tokens.css:171`](../../src/styles/tokens.css#L171)
+- Own @font-face with font-display: block, so no fallback-font flash breaks pixel parity.
+  [`fonts.css:17`](../../src/styles/fonts.css#L17)
+- Globals imported once, in the documented order.
+  [`main.jsx:4`](../../src/app/main.jsx#L4)
+
+**Data port (only door to JSON)**
+
+- `?url&no-inline` keeps every JSON a real, interceptable request (FR-96).
+  [`api.js:18`](../../src/data/api.js#L18)
+- Latency: 300 dev / 0 test / always 0 in production.
+  [`api.js:38`](../../src/data/api.js#L38)
+- One load path: forced-fail → NOT_FOUND → latency → fetch → shape check.
+  [`api.js:90`](../../src/data/api.js#L90)
+- Public API used by every later story.
+  [`api.js:102`](../../src/data/api.js#L102)
+
+**Shared modules (routes, copy, Figma IDs)**
+
+- Every app URL built here; Markdown Studio prefixes reserved.
+  [`paths.js:14`](../../src/lib/paths.js#L14)
+- Route builders reject bad ids ('.', '..', empty).
+  [`paths.js:39`](../../src/lib/paths.js#L39)
+- Verbatim copy (U+00B7, U+2019, design typos kept).
+  [`copy.js:20`](../../src/lib/copy.js#L20)
+- fill() fails loudly on a missing slot instead of rendering 'undefined'.
+  [`copy.js:108`](../../src/lib/copy.js#L108)
+- Figma node-id constants for data-fid hooks.
+  [`fid.js:17`](../../src/lib/fid.js#L17)
+
+**Guards (lint gate, assets)**
+
+- AD-2 gate: blocks colour/font literals in any src CSS outside styles/.
+  [`check-css-literals.mjs:146`](../../scripts/check-css-literals.mjs#L146)
+- Silo photo derivation: ≤600 KB, no upscaling, safe temp writes.
+  [`build-images.mjs:37`](../../scripts/build-images.mjs#L37)
+
+**Peripherals (app shell, config, CI, tests)**
+
+- React Router 8 only; empty app root for now.
+  [`App.jsx:1`](../../src/app/App.jsx#L1)
+- Overlay root for AD-12 overlays.
+  [`index.html:11`](../../index.html#L11)
+- Lint now ignores Markdown Studio files to reach zero warnings (review this).
+  [`.oxlintrc.json:4`](../../.oxlintrc.json#L4)
+- Ubuntu CI: lint, build, test.
+  [`ci.yml:13`](../../.github/workflows/ci.yml#L13)
+- I/O-matrix and latency tests.
+  [`api.test.js:1`](../../tests/unit/api.test.js#L1)
