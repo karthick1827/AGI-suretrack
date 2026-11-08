@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-08T19:59:03.497Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 spec_approved_by: Manager (via Markdown Studio)
 spec_approved_at: 2026-11-08T19:20:34.501Z
 title: 'Story 1.4 — Clear messages when sign-in fails'
@@ -7,7 +10,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'ef2698a7ace0972389fc3586c10127e217a4dbca'
-implementation_status: review
+implementation_status: done
 story_key: 1-4-clear-messages-when-sign-in-fails
 jira: SCRUM-28
 review_loop_iteration: 0

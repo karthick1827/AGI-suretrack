@@ -440,6 +440,8 @@ So that I can get to my farm's Dashboard.
 
 ### Story 1.4: Clear messages when sign-in fails (SCRUM-28)
 
+- [x] Story 1.4 completed — Manager approved 2026-11-09 (spec-1-4); feature/1-4-signin-failures
+
 As a farm customer whose sign-in fails,
 I want to see exactly what went wrong,
 So that I know whether to retry, reset my password or call SureTrack Coach.
