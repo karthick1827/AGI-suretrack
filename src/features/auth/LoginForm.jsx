@@ -80,6 +80,14 @@ export default function LoginForm() {
   ]
     .filter(Boolean)
     .join(' ');
+  // FR-22 / NFR-12: one polite live region announces the required-field
+  // messages once; each visible message is also its input's description.
+  const announcement = [
+    errors.username && t.errors.usernameRequired,
+    errors.password && t.errors.passwordRequired,
+  ]
+    .filter(Boolean)
+    .join(' ');
   const fieldClass = (group, invalid) => [styles.field, group, invalid && styles.fieldInvalid].filter(Boolean).join(' ');
 
   return (
@@ -127,7 +135,7 @@ export default function LoginForm() {
                   data-fid={FID.login.usernameInput}
                 />
                 {errors.username && (
-                  <p id={usernameErrorId} className={styles.fieldError} role="alert">
+                  <p id={usernameErrorId} className={styles.fieldError}>
                     {t.errors.usernameRequired}
                   </p>
                 )}
@@ -153,7 +161,7 @@ export default function LoginForm() {
                   data-fid={FID.login.passwordInput}
                 />
                 {errors.password && (
-                  <p id={passwordErrorId} className={styles.fieldError} role="alert">
+                  <p id={passwordErrorId} className={styles.fieldError}>
                     {t.errors.passwordRequired}
                   </p>
                 )}
@@ -193,6 +201,10 @@ export default function LoginForm() {
         <a className={styles.legalLink} href={legal?.termsOfServiceUrl} {...NEW_TAB}>
           {t.termsOfService}
         </a>
+      </p>
+
+      <p className={styles.liveRegion} aria-live="polite" aria-atomic="true">
+        {announcement}
       </p>
     </div>
   );

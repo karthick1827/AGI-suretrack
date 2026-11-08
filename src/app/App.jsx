@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { paths, routePatterns } from '../lib/paths.js';
-import { getSession, subscribe } from '../lib/session.js';
+import { getSession, getSessionState, purgeInvalidSession, subscribe } from '../lib/session.js';
 import LoginPage from '../pages/Login/LoginPage.jsx';
 import Placeholder from '../pages/Placeholder/Placeholder.jsx';
 import RequireSession from './RequireSession.jsx';
@@ -21,40 +21,88 @@ const PROTECTED_PATTERNS = [
 ];
 
 function LoginRoute() {
-  // Reads storage on every render, so the React Compiler must not memoize it.
+  // Reads storage on every render (a pure read; SessionSync purges), so the React Compiler must not memoize it.
   'use no memo';
   if (getSession()) return <Navigate to={paths.dashboard()} replace />;
   return <LoginPage />;
 }
 
+const MAX_TIMEOUT_MS = 2147483647; // setTimeout's maximum delay
+
 /**
- * FR-35: when the Session ends in this tab or any other tab, leave the
- * signed-in page for `/login` at once. Also covers a page restored from the
- * back-forward cache after sign-out.
+ * Keeps every tab in step with the Session (FR-34, FR-35, FR-33). It
+ * subscribes once and reads the current location from a ref.
+ *  (a) Session lost (sign-out here or in another tab, or found invalid):
+ *      leave a signed-in page for /login with `{ from, reason }`.
+ *  (b) Session appears while this tab shows /login (sign-in in another tab,
+ *      or a restored page): go to /dashboard. A sign-in in THIS tab is left to
+ *      the Login form, which sends the user to the remembered page.
+ *  (c) Session expires while the page is open: a timer at `expiresAt`, plus a
+ *      re-check when the tab becomes visible or gains focus.
+ *  (d) A page restored from the back-forward cache never re-runs the guards,
+ *      so `pageshow` with `persisted` re-checks too.
+ * It is also the only caller of purgeInvalidSession(), so reads during render
+ * stay pure.
  */
 function SessionSync() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const locationRef = useRef(location);
 
   useEffect(() => {
-    const check = () => {
-      if (pathname !== paths.login() && !getSession()) {
-        navigate(paths.login(), { replace: true });
+    locationRef.current = location;
+  }, [location]);
+
+  useEffect(() => {
+    const expiry = { timer: undefined };
+
+    const schedule = (session) => {
+      clearTimeout(expiry.timer);
+      expiry.timer = undefined;
+      if (!session) return;
+      const delay = Math.min(Math.max(session.expiresAt - Date.now(), 0), MAX_TIMEOUT_MS);
+      expiry.timer = setTimeout(() => check({ external: true }), delay);
+    };
+
+    const check = ({ external, initial = false }) => {
+      const now = Date.now();
+      const { session, reason } = getSessionState(now);
+      purgeInvalidSession(now);
+      schedule(session);
+      if (initial) return; // the route guards handle the first render
+      const { pathname, search, hash } = locationRef.current;
+      const onLogin = pathname === paths.login();
+      if (session) {
+        if (onLogin && external) navigate(paths.dashboard(), { replace: true });
+        return;
+      }
+      if (!onLogin) {
+        navigate(paths.login(), { replace: true, state: { from: `${pathname}${search}${hash}`, reason } });
       }
     };
-    // A page restored from the back-forward cache never re-runs the guards.
+
+    const onChange = ({ crossTab }) => check({ external: crossTab });
     const onPageShow = (event) => {
-      if (!event.persisted) return;
-      if (pathname === paths.login() && getSession()) navigate(paths.dashboard(), { replace: true });
-      else check();
+      if (event.persisted) check({ external: true });
     };
-    const unsubscribe = subscribe(check);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') check({ external: true });
+    };
+    const onFocus = () => check({ external: true });
+
+    check({ external: false, initial: true });
+    const unsubscribe = subscribe(onChange);
     window.addEventListener('pageshow', onPageShow);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      clearTimeout(expiry.timer);
       unsubscribe();
       window.removeEventListener('pageshow', onPageShow);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [navigate, pathname]);
+  }, [navigate]);
 
   return null;
 }

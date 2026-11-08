@@ -101,9 +101,12 @@ async function load(failKey, resolveSource) {
 /**
  * Dummy accounts and sign-in policy (PRD addendum §A).
  *
- * With `{ signIn: true }` the promise also waits `policy.simulatedLatencyMs`
- * (800 ms) after loading, in every build, so the Login loading state is
- * observable (FR-23, AD-7, AD-14). This is the only place that latency lives.
+ * Latency, in this order: (1) the data latency every call has
+ * (VITE_DATA_LATENCY_MS in dev/test builds, 0 in production) before the
+ * fetch; then, with `{ signIn: true }` only, (2) `policy.simulatedLatencyMs`
+ * from the loaded file (800 ms) after the fetch, in every build including
+ * production, so the Login loading state is observable (FR-23, AD-7, AD-14).
+ * This is the only place the sign-in latency lives.
  * @param {{ signIn?: boolean }} [options]
  */
 export async function getUsers(options) {

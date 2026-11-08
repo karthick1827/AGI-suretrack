@@ -2,11 +2,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
+  MAX_CLOCK_SKEW_MS,
+  MAX_SESSION_TTL_MINUTES,
   SESSION_KEY,
   SIGNOUT_KEY,
   createSessionRecord,
   getSession,
   getSessionState,
+  purgeInvalidSession,
   signIn,
   signOut,
   subscribe,
@@ -17,6 +20,7 @@ const users = JSON.parse(readFileSync(fromRoot('src/data/json/users.json'), 'utf
 const demo = users.users.find((user) => user.username === 'demo');
 const TTL = users.policy.sessionTtlMinutes;
 const NOW = 1_800_000_000_000;
+const record = (overrides = {}, now = NOW) => ({ ...createSessionRecord(demo, { now, ttlMinutes: TTL }), ...overrides });
 
 beforeEach(() => localStorage.clear());
 afterEach(() => {
@@ -37,20 +41,31 @@ describe('createSessionRecord', () => {
   });
 
   it('never copies the password or any other account field', () => {
-    const record = createSessionRecord(demo, { now: NOW, ttlMinutes: TTL });
-    expect(Object.keys(record).sort()).toEqual(
+    const built = createSessionRecord(demo, { now: NOW, ttlMinutes: TTL });
+    expect(Object.keys(built).sort()).toEqual(
       ['dashboardState', 'displayName', 'expiresAt', 'issuedAt', 'username', 'v'].sort(),
     );
-    expect(JSON.stringify(record)).not.toContain(demo.password);
+    expect(JSON.stringify(built)).not.toContain(demo.password);
+  });
+
+  it.each([[0], [-1], [Number.NaN], [Infinity], ['480'], [undefined], [MAX_SESSION_TTL_MINUTES + 1]])(
+    'throws RangeError for ttlMinutes %j',
+    (ttlMinutes) => {
+      expect(() => createSessionRecord(demo, { now: NOW, ttlMinutes })).toThrow(RangeError);
+    },
+  );
+
+  it('MAX_SESSION_TTL_MINUTES equals the users.json policy value', () => {
+    expect(MAX_SESSION_TTL_MINUTES).toBe(users.policy.sessionTtlMinutes);
   });
 });
 
 describe('signIn / getSession', () => {
   it('writes suretrack.session and reads it back while valid', () => {
-    const record = signIn(demo, { now: NOW, ttlMinutes: TTL });
-    expect(JSON.parse(localStorage.getItem(SESSION_KEY))).toEqual(record);
-    expect(getSession(NOW + 1)).toEqual(record);
-    expect(getSessionState(NOW + 1)).toEqual({ session: record, reason: null });
+    expect(signIn(demo, { now: NOW, ttlMinutes: TTL })).toBe(true);
+    expect(JSON.parse(localStorage.getItem(SESSION_KEY))).toEqual(record());
+    expect(getSession(NOW + 1)).toEqual(record());
+    expect(getSessionState(NOW + 1)).toEqual({ session: record(), reason: null });
   });
 
   it('stores no password anywhere in localStorage', () => {
@@ -67,26 +82,44 @@ describe('signIn / getSession', () => {
 
   it.each([
     ['bad JSON', '{not json'],
-    ['wrong v', JSON.stringify({ ...createSessionRecord(demo, { now: NOW, ttlMinutes: TTL }), v: 2 })],
-    ['missing username', JSON.stringify({ ...createSessionRecord(demo, { now: NOW, ttlMinutes: TTL }), username: '' })],
-    ['unknown dashboardState', JSON.stringify({ ...createSessionRecord(demo, { now: NOW, ttlMinutes: TTL }), dashboardState: 'x' })],
-    ['string times', JSON.stringify({ ...createSessionRecord(demo, { now: NOW, ttlMinutes: TTL }), expiresAt: 'later' })],
+    ['wrong v', JSON.stringify(record({ v: 2 }))],
+    ['missing username', JSON.stringify(record({ username: '' }))],
+    ['unknown dashboardState', JSON.stringify(record({ dashboardState: 'x' }))],
+    ['string times', JSON.stringify(record({ expiresAt: 'later' }))],
     ['an array', '[]'],
     ['null', 'null'],
-  ])('corrupt storage (%s): returns null, clears the key, never throws', (_, raw) => {
+    ['issuedAt over 60 s in the future', JSON.stringify(record({}, NOW + MAX_CLOCK_SKEW_MS + 1))],
+    ['a lifetime over the policy maximum', JSON.stringify(record({ expiresAt: NOW + (TTL + 1) * 60_000 }))],
+  ])('corrupt storage (%s): null without touching storage; purge removes it', (_, raw) => {
     localStorage.setItem(SESSION_KEY, raw);
     expect(() => getSession(NOW)).not.toThrow();
-    localStorage.setItem(SESSION_KEY, raw);
     expect(getSessionState(NOW)).toEqual({ session: null, reason: 'required' });
+    expect(localStorage.getItem(SESSION_KEY)).toBe(raw);
+    expect(purgeInvalidSession(NOW)).toBe(true);
     expect(localStorage.getItem(SESSION_KEY)).toBeNull();
   });
 
-  it('expired storage: returns null with reason "expired" and clears the key', () => {
-    const record = signIn(demo, { now: NOW, ttlMinutes: TTL });
-    expect(getSessionState(record.expiresAt)).toEqual({ session: null, reason: 'expired' });
-    expect(localStorage.getItem(SESSION_KEY)).toBeNull();
+  it('accepts issuedAt up to 60 s in the future (clock skew)', () => {
+    const skewed = record({}, NOW + MAX_CLOCK_SKEW_MS);
+    localStorage.setItem(SESSION_KEY, JSON.stringify(skewed));
+    expect(getSession(NOW)).toEqual(skewed);
+  });
+
+  it('expired storage: reason "expired"; the read does not clear, purge does', () => {
     signIn(demo, { now: NOW, ttlMinutes: TTL });
-    expect(getSession(record.expiresAt + 1)).toBeNull();
+    const expiresAt = NOW + TTL * 60_000;
+    expect(getSessionState(expiresAt)).toEqual({ session: null, reason: 'expired' });
+    expect(getSession(expiresAt + 1)).toBeNull();
+    expect(localStorage.getItem(SESSION_KEY)).not.toBeNull();
+    expect(purgeInvalidSession(expiresAt)).toBe(true);
+    expect(localStorage.getItem(SESSION_KEY)).toBeNull();
+  });
+
+  it('purgeInvalidSession leaves a valid Session and an empty store alone', () => {
+    expect(purgeInvalidSession(NOW)).toBe(false);
+    signIn(demo, { now: NOW, ttlMinutes: TTL });
+    expect(purgeInvalidSession(NOW + 1)).toBe(false);
+    expect(localStorage.getItem(SESSION_KEY)).not.toBeNull();
   });
 
   it('never throws when storage itself throws', () => {
@@ -94,6 +127,24 @@ describe('signIn / getSession', () => {
       throw new Error('blocked');
     });
     expect(getSessionState(NOW)).toEqual({ session: null, reason: 'required' });
+    expect(purgeInvalidSession(NOW)).toBe(false);
+  });
+
+  it('signIn returns false, leaves nothing and notifies nobody when setItem throws', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribe(listener);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    expect(signIn(demo, { now: NOW, ttlMinutes: TTL })).toBe(false);
+    expect(localStorage.getItem(SESSION_KEY)).toBeNull();
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
+  it('signIn returns false when the write does not read back', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
+    expect(signIn(demo, { now: NOW, ttlMinutes: TTL })).toBe(false);
   });
 });
 
@@ -106,18 +157,19 @@ describe('signOut / subscribe (cross-tab sync)', () => {
     expect(getSession()).toBeNull();
   });
 
-  it('notifies same-tab listeners on signIn and signOut', () => {
+  it('notifies same-tab listeners on signIn and signOut with { crossTab: false }', () => {
     const listener = vi.fn();
     const unsubscribe = subscribe(listener);
-    signIn(demo, { now: NOW, ttlMinutes: TTL });
+    signIn(demo, { now: Date.now(), ttlMinutes: TTL });
     signOut();
     expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenCalledWith({ crossTab: false });
     unsubscribe();
     signOut();
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
-  it('notifies on storage events from other tabs for the Session or sign-out key only', () => {
+  it('notifies with { crossTab: true } on storage events for the Session or sign-out key only', () => {
     const listener = vi.fn();
     const unsubscribe = subscribe(listener);
     window.dispatchEvent(new StorageEvent('storage', { key: SIGNOUT_KEY, newValue: '1' }));
@@ -125,6 +177,7 @@ describe('signOut / subscribe (cross-tab sync)', () => {
     window.dispatchEvent(new StorageEvent('storage', { key: null }));
     window.dispatchEvent(new StorageEvent('storage', { key: 'something.else', newValue: 'x' }));
     expect(listener).toHaveBeenCalledTimes(3);
+    expect(listener).toHaveBeenCalledWith({ crossTab: true });
     unsubscribe();
     window.dispatchEvent(new StorageEvent('storage', { key: SIGNOUT_KEY, newValue: '2' }));
     expect(listener).toHaveBeenCalledTimes(3);

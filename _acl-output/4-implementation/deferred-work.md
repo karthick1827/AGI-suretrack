@@ -38,3 +38,12 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-1-2-pixel-exact-login-page-with-the-fidelity-check.md`
   summary: Update the PRD (FR-4/FR-20 notes) to record the user-approved Roboto metric overrides and the Figma-render separator spacing.
   evidence: Implementation deviates from PRD wording with user approval; PRD should reflect it in its next update.
+- source_spec: `_acl-output/4-implementation/spec-1-3-sign-in-and-reach-the-dashboard.md`
+  summary: Rewrite the cross-tab sign-out fidelity test to use the real Logout control instead of copying signOut() storage writes.
+  evidence: No Logout UI exists until Story 2.1; the test currently mirrors signOut() internals.
+- source_spec: `_acl-output/4-implementation/spec-1-3-sign-in-and-reach-the-dashboard.md`
+  summary: Reconcile ARCHITECTURE-SPINE AD-9 (exactly two storage keys) with the third key suretrack.signout used for cross-tab sign-out broadcast.
+  evidence: Spec and PRD addendum C require the broadcast key; the spine text says two keys.
+- source_spec: `_acl-output/4-implementation/spec-1-3-sign-in-and-reach-the-dashboard.md`
+  summary: Decide FR-21 autofocus on Username at page load vs. the Figma at-rest render (focus ring would show and break the Story 1.2 baseline).
+  evidence: Autofocus not implemented to keep the at-rest render identical to Figma; needs a design/PM decision.

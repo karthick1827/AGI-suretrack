@@ -111,22 +111,33 @@ describe('legal links (FR-20, SCRUM-31)', () => {
   });
 });
 
-describe('submit with unknown credentials (Story 1.3 shows no message until Story 1.4)', () => {
-  it('Enter and the Login button keep the URL at /login and the typed values', async () => {
-    vi.mocked(getUsers).mockResolvedValue({ policy: { sessionTtlMinutes: 480 }, users: [] });
+describe('typed values are preserved after a non-success submit (messages arrive in Story 1.4)', () => {
+  const usersData = JSON.parse(readFileSync(fromRoot('src/data/json/users.json'), 'utf8'));
+
+  it('uses the real users.json shape (policy and a per-account simulatedLatencyMs)', () => {
+    expect(usersData.policy).toMatchObject({ simulatedLatencyMs: 800, sessionTtlMinutes: 480 });
+    expect(usersData.users.some((user) => typeof user.simulatedLatencyMs === 'number')).toBe(true);
+  });
+
+  it.each([
+    ['unknown username', 'farmer', 'secret'],
+    ['wrong password', 'demo', 'Demo@1234'],
+    ['locked account', 'locked', 'Locked@123'],
+  ])('%s: Enter and the Login button keep /login and both typed values', async (_, user, pass) => {
+    vi.mocked(getUsers).mockResolvedValue(usersData);
     await renderAt(paths.login());
     const username = screen.getByLabelText(t.usernameLabel);
     const password = screen.getByLabelText(t.passwordLabel);
-    fireEvent.change(username, { target: { value: 'farmer' } });
-    fireEvent.change(password, { target: { value: 'secret' } });
+    fireEvent.change(username, { target: { value: user } });
+    fireEvent.change(password, { target: { value: pass } });
     fireEvent.submit(password.form);
     fireEvent.click(screen.getByRole('button', { name: t.submit }));
     await waitFor(() => expect(getUsers).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByRole('button', { name: t.submit }).hasAttribute('aria-busy')).toBe(false));
     expect(window.location.pathname).toBe(paths.login());
     expect(window.location.search).toBe('');
-    expect(username.value).toBe('farmer');
-    expect(password.value).toBe('secret');
+    expect(username.value).toBe(user);
+    expect(password.value).toBe(pass);
   });
 });
 

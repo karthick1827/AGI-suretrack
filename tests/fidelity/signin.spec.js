@@ -18,6 +18,18 @@ async function signInAs(page, { username, password }) {
 
 const comingSoon = (page) => page.getByText(copy.placeholder.comingSoon);
 
+/** The message element an input names in aria-describedby (useId ids need an attribute selector). */
+async function describedBy(page, input) {
+  const id = await input.getAttribute('aria-describedby');
+  return page.locator(`[id="${id}"]`);
+}
+
+// Login column top (FR-15) + logo 24 + gap 40 = the form stack's page y.
+const FORM_TOP = 127.039 + 24 + 40;
+// FR-22 [ASSUMPTION]: each message adds 20 px (4 px gap + 16 px line) below its field.
+const BUTTON_TOP = { none: FORM_TOP + 259, one: FORM_TOP + 279, both: FORM_TOP + 299 };
+const PASSWORD_GROUP_TOP = { none: FORM_TOP + 152, shifted: FORM_TOP + 172 };
+
 test.describe('Sign in and reach the Dashboard', () => {
   test('valid sign-in: loading state, then /dashboard; no password in storage', async ({ page }) => {
     await page.goto(paths.login());
@@ -64,7 +76,7 @@ test.describe('Sign in and reach the Dashboard', () => {
       page.getByRole('link', { name: t.privacyPolicy }),
       page.getByRole('link', { name: t.termsOfService }),
     ];
-    await page.locator('body').click({ position: { x: 1000, y: 400 } });
+    await page.evaluate(() => document.activeElement?.blur());
     for (const control of order) {
       await page.keyboard.press('Tab');
       await expect(control).toBeFocused();
@@ -73,8 +85,10 @@ test.describe('Sign in and reach the Dashboard', () => {
     // Enter with empty fields: required messages, focus on the first empty field.
     await order[0].focus();
     await page.keyboard.press('Enter');
-    await expect(page.getByText(t.errors.usernameRequired)).toBeVisible();
-    await expect(page.getByText(t.errors.passwordRequired)).toBeVisible();
+    await expect(order[0]).toHaveAttribute('aria-invalid', 'true');
+    await expect(order[1]).toHaveAttribute('aria-invalid', 'true');
+    await expect(await describedBy(page, order[0])).toHaveText(t.errors.usernameRequired);
+    await expect(await describedBy(page, order[1])).toHaveText(t.errors.passwordRequired);
     await expect(order[0]).toBeFocused();
 
     await page.keyboard.type(DEMO.username);
@@ -82,6 +96,64 @@ test.describe('Sign in and reach the Dashboard', () => {
     await page.keyboard.type(DEMO.password);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(urlOf(paths.dashboard()), { timeout: 5_000 });
+  });
+
+  test('required messages push the fields below them down by 20 px each (FR-22)', async ({ page }) => {
+    await page.goto(paths.login());
+    await page.locator(`[data-fid="${FID.frames.login}"]`).waitFor();
+    const username = page.getByLabel(t.usernameLabel);
+    const password = page.getByLabel(t.passwordLabel);
+    const box = async (locator) => locator.boundingBox();
+    const passwordGroup = page.locator(`[data-fid="${FID.login.passwordGroup}"]`);
+    const button = page.locator(`[data-fid="${FID.login.loginButton}"]`);
+    const forgot = page.locator(`[data-fid="${FID.login.forgotLinkBox}"]`);
+    const legal = page.locator(`[data-fid="${FID.login.legalText}"]`);
+    const near = (actual, expected) => expect(Math.abs(actual - expected)).toBeLessThanOrEqual(0.5);
+
+    // Both empty.
+    await page.getByRole('button', { name: t.submit }).click();
+    await expect(username).toHaveAttribute('aria-invalid', 'true');
+    await expect(password).toHaveAttribute('aria-invalid', 'true');
+    const usernameMessage = await box(await describedBy(page, username));
+    const passwordMessage = await box(await describedBy(page, password));
+    const usernameInputBox = await box(username);
+    near(usernameMessage.y - (usernameInputBox.y + usernameInputBox.height), 4);
+    expect(usernameMessage.y + usernameMessage.height).toBeLessThanOrEqual((await box(passwordGroup)).y);
+    expect(passwordMessage.y + passwordMessage.height).toBeLessThanOrEqual((await box(button)).y);
+    near((await box(passwordGroup)).y, PASSWORD_GROUP_TOP.shifted);
+    near((await box(button)).y, BUTTON_TOP.both);
+    const buttonBox = await box(button);
+    expect(buttonBox.y + buttonBox.height).toBeLessThanOrEqual((await box(forgot)).y);
+    const forgotBox = await box(forgot);
+    expect(forgotBox.y + forgotBox.height).toBeLessThanOrEqual((await box(legal)).y);
+    near((await box(page.locator(`[data-fid="${FID.login.formColumn}"]`))).y, 127.039);
+
+    // Only Password empty: one message, the Password group stays put.
+    await username.fill(DEMO.username);
+    await page.getByRole('button', { name: t.submit }).click();
+    await expect(username).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(password).toHaveAttribute('aria-invalid', 'true');
+    near((await box(passwordGroup)).y, PASSWORD_GROUP_TOP.none);
+    near((await box(button)).y, BUTTON_TOP.one);
+    const onlyPasswordMessage = await box(await describedBy(page, password));
+    expect(onlyPasswordMessage.y + onlyPasswordMessage.height).toBeLessThanOrEqual((await box(button)).y);
+
+    // Only Username empty: one message, the Password group moves down 20 px.
+    await username.fill('');
+    await password.fill(DEMO.password);
+    await page.getByRole('button', { name: t.submit }).click();
+    await expect(username).toHaveAttribute('aria-invalid', 'true');
+    await expect(password).not.toHaveAttribute('aria-invalid', 'true');
+    near((await box(passwordGroup)).y, PASSWORD_GROUP_TOP.shifted);
+    near((await box(button)).y, BUTTON_TOP.one);
+    const onlyUsernameMessage = await box(await describedBy(page, username));
+    expect(onlyUsernameMessage.y + onlyUsernameMessage.height).toBeLessThanOrEqual((await box(passwordGroup)).y);
+
+    // Typing clears the message and everything returns to the at-rest offsets.
+    await username.fill(DEMO.username);
+    await expect(username).not.toHaveAttribute('aria-invalid', 'true');
+    near((await box(passwordGroup)).y, PASSWORD_GROUP_TOP.none);
+    near((await box(button)).y, BUTTON_TOP.none);
   });
 
   test('cross-tab sign-out: the other tab shows /login within 1 s and Back does not show /dashboard', async ({
