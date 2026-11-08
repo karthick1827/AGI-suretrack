@@ -1,0 +1,47 @@
+/* Bell (FR-53), Figma I6227:63670;6194:35257, and badge 6194:35281. */
+.bell {
+  display: block;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Absolute at left 9, top 18 of the icon-action box; 14×14, radius 100. */
+.badge {
+  position: absolute;
+  left: 9px;
+  top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 100px;
+  background: var(--raw-ff0000);
+  pointer-events: none;
+}
+
+.badgeText {
+  font-family: var(--font-stack-roboto);
+  font-weight: 800;
+  font-size: 9px;
+  line-height: normal;
+  letter-spacing: -0.5px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--primitives-color-base-white);
+}
+
+/* states */
+
+.bell:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-006a36);
+  outline-offset: 2px;
+}

@@ -83,3 +83,25 @@ export const paths = Object.freeze({
 
   alerts: () => routePatterns.alerts,
 });
+
+/** The three Header Nav tabs, in display order (FR-52). Labels live in copy.js. */
+export const SHELL_TABS = Object.freeze(['dashboard', 'equipment', 'alerts']);
+
+/**
+ * The Nav tab a signed-in path belongs to (FR-52, FR-57): `/equipment…` →
+ * `equipment`, `/alerts…` → `alerts`, anything else (`/dashboard`) → `dashboard`.
+ */
+export function tabForPath(pathname) {
+  const path = typeof pathname === 'string' ? pathname : '';
+  const under = (base) => path === base || path.startsWith(`${base}/`);
+  if (under(routePatterns.equipment)) return 'equipment';
+  if (under(routePatterns.alerts)) return 'alerts';
+  return 'dashboard';
+}
+
+/** The Nav tab's link target (FR-52). Dashboard keeps a valid `?state=` (AD-10). */
+export function tabHref(tab, dashboardState) {
+  if (tab === 'equipment') return paths.equipment();
+  if (tab === 'alerts') return paths.alerts();
+  return paths.dashboard(DASHBOARD_STATES.includes(dashboardState) ? dashboardState : undefined);
+}

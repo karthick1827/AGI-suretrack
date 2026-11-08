@@ -87,6 +87,29 @@ export const FID = deepFreeze({
     avatar: 'I6227:63670;6194:35269',
     pageTitle: '6215:59009',
     content: '6227:66459',
+    // Story 2.1 — from get_design_context on 6227:63670 (Header instance).
+    leftBlock: 'I6227:63670;6194:35218',
+    navTabs: 'I6227:63670;6194:35370',
+    navTabDashboard: 'I6227:63670;6194:35371',
+    navLabelDashboard: 'I6227:63670;6194:35373',
+    navTabEquipment: 'I6227:63670;6194:35375',
+    navLabelEquipment: 'I6227:63670;6194:35377',
+    navTabAlerts: 'I6227:63670;6194:35379',
+    navLabelAlerts: 'I6227:63670;6194:35384',
+    iconActions: 'I6227:63670;6194:35256',
+    avatarHolder: 'I6227:63670;6194:35259',
+    avatarButton: 'I6227:63670;6194:35267',
+    badge: 'I6227:63670;6194:35281',
+    badgeText: 'I6227:63670;6194:35282',
+  },
+
+  // Story 2.1 — profile panel 6026:52937 (AD-14: only the title and Logout).
+  profileMenu: {
+    titleRow: '6026:52938',
+    title: '6026:52939',
+    logout: '6026:52992',
+    logoutIcon: '6026:52993',
+    logoutLabel: '6026:52994',
   },
 
   kpi: {

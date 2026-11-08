@@ -11,8 +11,16 @@ import {
   FORGOT_PASSWORD_CARD_IN_REFERENCE,
   FORGOT_PASSWORD_CORNER_MASK,
   FORGOT_PASSWORD_REFERENCE,
+  HEADER_BASELINE,
+  HEADER_IN_REFERENCE,
+  HEADER_MASK,
+  HEADER_REFERENCE,
   LOGIN_PHOTO_MASK,
   MASKED_BASELINE_DIR,
+  PROFILE_MENU_BASELINE,
+  PROFILE_MENU_IN_REFERENCE,
+  PROFILE_MENU_MASK,
+  PROFILE_MENU_REFERENCE,
   writeCroppedBaseline,
   writeMaskedBaseline,
 } from './fidelity.js';
@@ -27,4 +35,8 @@ export default async function globalSetup() {
     FORGOT_PASSWORD_CARD_IN_REFERENCE,
     FORGOT_PASSWORD_CORNER_MASK,
   );
+  // Story 2.1: the Header cropped out of its 1374×72 render (shadow overflow),
+  // avatar masked; the profile panel (exact 290×768), omitted entries masked.
+  await writeCroppedBaseline(HEADER_REFERENCE, HEADER_BASELINE, HEADER_IN_REFERENCE, HEADER_MASK);
+  await writeCroppedBaseline(PROFILE_MENU_REFERENCE, PROFILE_MENU_BASELINE, PROFILE_MENU_IN_REFERENCE, PROFILE_MENU_MASK);
 }

@@ -1,22 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
-import { paths, routePatterns } from '../lib/paths.js';
+import { paths, routePatterns, tabForPath } from '../lib/paths.js';
 import { getSession, getSessionState, purgeInvalidSession, subscribe } from '../lib/session.js';
 import LoginPage from '../pages/Login/LoginPage.jsx';
 import Placeholder from '../pages/Placeholder/Placeholder.jsx';
+import SignedInLayout from '../pages/SignedInLayout.jsx';
 import OverlayProvider from '../ui/overlay/OverlayProvider.jsx';
 import RequireSession from './RequireSession.jsx';
 
 // Route table (AD-10). `/login` is public and redirects a signed-in user to
 // `/dashboard` (FR-33). Every other app path is guarded by RequireSession
-// (FR-11) and renders the Placeholder until its epic lands (`/dashboard`
-// until Epic 2). `/` and unknown paths go to `/dashboard`, so a signed-out
-// visitor still ends up on `/login`. OverlayProvider (AD-12) is mounted once
+// (FR-11) and renders inside the signed-in shell (SignedInLayout: Header and
+// page-title strip, AD-17), with the Nav tab derived from the route.
+// `/dashboard` shows an empty content area until Story 2.2; every other app
+// path shows the Placeholder (FR-57). `/` and unknown paths go to
+// `/dashboard`, so a signed-out visitor still ends up on `/login`. OverlayProvider (AD-12) is mounted once
 // here, inside the router, and portals every overlay into #overlay-root; it
 // gets the pathname as `routeKey`, so a page change closes the open overlay.
 
-const PROTECTED_PATTERNS = [
-  routePatterns.dashboard,
+const PLACEHOLDER_PATTERNS = [
   routePatterns.equipment,
   routePatterns.equipmentDetail,
   routePatterns.alertAction,
@@ -35,8 +37,10 @@ const MAX_TIMEOUT_MS = 2147483647; // setTimeout's maximum delay
 /**
  * Keeps every tab in step with the Session (FR-34, FR-35, FR-33). It
  * subscribes once and reads the current location from a ref.
- *  (a) Session lost (sign-out here or in another tab, or found invalid):
- *      leave a signed-in page for /login with `{ from, reason }`.
+ *  (a) Session lost (sign-out in another tab, or found invalid): leave a
+ *      signed-in page for /login with `{ from, reason }`. A Logout in THIS
+ *      tab (signOut() reports `signedOut`) goes to /login with no state, so
+ *      the fields are empty, no banner shows and no return path is kept (FR-35).
  *  (b) Session appears while this tab shows /login (sign-in in another tab,
  *      or a restored page): go to /dashboard. A sign-in in THIS tab is left to
  *      the Login form, which sends the user to the remembered page.
@@ -67,7 +71,7 @@ function SessionSync() {
       expiry.timer = setTimeout(() => check({ external: true }), delay);
     };
 
-    const check = ({ external, initial = false }) => {
+    const check = ({ external, initial = false, loggedOut = false }) => {
       const now = Date.now();
       const { session, reason } = getSessionState(now);
       purgeInvalidSession(now);
@@ -79,12 +83,15 @@ function SessionSync() {
         if (onLogin && external) navigate(paths.dashboard(), { replace: true });
         return;
       }
-      if (!onLogin) {
+      if (onLogin) return;
+      if (loggedOut) {
+        navigate(paths.login(), { replace: true });
+      } else {
         navigate(paths.login(), { replace: true, state: { from: `${pathname}${search}${hash}`, reason } });
       }
     };
 
-    const onChange = ({ crossTab }) => check({ external: crossTab });
+    const onChange = ({ crossTab, signedOut }) => check({ external: crossTab, loggedOut: !crossTab && signedOut === true });
     const onPageShow = (event) => {
       if (event.persisted) check({ external: true });
     };
@@ -110,6 +117,16 @@ function SessionSync() {
   return null;
 }
 
+/** The signed-in shell with the Nav tab of the current route (FR-52, FR-57). */
+function SignedInRoute() {
+  const { pathname } = useLocation();
+  return (
+    <RequireSession>
+      <SignedInLayout activeTab={tabForPath(pathname)} />
+    </RequireSession>
+  );
+}
+
 function RoutedOverlayProvider({ children }) {
   const { pathname } = useLocation();
   return <OverlayProvider routeKey={pathname}>{children}</OverlayProvider>;
@@ -122,17 +139,13 @@ export default function App() {
         <SessionSync />
         <Routes>
           <Route path={routePatterns.login} element={<LoginRoute />} />
-          {PROTECTED_PATTERNS.map((pattern) => (
-            <Route
-              key={pattern}
-              path={pattern}
-              element={
-                <RequireSession>
-                  <Placeholder />
-                </RequireSession>
-              }
-            />
-          ))}
+          <Route element={<SignedInRoute />}>
+            {/* Story 2.2 fills the Dashboard content area. */}
+            <Route path={routePatterns.dashboard} element={null} />
+            {PLACEHOLDER_PATTERNS.map((pattern) => (
+              <Route key={pattern} path={pattern} element={<Placeholder />} />
+            ))}
+          </Route>
           <Route path="*" element={<Navigate to={paths.dashboard()} replace />} />
         </Routes>
       </RoutedOverlayProvider>

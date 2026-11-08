@@ -3,17 +3,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import App from '../../src/app/App.jsx';
-import { getConfig, getUsers } from '../../src/data/api.js';
+import { getConfig, getDashboard, getUsers } from '../../src/data/api.js';
 import { OUTCOMES, checkCredentials, returnPath } from '../../src/features/auth/useSignIn.js';
 import { copy } from '../../src/lib/copy.js';
 import { paths } from '../../src/lib/paths.js';
 import { SESSION_KEY, SIGNOUT_KEY, createSessionRecord, getSession, signIn, signOut } from '../../src/lib/session.js';
 import { fromRoot } from './support/project.js';
 
-vi.mock('../../src/data/api.js', () => ({ MAX_TIMEOUT_MS: 2147483647, getConfig: vi.fn(), getUsers: vi.fn() }));
+vi.mock('../../src/data/api.js', () => ({
+  MAX_TIMEOUT_MS: 2147483647,
+  getConfig: vi.fn(),
+  getUsers: vi.fn(),
+  getDashboard: vi.fn(),
+}));
 
 const config = JSON.parse(readFileSync(fromRoot('public/app-config.json'), 'utf8'));
 const usersData = JSON.parse(readFileSync(fromRoot('src/data/json/users.json'), 'utf8'));
+const dashboardFull = JSON.parse(readFileSync(fromRoot('src/data/json/dashboard.full.json'), 'utf8'));
 const demo = usersData.users.find((user) => user.username === 'demo');
 const TTL = usersData.policy.sessionTtlMinutes;
 const t = copy.login;
@@ -24,6 +30,7 @@ beforeEach(() => {
   consoleSpies = ['error', 'warn', 'log', 'info'].map((level) => vi.spyOn(console, level));
   vi.mocked(getConfig).mockResolvedValue(config);
   vi.mocked(getUsers).mockResolvedValue(usersData);
+  vi.mocked(getDashboard).mockResolvedValue(dashboardFull);
 });
 
 afterEach(() => {
@@ -66,7 +73,8 @@ function fillAndSubmit(username, password) {
 
 async function waitForDashboard() {
   await waitFor(() => expect(window.location.pathname).toBe(paths.dashboard()));
-  await screen.findByText(copy.placeholder.comingSoon);
+  // Story 2.1: the signed-in shell with the Dashboard page title.
+  await screen.findByRole('heading', { level: 1, name: copy.shell.pageTitles.dashboard });
 }
 
 async function waitForIdle() {
@@ -266,7 +274,7 @@ describe('guarded routes (FR-11, FR-33)', () => {
     await renderAt(paths.login());
     expect(window.location.pathname).toBe(paths.dashboard());
     expect(screen.queryByLabelText(t.usernameLabel)).toBeNull();
-    expect(screen.getByText(copy.placeholder.comingSoon)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: copy.shell.pageTitles.dashboard })).toBeTruthy();
   });
 
   it('signed in, / goes to /dashboard', async () => {
@@ -283,12 +291,12 @@ describe('sign-out and SessionSync (FR-34, FR-35)', () => {
     return event;
   };
 
-  it('signOut() in this tab shows /login with empty fields', async () => {
+  it('signOut() in this tab shows /login with empty fields, no return path and no reason (Story 2.1)', async () => {
     storeSession();
     await renderAt(paths.dashboard());
     await act(async () => signOut());
     await waitFor(() => expect(window.location.pathname).toBe(paths.login()));
-    expect(routerState()).toEqual({ from: paths.dashboard(), reason: 'required' });
+    expect(routerState() ?? null).toBeNull();
     expect(usernameInput().value).toBe('');
   });
 

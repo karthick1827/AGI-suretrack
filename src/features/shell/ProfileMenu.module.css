@@ -1,0 +1,90 @@
+/*
+ * Profile panel (FR-54, AD-14), Figma 6026:52937: 290×768, white, padding 20,
+ * column, gap 32, items centred. Anchored below the 64 px Header against the
+ * right edge of the 1366 px canvas (x 1076), inside the fixed overlay layer
+ * (AD-4 overlay exception); every designed size is literal px.
+ */
+.panel {
+  position: absolute;
+  top: 64px;
+  left: 1076px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: 290px;
+  height: 768px;
+  padding: 20px;
+  background: var(--primitives-color-base-white);
+}
+
+/* Title row 6026:52938: full width, padding-bottom 12, 1px divider. */
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 250px;
+  padding-bottom: 12px;
+  border-bottom: var(--border-width-hairline) solid var(--raw-rgba-175-195-188-0-4);
+  background: var(--primitives-color-base-white);
+}
+
+/* 6026:52939: Roboto Medium 20/24, -0.2px, #374151, single line. */
+.title {
+  overflow: hidden;
+  font-family: var(--font-stack-roboto);
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 24px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--semantic-color-text-secondary);
+}
+
+/*
+ * Menu column (238 wide). In Figma the user block (52 high, then gap 48) and
+ * four entries (4 × (35.5 + gap 12)) sit above Logout: 52 + 48 + 190 = 290 px.
+ * They are not shown (AD-14); their space is kept so Logout stays at y 379.
+ */
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+  width: 238px;
+  padding-top: 290px;
+}
+
+/* Logout row 6026:52992: 24 px icon + text, gap 16. */
+.logout {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.logoutIcon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+/* 6026:52994: Roboto Medium 16/24, #E05400. */
+.logoutLabel {
+  font-family: var(--font-stack-roboto);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--raw-e05400);
+}
+
+/* states */
+
+.logout:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-006a36);
+  outline-offset: 2px;
+}

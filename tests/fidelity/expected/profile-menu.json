@@ -1,0 +1,15 @@
+{
+  "$comment": "Profile panel 6026:52937 (AD-14: title + Logout only), opened from the avatar on /dashboard — expected boxes (page coords: panel at 1076, 64; ±1 px) and exact computed styles from addendum Part B §11 and get_design_context on 6026:52937. Logout keeps its Figma position (panel x 26, y 379).",
+  "6026:52937": { "x": 1076, "y": 64, "w": 290, "h": 768, "backgroundColor": "#ffffff" },
+  "6026:52938": { "x": 1096, "y": 84, "w": 250, "h": 37 },
+  "6026:52939": {
+    "x": 1096, "y": 84, "h": 24,
+    "color": "#374151", "fontFamily": "Roboto", "fontWeight": 500, "fontSize": "20px", "lineHeight": "24px", "letterSpacing": "-0.2px"
+  },
+  "6026:52992": { "x": 1102, "y": 443, "h": 24 },
+  "6026:52993": { "x": 1102, "y": 443, "w": 24, "h": 24 },
+  "6026:52994": {
+    "x": 1142, "y": 443, "h": 24,
+    "color": "#e05400", "fontFamily": "Roboto", "fontWeight": 500, "fontSize": "16px", "lineHeight": "24px", "letterSpacing": 0
+  }
+}

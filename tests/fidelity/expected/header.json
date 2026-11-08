@@ -1,0 +1,36 @@
+{
+  "$comment": "Signed-in Header 6227:63670 and page-title strip 6215:59009 on /dashboard at 1366 px — expected boxes (page coords, px, ±1 px) and exact computed styles, transcribed from PRD FR-50–FR-55, addendum Part B §2 and get_design_context on 6227:63670. Tab group x 514.5 comes from space-between; the icon-action box is bell 20 + avatar holder 48 (right edge 1342).",
+  "6227:63670": { "x": 0, "y": 0, "w": 1366, "h": 64, "backgroundColor": "#ffffff" },
+  "I6227:63670;6194:35218": { "x": 24, "y": 0, "w": 193, "h": 64 },
+  "I6227:63670;6194:35224": { "x": 24, "y": 25, "w": 176.895, "h": 14 },
+  "I6227:63670;6194:35226": { "x": 216.895, "y": 20, "w": 0, "h": 24 },
+  "I6227:63670;6194:35370": { "x": 514.5, "y": 0, "w": 462, "h": 64 },
+  "I6227:63670;6194:35371": { "x": 514.5, "y": 0, "w": 154, "h": 64, "backgroundColor": "#f0fff8" },
+  "I6227:63670;6194:35372": { "y": 20, "w": 24, "h": 24, "opacity": "1" },
+  "I6227:63670;6194:35373": {
+    "y": 20, "h": 24,
+    "color": "#111827", "fontFamily": "Roboto", "fontWeight": 600, "fontSize": "16px", "lineHeight": "24px", "letterSpacing": 0, "opacity": "1"
+  },
+  "I6227:63670;6194:35375": { "x": 668.5, "y": 0, "w": 154, "h": 64, "backgroundColor": "#ffffff" },
+  "I6227:63670;6194:35376": { "y": 20, "w": 24, "h": 24, "opacity": "1" },
+  "I6227:63670;6194:35377": {
+    "y": 20, "h": 24,
+    "color": "#374151", "fontFamily": "Roboto", "fontWeight": 600, "fontSize": "16px", "lineHeight": "24px", "letterSpacing": 0, "opacity": "0.7"
+  },
+  "I6227:63670;6194:35379": { "x": 822.5, "y": 0, "w": 154, "h": 64, "backgroundColor": "#ffffff" },
+  "3062:32562": { "y": 20, "w": 24, "h": 24, "opacity": "0.7" },
+  "I6227:63670;6194:35384": {
+    "y": 20, "h": 24,
+    "color": "#374151", "fontFamily": "Roboto", "fontWeight": 600, "fontSize": "16px", "lineHeight": "24px", "letterSpacing": 0, "opacity": "0.7"
+  },
+  "I6227:63670;6194:35256": { "x": 1274, "y": 0, "w": 68, "h": 64 },
+  "I6227:63670;6194:35257": { "x": 1274, "y": 22, "w": 20, "h": 20 },
+  "I6227:63670;6194:35281": { "x": 1283, "y": 18, "w": 14, "h": 14, "backgroundColor": "#ff0000", "radius": "100px" },
+  "I6227:63670;6194:35282": {
+    "color": "#ffffff", "fontFamily": "Roboto", "fontWeight": 800, "fontSize": "9px", "letterSpacing": "-0.5px"
+  },
+  "I6227:63670;6194:35259": { "x": 1294, "y": 8, "w": 48, "h": 48 },
+  "I6227:63670;6194:35267": { "x": 1310, "y": 16, "w": 32, "h": 32, "backgroundColor": "#1c447e", "radius": "50%" },
+  "I6227:63670;6194:35269": { "x": 1310, "y": 16, "w": 32, "h": 32 },
+  "6215:59009": { "x": 0, "y": 64, "w": 1366, "h": 68, "backgroundColor": "#f3f4f4" }
+}

@@ -8,7 +8,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'b56840ba2779ee51f779113c7559c007cf7413d9'
-implementation_status: in-progress
+implementation_status: in-review
 story_key: 2-1-signed-in-app-shell-and-header
 jira: NEW
 review_loop_iteration: 0
@@ -74,14 +74,14 @@ Every signed-in route renders this shell (AD-17). `/dashboard` shows the shell, 
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Export the 1× Header, the profile panel and the Logout icon from Figma (read-only); copy the icon to `src/assets/icons/logout.svg`.
-- [ ] `src/lib/dashboardState.js`: `resolveDashboardState(search, session)`, a pure resolver (AD-11).
-- [ ] `src/features/shell/Header.jsx` and `.module.css`, `NavTabs`, `BellButton`, `AvatarButton`: FR-51 to FR-53 at exact geometry with `data-fid`.
-- [ ] `src/features/shell/ProfileMenu.jsx` and `.module.css`: FR-54 panel geometry, `My Profile` + `Logout`.
-- [ ] `src/pages/SignedInLayout.jsx` and `.module.css`: the canvas, the title strip (FR-55) and the outlet.
-- [ ] `src/app/App.jsx`: signed-in routes inside the layout; `activeTab` derived from the route.
-- [ ] `tests/unit/shell.test.jsx`: every I/O-matrix row except Fidelity.
-- [ ] `tests/fidelity/shell.spec.js` and `expected/header.json`: the Header and profile-panel screenshots, measurement and copy audits.
+- [x] Export the 1× Header, the profile panel and the Logout icon from Figma (read-only); copy the icon to `src/assets/icons/logout.svg`.
+- [x] `src/lib/dashboardState.js`: `resolveDashboardState(search, session)`, a pure resolver (AD-11).
+- [x] `src/features/shell/Header.jsx` and `.module.css`, `NavTabs`, `BellButton`, `AvatarButton`: FR-51 to FR-53 at exact geometry with `data-fid`.
+- [x] `src/features/shell/ProfileMenu.jsx` and `.module.css`: FR-54 panel geometry, `My Profile` + `Logout`.
+- [x] `src/pages/SignedInLayout.jsx` and `.module.css`: the canvas, the title strip (FR-55) and the outlet.
+- [x] `src/app/App.jsx`: signed-in routes inside the layout; `activeTab` derived from the route.
+- [x] `tests/unit/shell.test.jsx`: every I/O-matrix row except Fidelity.
+- [x] `tests/fidelity/shell.spec.js` and `expected/header.json`: the Header and profile-panel screenshots, measurement and copy audits.
 
 **Acceptance Criteria:**
 - Given `npm run lint && npm run build && npm test && npm run test:fidelity`, when run, then everything passes except possible Windows-only screenshot advisories (each recorded with its ratio), and the Login and Forgot Password checks are unchanged.
@@ -94,6 +94,14 @@ Every signed-in route renders this shell (AD-17). `/dashboard` shows the shell, 
   - The Dashboard raws (`*.raw-1374x*.png`) and `notifications-8270-44312.png` are for later stories.
 
   The **Logout icon** is still to be exported, as the first implementation task. Use the Figma connector's `get_design_context` on `6026:52937` (load the figma-design-to-code guidance first) and save it byte-identical to `figma-assets/dashboard/logout.svg` and `src/assets/icons/logout.svg`. If the connector is unavailable, HALT and report.
+
+- 2026-11-09 — **Implementation notes (developer decisions):**
+  - **Logout icon:** exported read-only with `get_design_context` on `6026:52937` (asset `0fb0b.svg`, 24×24, stroke `#E05400`) to `figma-assets/dashboard/logout.svg` and `src/assets/icons/logout.svg`, byte-identical (sha256 `54a40714…2c1e1d`).
+  - **Profile panel placement:** 290×768 at x 1076, y 64 (below the Header, right edge on the 1366 canvas), so the avatar stays clickable as a toggle. It keeps the Figma geometry: the omitted user block and four entries leave their space empty, so `Logout` stays at panel (26, 379). The Figma close "X" is not rendered (AD-14: title and Logout only). The Fidelity check masks the "X" and the omitted block in both the baseline and the capture, and uses a 1366×832 viewport so the whole panel is captured.
+  - **Nav tab underline:** drawn as a 4 px inset box-shadow, not a CSS border. Figma's stroke sits outside the layout, so the icon and label are centred in the full 64 px; a border lifted them 2 px.
+  - **Equipment icon:** `garage.svg` already carries opacity 0.7, so only the label is dimmed (the Figma render confirms it). The active Equipment tab uses the same unmodified icon, because no green variant was exported.
+  - **Logout without return path:** `signOut()` now notifies same-tab listeners with `{ crossTab: false, signedOut: true }`, and `SessionSync` sends that tab to `/login` with no router state. Other tabs keep `{ from, reason: 'required' }`, which shows no banner.
+  - **Pixel check on Windows (advisory):** Header 451 px = **0.516%** against 0.5% (text and icon anti-aliasing at sub-pixel x; every measurement and copy audit passes). Profile panel: passes (0.455% upper bound). Login is unchanged (≤ 0.436%), and Forgot Password is unchanged at the documented 0.70% Windows advisory. macOS CI is authoritative.
 
 ## Verification
 

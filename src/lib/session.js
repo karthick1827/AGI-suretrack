@@ -181,7 +181,11 @@ export function signIn(user, { now = Date.now(), ttlMinutes }) {
   return true;
 }
 
-/** End the Session in this tab and every other tab (FR-35). Never throws. */
+/**
+ * End the Session in this tab and every other tab (FR-35). Never throws.
+ * Same-tab listeners get `{ crossTab: false, signedOut: true }`, so the app
+ * knows this was a deliberate Logout (no return path, no banner).
+ */
 export function signOut() {
   const store = storage();
   if (store) {
@@ -196,7 +200,7 @@ export function signOut() {
       // The Session key removal alone still reaches other tabs.
     }
   }
-  notify({ crossTab: false });
+  notify({ crossTab: false, signedOut: true });
 }
 
 /* ------------------------------------------------------------------------ */
@@ -326,8 +330,9 @@ export function resetAttempts() {
 }
 
 /**
- * Call `listener({ crossTab })` whenever the Session may have changed:
- * sign-in or sign-out in this tab (`crossTab: false`), or a change to the
+ * Call `listener({ crossTab, signedOut? })` whenever the Session may have changed:
+ * sign-in or sign-out in this tab (`crossTab: false`; signOut() adds
+ * `signedOut: true`), or a change to the
  * Session / sign-out key in another tab (`crossTab: true`).
  * Returns the unsubscribe function.
  */

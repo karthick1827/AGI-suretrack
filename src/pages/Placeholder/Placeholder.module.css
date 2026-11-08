@@ -1,19 +1,21 @@
 /*
- * Minimal "Coming soon" placeholder (undesigned). Fixed 1366 px canvas,
- * left-aligned (AD-4); colours and fonts only via var(--…) (AD-2).
+ * "Coming soon" placeholder (FR-57 [ASSUMPTION]): a #F4F5F6 radius-12 block,
+ * 1318 px wide, 24 px below the title strip; text Roboto 700 16 #111827,
+ * centred. Fixed canvas (AD-4); colours and fonts only via var(--…) (AD-2).
  */
-.page {
-  width: 1366px;
-  min-height: 768px;
-  padding: var(--space-8);
-  background: var(--primitives-color-base-white);
+.block {
+  width: 1318px;
+  margin: 24px 24px 0;
+  padding: 24px;
+  border-radius: 12px;
+  background: var(--raw-f4f5f6);
 }
 
 .message {
-  margin: 0;
   font-family: var(--font-stack-roboto);
-  font-weight: var(--weight-regular);
+  font-weight: 700;
   font-size: 16px;
   line-height: 24px;
-  color: var(--brand-primary-700);
+  text-align: center;
+  color: var(--raw-111827);
 }

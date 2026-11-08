@@ -1,12 +1,13 @@
-// Placeholder for app routes that are not built yet (AD-10). `/dashboard`
-// renders it until Epic 2; the Header arrives in Story 2.1.
+// "Coming soon" placeholder for app routes that are not built (AD-10, FR-57).
+// It renders inside the signed-in shell (SignedInLayout), which supplies the
+// Header with the matching Nav tab active and the page-title strip.
 import { copy } from '../../lib/copy.js';
 import styles from './Placeholder.module.css';
 
 export default function Placeholder() {
   return (
-    <main className={styles.page}>
+    <div className={styles.block}>
       <p className={styles.message}>{copy.placeholder.comingSoon}</p>
-    </main>
+    </div>
   );
 }

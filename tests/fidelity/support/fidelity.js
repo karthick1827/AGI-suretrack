@@ -399,3 +399,41 @@ export async function copyAudit(page, expected) {
   }
   return problems;
 }
+
+/* ------------------------------------------------------------------------ */
+/* Signed-in shell: Header and profile panel (Story 2.1)                     */
+/* ------------------------------------------------------------------------ */
+
+const FIGMA_1X = path.resolve(
+  FIDELITY_DIR,
+  '../../_acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/figma-reference/1x',
+);
+
+// The 1× render of Header 6227:63670 is 1374×72: the 1366×64 header plus the
+// drop-shadow overflow (4 px each side, 2 px above, 6 px below). It is never
+// edited; the header is cropped out at (4, 2) after an alignment check.
+export const HEADER_REFERENCE = path.join(FIGMA_1X, 'header-6227-63670.raw-1374x72.png');
+export const HEADER_BASELINE = 'header-6227-63670.png';
+export const HEADER_IN_REFERENCE = Object.freeze({ left: 4, top: 2, width: 1366, height: 64 });
+export const HEADER_CLIP = Object.freeze({ x: 0, y: 0, width: 1366, height: 64 });
+// AD-15: the avatar photo is masked (32 px at x 1310–1342, y 16–48).
+export const HEADER_MASK = Object.freeze([Object.freeze({ left: 1310, top: 16, width: 32, height: 32 })]);
+
+// The 1× render of profile panel 6026:52937 is exactly 290×768.
+export const PROFILE_MENU_REFERENCE = path.join(FIGMA_1X, 'profile-menu-6026-52937.png');
+export const PROFILE_MENU_BASELINE = 'profile-menu-6026-52937.png';
+export const PROFILE_MENU_IN_REFERENCE = Object.freeze({ left: 0, top: 0, width: 290, height: 768 });
+// The app panel sits below the Header, right-aligned to the 1366 canvas.
+export const PROFILE_MENU_CLIP = Object.freeze({ x: 1076, y: 64, width: 290, height: 768 });
+export const PROFILE_MENU_VIEWPORT = Object.freeze({ width: 1366, height: 64 + 768 });
+// AD-14 shows only the title and Logout. The Figma close "X" and the omitted
+// user block plus four entries are masked (panel coordinates); the title,
+// its divider and the Logout row are compared.
+export const PROFILE_MENU_MASK = Object.freeze([
+  Object.freeze({ left: 256, top: 18, width: 16, height: 28 }),
+  Object.freeze({ left: 20, top: 84, width: 250, height: 290 }),
+]);
+
+/** `rects` moved by (dx, dy): panel coordinates → page coordinates for installMask(). */
+export const offsetRects = (rects, dx, dy) =>
+  rects.map(({ left, top, width, height }) => ({ left: left + dx, top: top + dy, width, height }));

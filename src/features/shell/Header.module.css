@@ -1,0 +1,60 @@
+/*
+ * Header (FR-51), Figma 6227:63670. Fixed 1366 px canvas (AD-4); colours via
+ * tokens only (AD-2). The shadow is the generated-code drop-shadow
+ * 0 2px 2px rgba(39,39,39,0.1) (PRD Q-S2), painted over the title strip.
+ */
+.header {
+  position: relative;
+  z-index: var(--z-header);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 1366px;
+  height: 64px;
+  padding: 0 24px;
+  background: var(--primitives-color-base-white);
+  filter: drop-shadow(var(--shadow-card));
+}
+
+/* Left block I6227:63670;6194:35218: w 193, h 64, gap 16. */
+.left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  width: 193px;
+  height: 64px;
+}
+
+.logo {
+  flex-shrink: 0;
+  width: 176.895px;
+  height: 14px;
+}
+
+/* Divider slot: 0×24, holding the 24 px line rotated 90° (path at opacity 0). */
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 0;
+  height: 24px;
+}
+
+.dividerLine {
+  flex: none;
+  width: 24px;
+  height: 0;
+  transform: rotate(90deg);
+}
+
+/* "Icon action Header" I6227:63670;6194:35256: bell + 48 px avatar holder, no
+   gap; the badge is positioned against this box (left 9, top 18). */
+.actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 64px;
+}

@@ -17,6 +17,8 @@ async function signInAs(page, { username, password }) {
 }
 
 const comingSoon = (page) => page.getByText(copy.placeholder.comingSoon);
+// Story 2.1: /dashboard renders the signed-in shell with the Dashboard title.
+const dashboardTitle = (page) => page.getByRole('heading', { level: 1, name: copy.shell.pageTitles.dashboard });
 
 /** The message element an input names in aria-describedby (useId ids need an attribute selector). */
 async function describedBy(page, input) {
@@ -39,7 +41,7 @@ test.describe('Sign in and reach the Dashboard', () => {
     const button = page.getByRole('button', { name: t.submit });
     await expect(button).toHaveAttribute('aria-busy', 'true');
     await expect(page).toHaveURL(urlOf(paths.dashboard()), { timeout: 5_000 });
-    await expect(comingSoon(page)).toBeVisible();
+    await expect(dashboardTitle(page)).toBeVisible();
 
     const stored = await page.evaluate(() => ({ ...localStorage }));
     expect(JSON.parse(stored[SESSION_KEY])).toMatchObject({ v: 1, username: 'demo', dashboardState: 'full' });
@@ -169,20 +171,25 @@ test.describe('Sign in and reach the Dashboard', () => {
     await second.goto(paths.alerts());
     await expect(comingSoon(second)).toBeVisible();
 
-    // What session.signOut() does in the signing-out tab.
-    await first.evaluate(
-      ({ sessionKey, signoutKey }) => {
-        localStorage.removeItem(sessionKey);
-        localStorage.setItem(signoutKey, String(Date.now()));
-      },
-      { sessionKey: SESSION_KEY, signoutKey: SIGNOUT_KEY },
-    );
+    // Story 2.1: the real Logout, from the avatar's profile menu.
+    await first.bringToFront();
+    await first.getByRole('button', { name: copy.shell.avatarLabel }).click();
+    await first.getByRole('button', { name: copy.shell.logout }).click();
 
+    await expect(first).toHaveURL(urlOf(paths.login()), { timeout: 1_000 });
     await expect(second).toHaveURL(urlOf(paths.login()), { timeout: 1_000 });
+    expect(await first.evaluate((key) => localStorage.getItem(key), SESSION_KEY)).toBeNull();
+    expect(await first.evaluate((key) => localStorage.getItem(key), SIGNOUT_KEY)).not.toBeNull();
+    await expect(first.getByLabel(t.usernameLabel)).toHaveValue('');
+    await expect(first.getByRole('alert')).toHaveCount(0);
     await expect(second.getByLabel(t.usernameLabel)).toHaveValue('');
 
     await second.goBack();
     await expect(second).toHaveURL(urlOf(paths.login()));
     await expect(comingSoon(second)).toHaveCount(0);
+    // Logout replaced the Dashboard entry: Back never shows signed-in content.
+    await first.goBack();
+    await expect(first).not.toHaveURL(urlOf(paths.dashboard()));
+    await expect(dashboardTitle(first)).toHaveCount(0);
   });
 });

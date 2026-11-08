@@ -163,7 +163,9 @@ describe('signOut / subscribe (cross-tab sync)', () => {
     signIn(demo, { now: Date.now(), ttlMinutes: TTL });
     signOut();
     expect(listener).toHaveBeenCalledTimes(2);
-    expect(listener).toHaveBeenCalledWith({ crossTab: false });
+    expect(listener).toHaveBeenNthCalledWith(1, { crossTab: false });
+    // Story 2.1: a deliberate Logout is flagged, so the app keeps no return path.
+    expect(listener).toHaveBeenNthCalledWith(2, { crossTab: false, signedOut: true });
     unsubscribe();
     signOut();
     expect(listener).toHaveBeenCalledTimes(2);
