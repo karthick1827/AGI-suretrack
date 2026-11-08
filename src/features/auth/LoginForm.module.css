@@ -466,6 +466,12 @@
   cursor: pointer;
 }
 
+/* Without a Forgot Password handler (aria-disabled) the triggers show no pointer. */
+.bannerLink[aria-disabled='true']:hover,
+.forgotLink[aria-disabled='true']:hover {
+  cursor: default;
+}
+
 .bannerLink:focus-visible {
   outline: var(--border-width-md) solid var(--raw-111827);
   outline-offset: 2px;

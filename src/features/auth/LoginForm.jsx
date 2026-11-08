@@ -14,8 +14,8 @@
 // Legal URLs come from the runtime config (FR-20, SCRUM-31);
 // until it loads, if it fails, or if a URL is not http(s), a link renders
 // without an href.
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { getConfig } from '../../data/api.js';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useConfig } from '../../data/useConfig.js';
 import { copy } from '../../lib/copy.js';
 import { FID } from '../../lib/fid.js';
 import AlertBanner from './AlertBanner.jsx';
@@ -65,36 +65,25 @@ function safeUrl(value) {
   return typeof value === 'string' && /^https?:\/\//i.test(value) ? value : undefined;
 }
 
-function useLegalUrls() {
-  const [legal, setLegal] = useState(null);
-  useEffect(() => {
-    let active = true;
-    getConfig().then(
-      (config) => {
-        if (!active) return;
-        const source = config?.legal;
-        setLegal({
-          privacyPolicyUrl: safeUrl(source?.privacyPolicyUrl),
-          termsOfServiceUrl: safeUrl(source?.termsOfServiceUrl),
-        });
-      },
-      () => {
-        // Config failed to load: the links stay without an href; nothing is logged.
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
-  return legal;
+/** FR-20: the legal URLs from the runtime config, http(s) only. */
+function selectLegalUrls(config) {
+  const source = config?.legal;
+  return {
+    privacyPolicyUrl: safeUrl(source?.privacyPolicyUrl),
+    termsOfServiceUrl: safeUrl(source?.termsOfServiceUrl),
+  };
 }
 
 export default function LoginForm({ onForgotPassword }) {
+  // Story 1.5: without a handler (no modal wired) both Forgot triggers are inert.
+  const forgotProps = onForgotPassword
+    ? { onClick: (event) => onForgotPassword(event.currentTarget) }
+    : { 'aria-disabled': 'true' };
   const usernameId = useId();
   const passwordId = useId();
   const usernameErrorId = useId();
   const passwordErrorId = useId();
-  const legal = useLegalUrls();
+  const legal = useConfig(selectLegalUrls);
   const { errors, loading, banner, locked, submit, clearError } = useSignIn();
   const { bannerRef, shift } = useBannerShift(banner);
   const t = copy.login;
@@ -175,7 +164,7 @@ export default function LoginForm({ onForgotPassword }) {
                     <button
                       className={styles.bannerLink}
                       type="button"
-                      onClick={(event) => onForgotPassword?.(event.currentTarget)}
+                      {...forgotProps}
                     >
                       {t.errors.resetPasswordLink}
                     </button>
@@ -254,7 +243,7 @@ export default function LoginForm({ onForgotPassword }) {
                 <button
                   className={styles.forgotLink}
                   type="button"
-                  onClick={(event) => onForgotPassword?.(event.currentTarget)}
+                  {...forgotProps}
                   data-fid={FID.login.forgotLink}
                 >
                   {t.forgotLink}

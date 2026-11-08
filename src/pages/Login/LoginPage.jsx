@@ -9,12 +9,12 @@
 //
 // Story 1.5: the page composes the auth and forgot-password features (features
 // never import each other): both Forgot triggers in LoginForm open the
-// Forgot Password modal through the single overlay owner (AD-12).
-import { useEffect } from 'react';
+// Forgot Password modal through the single overlay owner (AD-12), which also
+// closes it when the page changes (e.g. a sign-in in another tab).
 import LoginForm from '../../features/auth/LoginForm.jsx';
 import ForgotPasswordModal from '../../features/forgot-password/ForgotPasswordModal.jsx';
 import { FID } from '../../lib/fid.js';
-import { OVERLAY_KINDS, useOverlay } from '../../ui/overlay/useOverlay.js';
+import { OVERLAY_KINDS, useOverlayActions } from '../../ui/overlay/useOverlay.js';
 import loginBgWebp from '../../assets/login-bg.webp';
 import loginBgJpg from '../../assets/login-bg.jpg';
 import panelSvg from '../../assets/icons/f4626.svg';
@@ -33,22 +33,16 @@ function SiloPhoto({ className, fid }) {
 const FORGOT_PASSWORD = 'forgot-password';
 
 export default function LoginPage() {
-  const { open, close, current } = useOverlay();
-  const forgotOpen = current?.id === FORGOT_PASSWORD;
+  const { open, close } = useOverlayActions();
 
   const openForgotPassword = (trigger) =>
     open({
       id: FORGOT_PASSWORD,
       kind: OVERLAY_KINDS.modal,
       trigger,
-      content: <ForgotPasswordModal onClose={close} />,
+      component: ForgotPasswordModal,
+      props: { onClose: () => close(FORGOT_PASSWORD) },
     });
-
-  // Leaving the Login page (e.g. a sign-in in another tab) never leaves the modal behind.
-  useEffect(() => {
-    if (!forgotOpen) return undefined;
-    return () => close();
-  }, [forgotOpen, close]);
 
   return (
     <main className={styles.frame} data-fid={FID.frames.login}>

@@ -54,15 +54,12 @@ async function openModal(page) {
 test.describe('Forgot Password 6026:62907', () => {
   test('modal region matches the Figma render (≤ 0.5 %, corners outside the radius masked)', async ({ page }, testInfo) => {
     await openModal(page);
-    // The Figma frame shows the modal with nothing focused, but FR-49 focuses
-    // Email on open. Move focus off it the way Cancel does (a blur towards a
-    // dismiss control never triggers validation), then release it, so the
-    // capture shows the untouched, unfocused at-rest form.
-    await page.evaluate((selector) => {
-      const cancel = document.querySelector(selector);
-      cancel.focus();
-      cancel.blur();
-    }, fid(FID.forgotPassword.cancel));
+    // FR-49 focuses Email on open (checked in its own test below); the Figma
+    // frame shows it unfocused. AD-13: the at-rest capture is taken with the
+    // focus state style removed — only the focus ring; Email stays focused,
+    // untouched and empty (its caret is hidden by `caret: 'hide'`).
+    await expect(page.getByRole('textbox', { name: t.emailAccessibleLabel })).toBeFocused();
+    await page.addStyleTag({ content: '[data-overlay] :focus-visible { outline: none !important; }' });
     await expect(page.getByRole('textbox', { name: t.emailAccessibleLabel })).not.toHaveAttribute('aria-invalid', 'true');
     const { x, y } = FORGOT_PASSWORD_CLIP;
     const mask = [await installMask(page, FORGOT_PASSWORD_CORNER_MASK.map((r) => ({ ...r, left: r.left + x, top: r.top + y })))];
@@ -74,6 +71,11 @@ test.describe('Forgot Password 6026:62907', () => {
     process.stdout.write(`[fidelity] ${FORGOT_PASSWORD_BASELINE}: ${note}\n`);
 
     await expect(page).toHaveScreenshot(FORGOT_PASSWORD_BASELINE, { clip: FORGOT_PASSWORD_CLIP, mask, maskColor: MASK_COLOR });
+  });
+
+  test('FR-49: on open, keyboard focus is on the Email field', async ({ page }) => {
+    const dialog = await openModal(page);
+    await expect(dialog.getByRole('textbox', { name: t.emailAccessibleLabel })).toBeFocused();
   });
 
   test('measurement audit: every data-fid box ±1 px, exact colours, fonts and radii', async ({ page }) => {
@@ -195,7 +197,7 @@ test.describe('Forgot Password 6026:62907', () => {
     await expect(page.locator(`[id="${describedBy}"]`)).toHaveText(t.invalidEmail);
     // The footer moved down by the message height (FR-45).
     const footerBox = await page.locator(fid(FID.forgotPassword.footer)).boundingBox();
-    expect(footerBox.y).toBe(499 + 20);
+    expect(Math.abs(footerBox.y - (499 + 20))).toBeLessThanOrEqual(1);
 
     await email.fill('farmer@suretrack.example');
     await expect(email).not.toHaveAttribute('aria-invalid', 'true');

@@ -12,7 +12,8 @@ import RequireSession from './RequireSession.jsx';
 // (FR-11) and renders the Placeholder until its epic lands (`/dashboard`
 // until Epic 2). `/` and unknown paths go to `/dashboard`, so a signed-out
 // visitor still ends up on `/login`. OverlayProvider (AD-12) is mounted once
-// here, inside the router, and portals every overlay into #overlay-root.
+// here, inside the router, and portals every overlay into #overlay-root; it
+// gets the pathname as `routeKey`, so a page change closes the open overlay.
 
 const PROTECTED_PATTERNS = [
   routePatterns.dashboard,
@@ -109,10 +110,15 @@ function SessionSync() {
   return null;
 }
 
+function RoutedOverlayProvider({ children }) {
+  const { pathname } = useLocation();
+  return <OverlayProvider routeKey={pathname}>{children}</OverlayProvider>;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <OverlayProvider>
+      <RoutedOverlayProvider>
         <SessionSync />
         <Routes>
           <Route path={routePatterns.login} element={<LoginRoute />} />
@@ -129,7 +135,7 @@ export default function App() {
           ))}
           <Route path="*" element={<Navigate to={paths.dashboard()} replace />} />
         </Routes>
-      </OverlayProvider>
+      </RoutedOverlayProvider>
     </BrowserRouter>
   );
 }

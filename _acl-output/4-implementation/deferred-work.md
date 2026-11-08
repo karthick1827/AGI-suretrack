@@ -56,3 +56,6 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-1-4-clear-messages-when-sign-in-fails.md`
   summary: Remove per-account simulated latency before any real deployment; differing response timing can reveal which usernames exist.
   evidence: signInLatencyMs picks delay by typed username (dummy-data aid only).
+- source_spec: `_acl-output/4-implementation/spec-1-5-request-a-reset-link-forgot-password-modal.md`
+  summary: Wire requestPasswordReset to a real reset-email endpoint before production; the dummy build always reports success.
+  evidence: requestPasswordReset is a no-network stub returning { ok: true }; users would see a confirmation with no email sent.

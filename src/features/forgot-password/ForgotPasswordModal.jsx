@@ -9,10 +9,15 @@
 // - FR-46: Submit is aria-disabled (still focusable, drawn unchanged, cursor
 //   not-allowed) until the email is valid; Enter in a valid field submits.
 // - FR-47: loading (spinner, repeat submits ignored), then the identical
-//   confirmation for any email. requestPasswordReset() sends nothing.
+//   confirmation for any email. requestPasswordReset() sends nothing; if it
+//   ever rejects, the form comes back (never stuck loading).
+// - FR-42: the help tooltip shows while the icon is hovered or focused; the
+//   pointer can move onto it; Esc first dismisses it (WCAG 1.4.13), a second
+//   Esc closes the modal.
 // Undesigned states live in the CSS Module's states block (AD-13).
 import { useEffect, useId, useRef, useState } from 'react';
-import { getConfig, requestPasswordReset } from '../../data/api.js';
+import { requestPasswordReset } from '../../data/api.js';
+import { useConfig } from '../../data/useConfig.js';
 import { copy, fill } from '../../lib/copy.js';
 import { isValidEmail } from '../../lib/email.js';
 import { FID } from '../../lib/fid.js';
@@ -22,27 +27,15 @@ import styles from './ForgotPasswordModal.module.css';
 
 const STATUS = Object.freeze({ form: 'form', loading: 'loading', sent: 'sent' });
 
-/** FR-43: the SureTrack Coach number and its tel: link from the runtime config. */
-function useCoach() {
-  const [coach, setCoach] = useState(null);
-  useEffect(() => {
-    let active = true;
-    getConfig().then(
-      (config) => {
-        const phone = config?.coach?.phone;
-        const tel = config?.coach?.tel;
-        if (!active || typeof phone !== 'string' || phone === '') return;
-        setCoach({ phone, tel: typeof tel === 'string' && /^tel:/i.test(tel) ? tel : undefined });
-      },
-      () => {
-        // Config failed to load: the number line stays empty; nothing is logged.
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
-  return coach;
+/**
+ * FR-43: the SureTrack Coach number and, when it is a `tel:` URL, its link.
+ * null when the config has no number (the line is then left out).
+ */
+function selectCoach(config) {
+  const phone = config?.coach?.phone;
+  const tel = config?.coach?.tel;
+  if (typeof phone !== 'string' || phone.trim() === '') return null;
+  return { phone, tel: typeof tel === 'string' && /^tel:\+?[0-9]/i.test(tel) ? tel : undefined };
 }
 
 export default function ForgotPasswordModal({ onClose }) {
@@ -51,13 +44,20 @@ export default function ForgotPasswordModal({ onClose }) {
   const emailId = useId();
   const errorId = useId();
   const tooltipId = useId();
-  const coach = useCoach();
+  const coach = useConfig(selectCoach);
   const [email, setEmail] = useState('');
   const [touched, setTouched] = useState(false);
   const [status, setStatus] = useState(STATUS.form);
-  const [tooltip, setTooltip] = useState(false);
+  const [tooltipHover, setTooltipHover] = useState(false);
+  const [tooltipFocus, setTooltipFocus] = useState(false);
+  const [tooltipDismissed, setTooltipDismissed] = useState(false);
   const cancelRef = useRef(null);
   const mounted = useRef(true);
+  // The dismiss control (Cancel / close X) a pointer is pressing, and whether
+  // the Email blur was skipped because of it.
+  const dismissPress = useRef(null);
+  const skippedBlur = useRef(false);
+  const tooltip = (tooltipHover || tooltipFocus) && !tooltipDismissed;
 
   const valid = isValidEmail(email);
   const sent = status === STATUS.sent;
@@ -71,24 +71,73 @@ export default function ForgotPasswordModal({ onClose }) {
     };
   }, []);
 
+  // A press on Cancel / the close X released somewhere else (dragged off) is
+  // not a dismissal: the skipped blur validation runs after all.
+  useEffect(() => {
+    const onRelease = (event) => {
+      const control = dismissPress.current;
+      if (!control) return;
+      dismissPress.current = null;
+      const dismissed = event.type === 'pointerup' && control.contains(event.target);
+      if (!dismissed && skippedBlur.current) {
+        skippedBlur.current = false;
+        setTouched(true);
+      }
+    };
+    document.addEventListener('pointerup', onRelease, true);
+    document.addEventListener('pointercancel', onRelease, true);
+    return () => {
+      document.removeEventListener('pointerup', onRelease, true);
+      document.removeEventListener('pointercancel', onRelease, true);
+    };
+  }, []);
+
   // FR-49: in the confirmation state focus moves to Cancel.
   useEffect(() => {
     if (sent) cancelRef.current?.focus();
   }, [sent]);
 
   const onBlur = (event) => {
-    // Leaving for Cancel or the close X closes the modal: no message, so the
-    // footer never moves under the pointer between mousedown and click.
-    if (event.relatedTarget?.hasAttribute('data-dismiss')) return;
+    // A pointer pressing Cancel or the close X is about to close the modal: no
+    // message, so the footer never moves under the pointer between press and
+    // click. Keyboard focus moving there validates as usual.
+    const control = dismissPress.current;
+    if (control && event.relatedTarget && control.contains(event.relatedTarget)) {
+      skippedBlur.current = true;
+      return;
+    }
     setTouched(true);
+  };
+
+  const onDismissPointerDown = (event) => {
+    dismissPress.current = event.currentTarget;
+  };
+
+  const onKeyDown = (event) => {
+    // WCAG 1.4.13: Esc hides a visible tooltip first; the modal stays open.
+    if (event.key === 'Escape' && tooltip && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      event.stopPropagation();
+      setTooltipDismissed(true);
+    }
+  };
+
+  const showTooltip = (setter) => {
+    setter(true);
+    setTooltipDismissed(false);
   };
 
   const onSubmit = async (event) => {
     event.preventDefault();
     if (!valid || status !== STATUS.form) return;
     setStatus(STATUS.loading);
-    await requestPasswordReset(email.trim());
-    if (mounted.current) setStatus(STATUS.sent);
+    let next = STATUS.sent;
+    try {
+      await requestPasswordReset(email.trim());
+    } catch {
+      next = STATUS.form; // back to the form, the email kept; nothing is logged
+    }
+    if (mounted.current) setStatus(next);
   };
 
   // One polite live region announces the error and the confirmation (FR-45, FR-47, NFR-36).
@@ -100,6 +149,7 @@ export default function ForgotPasswordModal({ onClose }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
+      onKeyDown={onKeyDown}
       data-fid={FID.frames.forgotPassword}
     >
       <div className={styles.header} data-fid={FID.forgotPassword.header}>
@@ -111,6 +161,7 @@ export default function ForgotPasswordModal({ onClose }) {
           type="button"
           aria-label={t.close}
           data-dismiss=""
+          onPointerDown={onDismissPointerDown}
           onClick={onClose}
           data-fid={FID.forgotPassword.closeButton}
         >
@@ -139,16 +190,18 @@ export default function ForgotPasswordModal({ onClose }) {
                       {t.requiredMark}
                     </span>
                   </label>
-                  <span className={styles.helpSlot}>
+                  <span
+                    className={styles.helpSlot}
+                    onMouseEnter={() => showTooltip(setTooltipHover)}
+                    onMouseLeave={() => setTooltipHover(false)}
+                  >
                     <button
                       className={styles.helpIcon}
                       type="button"
                       aria-label={t.helpIconLabel}
                       aria-describedby={tooltipId}
-                      onMouseEnter={() => setTooltip(true)}
-                      onMouseLeave={() => setTooltip(false)}
-                      onFocus={() => setTooltip(true)}
-                      onBlur={() => setTooltip(false)}
+                      onFocus={() => showTooltip(setTooltipFocus)}
+                      onBlur={() => setTooltipFocus(false)}
                       data-fid={FID.forgotPassword.helpIconSlot}
                     >
                       <img
@@ -196,10 +249,13 @@ export default function ForgotPasswordModal({ onClose }) {
           <p className={styles.helpText} data-fid={FID.forgotPassword.helpText}>
             {t.helpLead}
             <br />
-            {coach && (
+            {coach?.tel && (
               <a className={styles.coach} href={coach.tel}>
                 {fill(t.coachLine, { coachPhone: coach.phone })}
               </a>
+            )}
+            {coach && !coach.tel && (
+              <span className={styles.coach}>{fill(t.coachLine, { coachPhone: coach.phone })}</span>
             )}
           </p>
         </div>
@@ -211,6 +267,7 @@ export default function ForgotPasswordModal({ onClose }) {
             className={styles.cancel}
             type="button"
             data-dismiss=""
+            onPointerDown={onDismissPointerDown}
             onClick={onClose}
             data-fid={FID.forgotPassword.cancel}
           >

@@ -255,7 +255,10 @@ describe('account status after a correct password (FR-27–FR-29)', () => {
     expect(alert.textContent).toBe(`${t.errors.passwordExpired}${t.errors.resetPasswordLink}`);
     const link = screen.getByRole('button', { name: t.errors.resetPasswordLink });
     expect(alert.contains(link)).toBe(true);
-    expect(link.hasAttribute('aria-disabled')).toBe(false); // Story 1.5: it opens the Forgot Password modal
+    expect(link.hasAttribute('aria-disabled')).toBe(false);
+    // Story 1.5: it opens the Forgot Password modal; the banner stays behind it.
+    fireEvent.click(link);
+    expect(screen.getByRole('dialog', { name: copy.forgotPassword.title })).not.toBeNull();
     expect(banner()).not.toBeNull();
     expectNoSession();
   });

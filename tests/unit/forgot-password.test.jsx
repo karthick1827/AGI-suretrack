@@ -4,18 +4,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
+import { MemoryRouter } from 'react-router';
 import App from '../../src/app/App.jsx';
-import { requestPasswordReset } from '../../src/data/api.js';
+import { getConfig, requestPasswordReset } from '../../src/data/api.js';
+import LoginForm from '../../src/features/auth/LoginForm.jsx';
 import { copy } from '../../src/lib/copy.js';
 import { isValidEmail } from '../../src/lib/email.js';
 import { FID } from '../../src/lib/fid.js';
 import { paths } from '../../src/lib/paths.js';
+import { SESSION_KEY, createSessionRecord } from '../../src/lib/session.js';
 import { tabbables } from '../../src/ui/overlay/focus.js';
 import { fromRoot } from './support/project.js';
 
 vi.mock('../../src/data/api.js', async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, requestPasswordReset: vi.fn(actual.requestPasswordReset) };
+  return {
+    ...actual,
+    getConfig: vi.fn(actual.getConfig),
+    requestPasswordReset: vi.fn(actual.requestPasswordReset),
+  };
 });
 
 const actualApi = await vi.importActual('../../src/data/api.js');
@@ -51,6 +58,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(diskFetch));
   consoleSpies = ['error', 'warn', 'log', 'info'].map((level) => vi.spyOn(console, level));
   vi.mocked(requestPasswordReset).mockImplementation(actualApi.requestPasswordReset);
+  vi.mocked(getConfig).mockImplementation(actualApi.getConfig);
 });
 
 afterEach(() => {
@@ -64,6 +72,7 @@ afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.mocked(requestPasswordReset).mockClear();
+    vi.mocked(getConfig).mockClear();
   }
 });
 
@@ -203,20 +212,76 @@ describe('invalid email (FR-45, FR-46)', () => {
     expect(submit().hasAttribute('aria-disabled')).toBe(false);
   });
 
-  it('leaving the field for Cancel or the close X shows no message (the footer never moves under the pointer)', async () => {
+  it('a pointer pressing Cancel or the close X: no message (the footer never moves under the pointer)', async () => {
+    await renderLogin();
+    await openFromLink();
+    for (const control of [cancel(), closeX()]) {
+      fireEvent.pointerDown(control);
+      fireEvent.blur(email(), { relatedTarget: control });
+      expect(errorMessage()).toBeNull();
+      fireEvent.pointerUp(control); // released on the control: the click closes the modal
+      expect(errorMessage()).toBeNull();
+      email().focus();
+    }
+  });
+
+  it('a press on Cancel dragged off and released elsewhere validates after all', async () => {
+    await renderLogin();
+    await openFromLink();
+    fireEvent.pointerDown(cancel());
+    fireEvent.blur(email(), { relatedTarget: cancel() });
+    expect(errorMessage()).toBeNull();
+    fireEvent.pointerUp(byFid(FID.forgotPassword.body));
+    expect(errorMessage().textContent).toBe(t.invalidEmail);
+    expect(dialog()).not.toBeNull();
+  });
+
+  it('keyboard focus moving to Cancel validates as usual', async () => {
     await renderLogin();
     await openFromLink();
     fireEvent.blur(email(), { relatedTarget: cancel() });
-    expect(errorMessage()).toBeNull();
-    fireEvent.blur(email(), { relatedTarget: closeX() });
-    expect(errorMessage()).toBeNull();
+    expect(errorMessage().textContent).toBe(t.invalidEmail);
   });
 
   it('the FR-45 rule', () => {
-    for (const value of ['x@y.com', ' farmer@agi.ca ', 'a.b+c@mail.co.uk']) expect(isValidEmail(value)).toBe(true);
-    for (const value of ['', 'abc', 'a@b', 'a b@c.com', 'a@@b.com', 'a@b@c.com', '@y.com', 'x@y.c', 'x@y.c0m', null]) {
-      expect(isValidEmail(value)).toBe(false);
-    }
+    const valid = [
+      'x@y.com',
+      ' farmer@agi.ca ',
+      'a.b+c@mail.co.uk',
+      'user@sub-domain.example.org',
+      'user@example.xn--p1ai',
+      `${'l'.repeat(64)}@example.com`,
+      `a@${'d'.repeat(63)}.${'e'.repeat(63)}.${'f'.repeat(63)}.${'g'.repeat(56)}.com`, // 254 characters
+    ];
+    const invalid = [
+      '',
+      'abc',
+      'a@b',
+      'a b@c.com',
+      'a@@b.com',
+      'a@b@c.com',
+      '@y.com',
+      'x@y.c',
+      'x@y.c0m',
+      'a..b@c.com',
+      '.a@c.com',
+      'a.@c.com',
+      'a@b..com',
+      'a@.b.com',
+      'a@b.com.',
+      'a@-b.com',
+      'a@b-.com',
+      'a@b.-co',
+      'a@b.xn--',
+      `${'l'.repeat(65)}@example.com`,
+      `a@${'d'.repeat(63)}.${'e'.repeat(63)}.${'f'.repeat(63)}.${'g'.repeat(57)}.com`, // 255 characters
+      null,
+      42,
+    ];
+    expect(valid[valid.length - 1]).toHaveLength(254);
+    expect(invalid[invalid.length - 3]).toHaveLength(255);
+    for (const value of valid) expect(isValidEmail(value), String(value)).toBe(true);
+    for (const value of invalid) expect(isValidEmail(value), String(value)).toBe(false);
   });
 });
 
@@ -255,16 +320,50 @@ describe('valid email (FR-47)', () => {
     },
   );
 
-  it('Enter in a valid Email field submits through the real data port (no request leaves the browser)', async () => {
+  it('Enter in a valid Email field submits through the real requestPasswordReset: zero fetch calls', async () => {
     await renderLogin();
     await openFromLink();
-    const fetchesBefore = vi.mocked(fetch).mock.calls.length;
+    vi.mocked(fetch).mockClear(); // config and users loads are done; count only what Submit does
     fireEvent.change(email(), { target: { value: 'demo@suretrack.example' } });
     fireEvent.submit(email().form);
     await advance(0);
+    expect(requestPasswordReset).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(requestPasswordReset).mock.results[0].value).toBeInstanceOf(Promise);
     expect(confirmation().textContent).toBe(t.confirmation);
-    expect(vi.mocked(fetch).mock.calls.length).toBe(fetchesBefore);
+    expect(fetch).not.toHaveBeenCalled();
     await expect(actualApi.requestPasswordReset('any@thing.com')).resolves.toEqual({ ok: true });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('a rejected request returns to the form (email kept, Submit idle); nothing is logged', async () => {
+    vi.mocked(requestPasswordReset).mockImplementation(() => Promise.reject({ code: 'LOAD_FAILED', message: 'x' }));
+    await renderLogin();
+    await openFromLink();
+    fireEvent.change(email(), { target: { value: 'x@y.com' } });
+    fireEvent.submit(email().form);
+    await advance(0);
+    expect(confirmation()?.textContent).not.toBe(t.confirmation);
+    expect(email().value).toBe('x@y.com');
+    expect(submit().hasAttribute('aria-busy')).toBe(false);
+    expect(submit().hasAttribute('aria-disabled')).toBe(false);
+  });
+
+  it('closing while the request is pending discards the late result', async () => {
+    let resolve;
+    vi.mocked(requestPasswordReset).mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    await renderLogin();
+    await openFromLink();
+    fireEvent.change(email(), { target: { value: 'x@y.com' } });
+    fireEvent.submit(email().form);
+    await advance(0);
+    fireEvent.click(cancel());
+    await act(async () => resolve({ ok: true }));
+    expect(dialog()).toBeNull();
   });
 
   it('confirmation-state tab order: Close X → Coach number → Cancel (FR-49)', async () => {
@@ -315,15 +414,6 @@ describe('close (FR-48)', () => {
     expect(dialog()).toBeNull();
     expect(document.activeElement).toBe(forgotLink());
   });
-
-  it('Esc while the help tooltip shows closes the modal', async () => {
-    await renderLogin();
-    await openFromLink();
-    const help = screen.getByRole('button', { name: t.helpIconLabel });
-    fireEvent.focus(help);
-    fireEvent.keyDown(help, { key: 'Escape' });
-    expect(dialog()).toBeNull();
-  });
 });
 
 describe('focus (FR-49)', () => {
@@ -359,21 +449,112 @@ describe('focus (FR-49)', () => {
 });
 
 describe('help tooltip (FR-42)', () => {
-  it('hidden at rest; shows on hover or focus; it is the icon’s description', async () => {
+  const help = () => screen.getByRole('button', { name: t.helpIconLabel });
+  const tooltip = () => document.getElementById(help().getAttribute('aria-describedby'));
+
+  it('hidden at rest; shows while hovered or focused (tracked separately); it is the icon’s description', async () => {
     await renderLogin();
     await openFromLink();
-    const help = screen.getByRole('button', { name: t.helpIconLabel });
-    const tooltip = document.getElementById(help.getAttribute('aria-describedby'));
-    expect(tooltip.getAttribute('role')).toBe('tooltip');
-    expect(tooltip.textContent).toBe(t.helpTooltip);
-    expect(tooltip.hidden).toBe(true);
-    fireEvent.mouseEnter(help);
-    expect(tooltip.hidden).toBe(false);
-    fireEvent.mouseLeave(help);
-    expect(tooltip.hidden).toBe(true);
-    fireEvent.focus(help);
-    expect(tooltip.hidden).toBe(false);
-    fireEvent.blur(help);
-    expect(tooltip.hidden).toBe(true);
+    expect(tooltip().getAttribute('role')).toBe('tooltip');
+    expect(tooltip().textContent).toBe(t.helpTooltip);
+    expect(tooltip().hidden).toBe(true);
+    fireEvent.mouseEnter(help());
+    expect(tooltip().hidden).toBe(false);
+    fireEvent.focus(help());
+    fireEvent.mouseLeave(help().parentElement);
+    expect(tooltip().hidden).toBe(false); // still focused
+    fireEvent.blur(help());
+    expect(tooltip().hidden).toBe(true);
+    fireEvent.focus(help());
+    fireEvent.mouseEnter(help());
+    fireEvent.blur(help());
+    expect(tooltip().hidden).toBe(false); // still hovered
+  });
+
+  it('the pointer can move onto the tooltip without hiding it', async () => {
+    await renderLogin();
+    await openFromLink();
+    fireEvent.mouseEnter(help());
+    fireEvent.mouseOver(tooltip());
+    expect(help().parentElement.contains(tooltip())).toBe(true); // same hover region
+    expect(tooltip().hidden).toBe(false);
+  });
+
+  it('Esc first dismisses a visible tooltip and keeps the modal; a second Esc closes the modal', async () => {
+    await renderLogin();
+    await openFromLink();
+    fireEvent.focus(help());
+    expect(tooltip().hidden).toBe(false);
+    fireEvent.keyDown(help(), { key: 'Escape' });
+    expect(dialog()).not.toBeNull();
+    expect(tooltip().hidden).toBe(true);
+    fireEvent.keyDown(help(), { key: 'Escape' });
+    expect(dialog()).toBeNull();
+  });
+});
+
+describe('SureTrack Coach line fallbacks (FR-43)', () => {
+  const helpText = () => byFid(FID.forgotPassword.helpText);
+  const withConfig = (impl) =>
+    vi.mocked(getConfig).mockImplementation((options) => {
+      // The Login legal links get the real config; the modal's load gets `impl`.
+      if (document.querySelector('[data-overlay]')) return impl();
+      return actualApi.getConfig(options);
+    });
+
+  it('a non-tel value: the number is plain text, readable, with no link', async () => {
+    withConfig(() => Promise.resolve({ coach: { phone: config.coach.phone, tel: 'javascript:alert(1)' } }));
+    await renderLogin();
+    await openFromLink();
+    expect(helpText().textContent).toBe(`${t.helpLead}SureTrack Coach ${config.coach.phone}`);
+    expect(helpText().querySelector('a')).toBeNull();
+    expect(screen.queryByRole('link', { name: /SureTrack Coach/ })).toBeNull();
+  });
+
+  it('a missing phone: no Coach line', async () => {
+    withConfig(() => Promise.resolve({ coach: { tel: config.coach.tel } }));
+    await renderLogin();
+    await openFromLink();
+    expect(helpText().textContent).toBe(t.helpLead);
+  });
+
+  it('a rejected config: no Coach line, nothing logged', async () => {
+    withConfig(() => Promise.reject({ code: 'LOAD_FAILED', message: 'x' }));
+    await renderLogin();
+    await openFromLink();
+    expect(helpText().textContent).toBe(t.helpLead);
+  });
+});
+
+describe('leaving /login with the modal open (cross-tab sign-in)', () => {
+  it('the overlay closes: #overlay-root empty, app root not inert, html scroll restored', async () => {
+    const { container } = await renderLogin();
+    await openFromLink();
+    expect(container.hasAttribute('inert')).toBe(true);
+    const demo = usersData.users.find((user) => user.username === 'demo');
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify(createSessionRecord(demo, { now: Date.now(), ttlMinutes: usersData.policy.sessionTtlMinutes })),
+    );
+    await act(async () => {
+      window.dispatchEvent(new StorageEvent('storage', { key: SESSION_KEY, newValue: localStorage.getItem(SESSION_KEY) }));
+    });
+    await advance(0);
+    expect(window.location.pathname).toBe(paths.dashboard());
+    expect(overlayRoot.childElementCount).toBe(0);
+    expect(container.hasAttribute('inert')).toBe(false);
+    expect(document.documentElement.style.overflow).toBe('');
+  });
+});
+
+describe('LoginForm without a Forgot Password handler', () => {
+  it('the Forgot trigger is aria-disabled', async () => {
+    render(
+      <MemoryRouter initialEntries={[paths.login()]}>
+        <LoginForm />
+      </MemoryRouter>,
+    );
+    await advance(0);
+    expect(screen.getByRole('button', { name: login.forgotLink }).getAttribute('aria-disabled')).toBe('true');
   });
 });

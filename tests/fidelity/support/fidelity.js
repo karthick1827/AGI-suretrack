@@ -153,17 +153,29 @@ export const FORGOT_PASSWORD_CORNER_MASK = Object.freeze(
  * .baselines-masked/<name>, painting `rects` (crop coordinates) in MASK_COLOR.
  */
 export async function writeCroppedBaseline(source, name, crop, rects) {
+  const meta = await sharp(source).metadata();
+  if (crop.left + crop.width > meta.width || crop.top + crop.height > meta.height) {
+    throw new Error(
+      `writeCroppedBaseline: the ${crop.width}×${crop.height} crop at (${crop.left}, ${crop.top}) does not fit the ${meta.width}×${meta.height} render ${path.basename(source)}`,
+    );
+  }
+  assertCardAligned(await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true }), crop, source);
   const { data, info } = await sharp(source)
     .extract(crop)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
-  if (info.width !== crop.width || info.height !== crop.height) {
-    throw new Error(`writeCroppedBaseline: ${name} crop is ${info.width}×${info.height}, expected ${crop.width}×${crop.height}`);
-  }
+  paintRects(data, info, rects);
+  const target = path.join(MASKED_BASELINE_DIR, name);
+  await sharp(data, { raw: info }).png().toFile(target);
+  return target;
+}
+
+/** Paint `rects` in MASK_COLOR, clamped to the image bounds. */
+function paintRects(data, info, rects) {
   for (const { left, top, width, height } of rects) {
-    for (let y = top; y < top + height; y += 1) {
-      for (let x = left; x < left + width; x += 1) {
+    for (let y = Math.max(0, top); y < Math.min(info.height, top + height); y += 1) {
+      for (let x = Math.max(0, left); x < Math.min(info.width, left + width); x += 1) {
         const at = (y * info.width + x) * 4;
         data[at] = MASK_RGB[0];
         data[at + 1] = MASK_RGB[1];
@@ -172,9 +184,44 @@ export async function writeCroppedBaseline(source, name, crop, rects) {
       }
     }
   }
-  const target = path.join(MASKED_BASELINE_DIR, name);
-  await sharp(data, { raw: info }).png().toFile(target);
-  return target;
+}
+
+/**
+ * The crop must sit exactly on the white card: its edge pixels (mid-points of
+ * the top and bottom rows, left and right columns, clear of the corners) are
+ * opaque white, and the pixels just outside them are not.
+ */
+function assertCardAligned({ data, info }, crop, source) {
+  const at = (x, y) => {
+    const i = (y * info.width + x) * 4;
+    return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+  };
+  const white = ([r, g, b, a]) => a === 255 && r >= 250 && g >= 250 && b >= 250;
+  const midX = crop.left + Math.floor(crop.width / 2);
+  const midY = crop.top + Math.floor(crop.height / 2);
+  const right = crop.left + crop.width - 1;
+  const bottom = crop.top + crop.height - 1;
+  const inside = [
+    [midX, crop.top],
+    [midX, bottom],
+    [crop.left, crop.top + 40],
+    [right, crop.top + 40],
+  ];
+  const outside = [
+    [midX, crop.top - 1],
+    [midX, bottom + 1],
+    [crop.left - 1, midY],
+    [right + 1, midY],
+  ].filter(([x, y]) => x >= 0 && y >= 0 && x < info.width && y < info.height);
+  const bad = [
+    ...inside.filter((p) => !white(at(...p))).map(([x, y]) => `(${x}, ${y}) should be the white card edge, is rgba(${at(x, y)})`),
+    ...outside.filter((p) => white(at(...p))).map(([x, y]) => `(${x}, ${y}) should be outside the card, is white`),
+  ];
+  if (bad.length > 0) {
+    throw new Error(
+      `writeCroppedBaseline: the crop (${crop.left}, ${crop.top}, ${crop.width}×${crop.height}) is not aligned with the card in ${path.basename(source)}: ${bad.join('; ')}`,
+    );
+  }
 }
 
 /**
