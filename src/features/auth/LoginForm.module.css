@@ -466,11 +466,6 @@
   cursor: pointer;
 }
 
-/* Inert until Story 1.5 (aria-disabled): no pointer cursor. */
-.bannerLink[aria-disabled='true']:hover {
-  cursor: default;
-}
-
 .bannerLink:focus-visible {
   outline: var(--border-width-md) solid var(--raw-111827);
   outline-offset: 2px;

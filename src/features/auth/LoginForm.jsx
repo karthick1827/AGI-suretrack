@@ -8,8 +8,10 @@
 // aria-disabled Login button (FR-30; it stays focusable, like the loading
 // state, and useSignIn's submit guard ignores it). Error, banner, loading and disabled visuals
 // live in the CSS Module's states block and only appear when that state is
-// active, so the at-rest render is unchanged. The Forgot link and the banner's
-// reset link are still non-functional buttons (the modal arrives in Story 1.5). Legal URLs come from the runtime config (FR-20, SCRUM-31);
+// active, so the at-rest render is unchanged. Story 1.5: the Forgot link and
+// the banner's FR-29 reset link both call `onForgotPassword(trigger)`, which
+// the Login page wires to the Forgot Password modal.
+// Legal URLs come from the runtime config (FR-20, SCRUM-31);
 // until it loads, if it fails, or if a URL is not http(s), a link renders
 // without an href.
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
@@ -87,7 +89,7 @@ function useLegalUrls() {
   return legal;
 }
 
-export default function LoginForm() {
+export default function LoginForm({ onForgotPassword }) {
   const usernameId = useId();
   const passwordId = useId();
   const usernameErrorId = useId();
@@ -169,8 +171,12 @@ export default function LoginForm() {
               {banner && (
                 <AlertBanner ref={bannerRef} className={styles.banner} message={banner.message}>
                   {banner.kind === BANNER_KINDS.passwordExpired && (
-                    // FR-29: inert until Story 1.5 wires the Forgot Password modal.
-                    <button className={styles.bannerLink} type="button" aria-disabled="true">
+                    // FR-29 / FR-36: opens the Forgot Password modal.
+                    <button
+                      className={styles.bannerLink}
+                      type="button"
+                      onClick={(event) => onForgotPassword?.(event.currentTarget)}
+                    >
                       {t.errors.resetPasswordLink}
                     </button>
                   )}
@@ -245,7 +251,12 @@ export default function LoginForm() {
               </button>
 
               <div className={styles.forgotBox} data-fid={FID.login.forgotLinkBox}>
-                <button className={styles.forgotLink} type="button" data-fid={FID.login.forgotLink}>
+                <button
+                  className={styles.forgotLink}
+                  type="button"
+                  onClick={(event) => onForgotPassword?.(event.currentTarget)}
+                  data-fid={FID.login.forgotLink}
+                >
                   {t.forgotLink}
                 </button>
               </div>

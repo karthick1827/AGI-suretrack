@@ -1,0 +1,40 @@
+/*
+ * Overlay layer (AD-12). AD-4 overlay exception: a `position: fixed`
+ * full-viewport layer; every designed size inside it stays literal px and
+ * lives in the overlay's own CSS Module. Z-index from tokens only. No
+ * animation (FR-36).
+ */
+
+.layer {
+  position: fixed;
+  inset: 0;
+  outline: none;
+}
+
+.modalLayer {
+  z-index: var(--z-overlay-modal);
+}
+
+.menuLayer {
+  z-index: var(--z-overlay-menu);
+  pointer-events: none;
+}
+
+.panelLayer {
+  z-index: var(--z-overlay-panel);
+  pointer-events: none;
+}
+
+/* Menu and panel content takes pointer input; the empty layer around it does not. */
+.passiveContent {
+  pointer-events: auto;
+}
+
+/* states */
+
+/* FR-36 [ASSUMPTION]: full-viewport backdrop, primitives/color/alpha-black/70. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--primitives-color-alpha-black-70);
+}

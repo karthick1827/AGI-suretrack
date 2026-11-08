@@ -121,6 +121,62 @@ export async function writeMaskedBaseline(name, rects) {
   return target;
 }
 
+/* ------------------------------------------------------------------------ */
+/* Forgot Password modal (Story 1.5)                                         */
+/* ------------------------------------------------------------------------ */
+
+// The committed Figma render of 6026:62907 is 636×410: the 600×374 card plus
+// the Shadow/Lg overflow (0 12px 20px -2px → 18 px left/right, 6 px above,
+// 30 px below) on Figma's grey canvas. The card therefore sits at (18, 6).
+export const FORGOT_PASSWORD_REFERENCE = path.resolve(
+  FIDELITY_DIR,
+  '../../_acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/figma-reference/forgot-password-6026-62907.png',
+);
+export const FORGOT_PASSWORD_BASELINE = 'forgot-password-6026-62907.png';
+export const FORGOT_PASSWORD_CARD_IN_REFERENCE = Object.freeze({ left: 18, top: 6, width: 600, height: 374 });
+// FR-36: centred at 1366×768 → x 383, y 197.
+export const FORGOT_PASSWORD_CLIP = Object.freeze({ x: 383, y: 197, width: 600, height: 374 });
+// The four 16×16 corners outside the 16 px radius show Figma's canvas in the
+// render and the backdrop-dimmed Login page in the app: masked in both.
+const CORNER = 16;
+export const FORGOT_PASSWORD_CORNER_MASK = Object.freeze(
+  [
+    [0, 0],
+    [600 - CORNER, 0],
+    [0, 374 - CORNER],
+    [600 - CORNER, 374 - CORNER],
+  ].map(([left, top]) => Object.freeze({ left, top, width: CORNER, height: CORNER })),
+);
+
+/**
+ * Crop `crop` out of the committed `source` render (never modified) into
+ * .baselines-masked/<name>, painting `rects` (crop coordinates) in MASK_COLOR.
+ */
+export async function writeCroppedBaseline(source, name, crop, rects) {
+  const { data, info } = await sharp(source)
+    .extract(crop)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  if (info.width !== crop.width || info.height !== crop.height) {
+    throw new Error(`writeCroppedBaseline: ${name} crop is ${info.width}×${info.height}, expected ${crop.width}×${crop.height}`);
+  }
+  for (const { left, top, width, height } of rects) {
+    for (let y = top; y < top + height; y += 1) {
+      for (let x = left; x < left + width; x += 1) {
+        const at = (y * info.width + x) * 4;
+        data[at] = MASK_RGB[0];
+        data[at + 1] = MASK_RGB[1];
+        data[at + 2] = MASK_RGB[2];
+        data[at + 3] = 255;
+      }
+    }
+  }
+  const target = path.join(MASKED_BASELINE_DIR, name);
+  await sharp(data, { raw: info }).png().toFile(target);
+  return target;
+}
+
 /**
  * Share of differing pixels between two PNG buffers, using pixelmatch's YIQ
  * colour distance at `threshold` WITHOUT anti-aliasing exclusion. It is an

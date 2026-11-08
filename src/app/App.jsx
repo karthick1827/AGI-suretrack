@@ -4,13 +4,15 @@ import { paths, routePatterns } from '../lib/paths.js';
 import { getSession, getSessionState, purgeInvalidSession, subscribe } from '../lib/session.js';
 import LoginPage from '../pages/Login/LoginPage.jsx';
 import Placeholder from '../pages/Placeholder/Placeholder.jsx';
+import OverlayProvider from '../ui/overlay/OverlayProvider.jsx';
 import RequireSession from './RequireSession.jsx';
 
 // Route table (AD-10). `/login` is public and redirects a signed-in user to
 // `/dashboard` (FR-33). Every other app path is guarded by RequireSession
 // (FR-11) and renders the Placeholder until its epic lands (`/dashboard`
 // until Epic 2). `/` and unknown paths go to `/dashboard`, so a signed-out
-// visitor still ends up on `/login`.
+// visitor still ends up on `/login`. OverlayProvider (AD-12) is mounted once
+// here, inside the router, and portals every overlay into #overlay-root.
 
 const PROTECTED_PATTERNS = [
   routePatterns.dashboard,
@@ -110,22 +112,24 @@ function SessionSync() {
 export default function App() {
   return (
     <BrowserRouter>
-      <SessionSync />
-      <Routes>
-        <Route path={routePatterns.login} element={<LoginRoute />} />
-        {PROTECTED_PATTERNS.map((pattern) => (
-          <Route
-            key={pattern}
-            path={pattern}
-            element={
-              <RequireSession>
-                <Placeholder />
-              </RequireSession>
-            }
-          />
-        ))}
-        <Route path="*" element={<Navigate to={paths.dashboard()} replace />} />
-      </Routes>
+      <OverlayProvider>
+        <SessionSync />
+        <Routes>
+          <Route path={routePatterns.login} element={<LoginRoute />} />
+          {PROTECTED_PATTERNS.map((pattern) => (
+            <Route
+              key={pattern}
+              path={pattern}
+              element={
+                <RequireSession>
+                  <Placeholder />
+                </RequireSession>
+              }
+            />
+          ))}
+          <Route path="*" element={<Navigate to={paths.dashboard()} replace />} />
+        </Routes>
+      </OverlayProvider>
     </BrowserRouter>
   );
 }

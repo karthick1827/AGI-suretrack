@@ -8,7 +8,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: '10e78f4b5102bd7037075f44c234901dd9428dbe'
-implementation_status: in-progress
+implementation_status: in-review
 story_key: 1-5-request-a-reset-link-forgot-password-modal
 jira: SCRUM-29
 review_loop_iteration: 0
@@ -68,12 +68,12 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/ui/overlay/OverlayProvider.jsx` and `useOverlay.js`: the single open-state owner, `modal`/`menu`/`panel` kinds, the portal, Esc handling, focus trap and return, and unmount on close.
-- [ ] `src/features/forgot-password/ForgotPasswordModal.jsx` and `.module.css`: exact FR-37 to FR-44 visuals with `data-fid`, and FR-45 to FR-47 behaviour.
-- [ ] `src/data/api.js`: `requestPasswordReset(email)`, a simulated resolve after the existing data latency (no network).
-- [ ] `src/app/App.jsx`, `LoginForm.jsx` and `useSignIn.js`: mount the provider; wire both triggers; drop `aria-disabled` on the Reset control.
-- [ ] `tests/unit/forgot-password.test.jsx` and `overlay.test.jsx`: every I/O-matrix row, plus "one overlay at a time".
-- [ ] `tests/fidelity/forgot-password.spec.js` and `expected/forgot-password.json`: the modal-region screenshot against the cropped baseline (≤ 0.5%), the measurement audit (±1 px) and the copy audit. The Login at-rest check is unchanged.
+- [x] `src/ui/overlay/OverlayProvider.jsx` and `useOverlay.js`: the single open-state owner, `modal`/`menu`/`panel` kinds, the portal, Esc handling, focus trap and return, and unmount on close.
+- [x] `src/features/forgot-password/ForgotPasswordModal.jsx` and `.module.css`: exact FR-37 to FR-44 visuals with `data-fid`, and FR-45 to FR-47 behaviour.
+- [x] `src/data/api.js`: `requestPasswordReset(email)`, a simulated resolve after the existing data latency (no network).
+- [x] `src/app/App.jsx`, `LoginForm.jsx` and `useSignIn.js`: mount the provider; wire both triggers; drop `aria-disabled` on the Reset control.
+- [x] `tests/unit/forgot-password.test.jsx` and `overlay.test.jsx`: every I/O-matrix row, plus "one overlay at a time".
+- [x] `tests/fidelity/forgot-password.spec.js` and `expected/forgot-password.json`: the modal-region screenshot against the cropped baseline (≤ 0.5%), the measurement audit (±1 px) and the copy audit. The Login at-rest check is unchanged.
 
 **Acceptance Criteria:**
 - Given `npm run lint && npm run build && npm test && npm run test:fidelity`, when run, then all pass, with the Login screenshot still ≤ 0.5% and the Story 1.2 baseline untouched.

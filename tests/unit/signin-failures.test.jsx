@@ -255,8 +255,7 @@ describe('account status after a correct password (FR-27–FR-29)', () => {
     expect(alert.textContent).toBe(`${t.errors.passwordExpired}${t.errors.resetPasswordLink}`);
     const link = screen.getByRole('button', { name: t.errors.resetPasswordLink });
     expect(alert.contains(link)).toBe(true);
-    expect(link.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(link); // no-op until Story 1.5
+    expect(link.hasAttribute('aria-disabled')).toBe(false); // Story 1.5: it opens the Forgot Password modal
     expect(banner()).not.toBeNull();
     expectNoSession();
   });

@@ -187,3 +187,16 @@ export function getNotifications() {
 export function getConfig(options) {
   return load('config', () => ({ url: CONFIG_URL, label: 'app-config.json' }), options?.signal);
 }
+
+/**
+ * Forgot Password (FR-47): a simulated request. Nothing is sent and no request
+ * leaves the browser; it resolves after the data latency (VITE_DATA_LATENCY_MS
+ * in dev/test builds, 0 in production) with the same result for any email, so
+ * the response never reveals whether an account exists.
+ * @param {string} _email  the validated email (unused: the result is identical for every address)
+ * @returns {Promise<{ ok: true }>}
+ */
+export async function requestPasswordReset(_email) {
+  await wait(latencyMs(), undefined, 'password reset');
+  return { ok: true };
+}
