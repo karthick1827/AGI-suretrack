@@ -1,3 +1,10 @@
+---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-08T20:52:21.178Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+---
+
 # Epic 2 Context: Farm status at a glance on the Dashboard
 
 <!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->

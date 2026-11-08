@@ -1,9 +1,12 @@
 ---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-08T20:54:10.297Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 2.1 — Signed-in app shell and Header'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
-status: In Review
 story_key: 2-1-signed-in-app-shell-and-header
 jira: NEW
 review_loop_iteration: 0
@@ -82,6 +85,13 @@ Every signed-in route renders this shell (AD-17). `/dashboard` shows the shell, 
 - Given `npm run lint && npm run build && npm test && npm run test:fidelity`, when run, then everything passes except possible Windows-only screenshot advisories (each recorded with its ratio), and the Login and Forgot Password checks are unchanged.
 
 ## Spec Change Log
+
+- 2026-11-09 — **Baseline exports done (pre-implementation):** 1× Figma renders were exported read-only to `_acl-output/planning-artifacts/briefs/brief-agi-cursor2-2026-11-05/figma-reference/1x/`:
+  - `header-6227-63670.raw-1374x72.png`: the Header **with shadow overflow**. Crop the 1366×64 header at test setup with an alignment check (white header edges), never editing the file.
+  - `profile-menu-6026-52937.png`: 290×768, exact.
+  - The Dashboard raws (`*.raw-1374x*.png`) and `notifications-8270-44312.png` are for later stories.
+
+  The **Logout icon** is still to be exported, as the first implementation task. Use the Figma connector's `get_design_context` on `6026:52937` (load the figma-design-to-code guidance first) and save it byte-identical to `figma-assets/dashboard/logout.svg` and `src/assets/icons/logout.svg`. If the connector is unavailable, HALT and report.
 
 ## Verification
 
