@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-08T19:20:34.501Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-08T19:20:34.501Z
 title: 'Story 1.4 — Clear messages when sign-in fails'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'ef2698a7ace0972389fc3586c10127e217a4dbca'
-implementation_status: in-review
+implementation_status: review
 story_key: 1-4-clear-messages-when-sign-in-fails
 jira: SCRUM-28
 review_loop_iteration: 0
@@ -87,7 +86,85 @@ context:
 
 ## Spec Change Log
 
+- 2026-11-09 — **Acceptance-criteria conflict resolved:** the acceptance criteria said `login.spec.js` must stay untouched, but its Story 1.2 "submit does nothing" assertion contradicted FR-26 (the password must be cleared). Only that assertion was updated, to the Story 1.4 behaviour. The screenshot test, the audits and the baseline are untouched.
+- 2026-11-09 — **I/O matrix account names:** the matrix lists `locked` and `locked-until` the other way round from the `users.json` data (`locked` has no time; `locked-until` has a time in 2099). The behaviour is unchanged and the tests follow the data.
+- 2026-11-09 — **Review loop 1 (patches only):**
+  - **Deadline:** armed at submit, covering the users.json load, the latency and the config load.
+  - **No silent failures:** load, policy, storage and Coach-phone failures show the existing FR-31 timeout or offline copy.
+  - **Lockout:** cross-tab sync; the end timer compares before resetting; safe date handling; render-time banner text.
+  - **Expiry:** the expired banner shows once.
+  - **Accessibility and layout:** `role="alert"` only; banner re-measured with ResizeObserver; `aria-disabled` lockout.
+  - **KEEP:** the at-rest render stays identical to Figma, and all copy stays verbatim from the PRD.
+
 ## Verification
 
 **Commands:**
 - `npm run lint`, `npm run build`, `npm test`, `npm run test:fidelity`: expected exit code 0.
+
+## Implementation Review (Story 1.4)
+
+**Result:**
+- **Commits:** `ef2698a` to `d934afd` on `feature/1-4-signin-failures`.
+- **Lint and build:** `npm run lint` passes with 0 issues and `npm run build` succeeds.
+- **Unit tests:** `npm test` passes **560/560**.
+- **Fidelity check:** `npm run test:fidelity` passes **17/17**. The at-rest Login screen still differs from Figma by **≤ 0.436%**, and the baseline is untouched.
+
+**Test accounts (from `users.json`):**
+
+| Account | Password | Shows |
+|---|---|---|
+| `demo` | `Demo@123` | Successful sign-in |
+| `locked` | `Locked@123` | Locked, no time |
+| `locked-until` | `Locked@123` | Locked, with a time |
+| `inactive` | `Inactive@123` | Inactive account |
+| `nosub` | `NoSub@123` | No active subscription |
+| `expired` | `Expired@123` | Expired password |
+| `slow` | `Slow@123` | Timeout |
+| any other name or password | | Wrong credentials |
+
+### Acceptance Criteria Checklist
+
+- [x] **Wrong credentials (FR-26):** `Username or password is incorrect`, without saying which field. The username stays and the password is cleared and focused.
+- [x] **Locked account (FR-27):** the message, with or without a time, plus the Coach number from config. No Session is created.
+- [x] **Inactive or no subscription (FR-28)** and **expired password (FR-29)**, which shows the "Reset your password" control (wired in Story 1.5).
+- [x] **Too many attempts (FR-30):** 5 consecutive failures lock sign-in for 15 minutes. The lockout survives a reload and is synced across tabs, Login is disabled (opacity 0.5), and the count resets on success.
+- [x] **Offline and timeout (FR-31):** both show a banner. The timeout is counted from submit and covers a hung request.
+- [x] **Banner (FR-32):** placed under the title, white with a red border, and announced once. Elements below it move by the measured banner height.
+- [x] **Session expired (FR-34):** the banner shows once, and after sign-in the user returns to `from`.
+- [x] **At rest:** with no banner, the Login page still matches the Figma baseline.
+
+### Review Findings
+
+- **Patched (17):** listed in the Spec Change Log above.
+- **Deferred (3):** in [deferred-work.md](deferred-work.md).
+  - Server-side lockout.
+  - A race-free attempts counter.
+  - Removing the per-account latency before any real deployment.
+- **Rejected:** a remark about how the spec file was kept up to date (`implementation_status` is a progress field, not the approval status).
+
+## Suggested Review Order
+
+**Failure handling**
+
+- Deadline at submit, PRD check order, outcome → banner mapping, lockout sync.
+  [`useSignIn.js:1`](../../src/features/auth/useSignIn.js#L1)
+- Attempts record, `endLockout` compare-before-reset, cross-tab subscribe.
+  [`session.js:1`](../../src/lib/session.js#L1)
+- Abortable load, per-account latency, shared `MAX_TIMEOUT_MS`.
+  [`api.js:1`](../../src/data/api.js#L1)
+
+**UI**
+
+- FR-32 banner.
+  [`AlertBanner.jsx:1`](../../src/features/auth/AlertBanner.jsx#L1)
+- Banner slot, measured shift, cleared password, `aria-disabled` lockout.
+  [`LoginForm.jsx:1`](../../src/features/auth/LoginForm.jsx#L1)
+- Time formatting and verbatim message helpers.
+  [`copy.js:1`](../../src/lib/copy.js#L1)
+
+**Tests**
+
+- Every I/O-matrix row, deadline, lockout and cross-tab cases.
+  [`signin-failures.test.jsx:1`](../../tests/unit/signin-failures.test.jsx#L1)
+- Banner layout (one-line and wrapped), lockout state, at-rest baseline.
+  [`signin-failures.spec.js:1`](../../tests/fidelity/signin-failures.spec.js#L1)
