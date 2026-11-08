@@ -1,9 +1,12 @@
 ---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-08T20:00:33.174Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 1.5 — Request a reset link (Forgot Password modal)'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
-status: In Review
 story_key: 1-5-request-a-reset-link-forgot-password-modal
 jira: SCRUM-29
 review_loop_iteration: 0
