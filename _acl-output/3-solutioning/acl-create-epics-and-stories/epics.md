@@ -398,6 +398,8 @@ So that I recognise SureTrack and trust where I'm signing in.
 
 ### Story 1.3: Sign in and reach the Dashboard (SCRUM-27)
 
+- [x] Story 1.3 completed — Manager approved 2026-11-09 (spec-1-3); feature/1-3-sign-in
+
 As a farm customer,
 I want to sign in with my username and password,
 So that I can get to my farm's Dashboard.
