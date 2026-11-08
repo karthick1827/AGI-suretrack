@@ -480,6 +480,8 @@ So that I know whether to retry, reset my password or call SureTrack Coach.
 
 ### Story 1.5: Request a reset link (Forgot Password modal) (SCRUM-29)
 
+- [x] Story 1.5 completed — Manager approved 2026-11-09 (spec-1-5); feature/1-5-forgot-password
+
 As a farm customer who forgot my password or username,
 I want to request a reset link by email,
 So that I can get back into my account without calling support.
