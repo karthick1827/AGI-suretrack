@@ -117,6 +117,51 @@ export function fill(template, values) {
   });
 }
 
+const MONTHS = Object.freeze(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+
+/** An epoch-ms number or an ISO date-time string as epoch ms; NaN when unusable. */
+function toEpochMs(value) {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value !== '') return Date.parse(value);
+  return Number.NaN;
+}
+
+/**
+ * FR-27 / FR-30 `{time}`: `value` (epoch ms or ISO string) in the browser's
+ * local time, `h:mm A` when it falls on the same local day as `now`, else
+ * `MMM D, YYYY h:mm A` (e.g. `3:45 PM`, `Jan 1, 2027 9:00 AM`).
+ */
+export function formatSignInTime(value, now = Date.now()) {
+  const date = new Date(toEpochMs(value));
+  if (Number.isNaN(date.getTime())) throw new RangeError(`formatSignInTime: not a date: ${String(value)}`);
+  const today = new Date(now);
+  const hours = date.getHours();
+  const clock = `${hours % 12 || 12}:${String(date.getMinutes()).padStart(2, '0')} ${hours < 12 ? 'AM' : 'PM'}`;
+  const sameDay =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+  return sameDay ? clock : `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} ${clock}`;
+}
+
+/**
+ * FR-27 banner text. With a `lockedUntil` still in the future it includes
+ * `Try again after {time}`; when it is null, unparsable or already past, the
+ * message has no time. `coachPhone` comes from getConfig().
+ */
+export function accountLockedMessage({ lockedUntil, coachPhone, now = Date.now() }) {
+  const until = toEpochMs(lockedUntil);
+  if (Number.isFinite(until) && until > now) {
+    return fill(copy.login.errors.accountLockedUntil, { time: formatSignInTime(until, now), coachPhone });
+  }
+  return fill(copy.login.errors.accountLocked, { coachPhone });
+}
+
+/** FR-30 banner text: `Too many sign-in attempts. You can try again at {time}.` */
+export function tooManyAttemptsMessage(lockedUntil, now = Date.now()) {
+  return fill(copy.login.errors.tooManyAttempts, { time: formatSignInTime(lockedUntil, now) });
+}
+
 /** FR-72 accessible name: `<type>, <count>: <caption with " · " → ", ">`. */
 export function equipmentRowLabel({ type, count, caption }) {
   return fill(copy.dashboard.equipmentRowLabel, {

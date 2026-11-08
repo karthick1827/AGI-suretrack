@@ -2,21 +2,53 @@
 //
 // Story 1.3 wires sign-in (useSignIn): Enter or Login submits, empty fields
 // show their required message (FR-22), and the button shows a loading state
-// that ignores repeat submits (FR-23). Error and loading visuals live in the
-// CSS Module's states block and only appear when that state is active, so the
-// at-rest render is unchanged. The Forgot link is still a non-functional
-// button (the modal arrives in Story 1.5). Legal URLs come from the runtime config (FR-20, SCRUM-31);
+// that ignores repeat submits (FR-23). Story 1.4 adds the FR-32 alert banner
+// under the title (every sign-in failure and the session-expired notice), the
+// wrong-credentials password clear and focus (FR-26) and the lockout's
+// disabled Login button (FR-30). Error, banner, loading and disabled visuals
+// live in the CSS Module's states block and only appear when that state is
+// active, so the at-rest render is unchanged. The Forgot link and the banner's
+// reset link are still non-functional buttons (the modal arrives in Story 1.5). Legal URLs come from the runtime config (FR-20, SCRUM-31);
 // until it loads, if it fails, or if a URL is not http(s), a link renders
 // without an href.
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { getConfig } from '../../data/api.js';
 import { copy } from '../../lib/copy.js';
 import { FID } from '../../lib/fid.js';
-import { OUTCOMES, useSignIn } from './useSignIn.js';
+import AlertBanner from './AlertBanner.jsx';
+import { BANNER_KINDS, OUTCOMES, useSignIn } from './useSignIn.js';
 import logoSvg from '../../assets/icons/e34ba.svg';
 import styles from './LoginForm.module.css';
 
 const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' };
+
+// FR-32 [ASSUMPTION]: the banner sits 16px below the 30px title and 24px above
+// the Username label, which at rest is 32px below the title. Everything below
+// the title therefore moves down by the banner height + 16 + 24 - 32.
+const BANNER_GAP_ABOVE = 16;
+const BANNER_GAP_BELOW = 24;
+const TITLE_TO_USERNAME_GAP = 32;
+
+/** The px the content below the banner moves down while `banner` shows (0 without one). */
+function useBannerShift(banner) {
+  const bannerRef = useRef(null);
+  const [shift, setShift] = useState(0);
+  useLayoutEffect(() => {
+    const node = bannerRef.current;
+    if (!banner || !node) {
+      setShift(0);
+      return undefined;
+    }
+    const measure = () =>
+      setShift(node.getBoundingClientRect().height + BANNER_GAP_ABOVE + BANNER_GAP_BELOW - TITLE_TO_USERNAME_GAP);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [banner]);
+  return { bannerRef, shift };
+}
 
 /** Only absolute http(s) URLs become an href; anything else is dropped. */
 function safeUrl(value) {
@@ -53,7 +85,8 @@ export default function LoginForm() {
   const usernameErrorId = useId();
   const passwordErrorId = useId();
   const legal = useLegalUrls();
-  const { errors, loading, submit, clearError } = useSignIn();
+  const { errors, loading, banner, locked, submit, clearError } = useSignIn();
+  const { bannerRef, shift } = useBannerShift(banner);
   const t = copy.login;
   // FR-20: the space before "|" (and "|") is Regular; the space after it is
   // Medium. Without a "|", the whole separator renders Regular.
@@ -71,12 +104,18 @@ export default function LoginForm() {
     });
     // FR-22: focus moves to the first empty field.
     if (result.outcome === OUTCOMES.invalid) form.elements[result.field].focus();
+    // FR-26: wrong credentials keep the Username, then clear and focus the Password.
+    if (result.clearPassword) {
+      form.elements.password.value = '';
+      form.elements.password.focus();
+    }
   };
 
   const columnClass = [
     styles.column,
     errors.username && styles.usernameInvalid,
     errors.password && styles.passwordInvalid,
+    banner && styles.hasBanner,
   ]
     .filter(Boolean)
     .join(' ');
@@ -91,7 +130,11 @@ export default function LoginForm() {
   const fieldClass = (group, invalid) => [styles.field, group, invalid && styles.fieldInvalid].filter(Boolean).join(' ');
 
   return (
-    <div className={columnClass} data-fid={FID.login.formColumn}>
+    <div
+      className={columnClass}
+      style={banner ? { '--login-banner-shift': `${shift}px` } : undefined}
+      data-fid={FID.login.formColumn}
+    >
       <div className={styles.innerStack} data-fid={FID.login.innerStack}>
         <div className={styles.logoStack} data-fid={FID.login.logoStack}>
           <img
@@ -112,6 +155,16 @@ export default function LoginForm() {
               <h1 className={styles.title} data-fid={FID.login.title}>
                 {t.title}
               </h1>
+
+              {banner && (
+                <AlertBanner ref={bannerRef} className={styles.banner} message={banner.message}>
+                  {banner.kind === BANNER_KINDS.passwordExpired && (
+                    <button className={styles.bannerLink} type="button">
+                      {t.errors.resetPasswordLink}
+                    </button>
+                  )}
+                </AlertBanner>
+              )}
 
               <div className={fieldClass(styles.usernameGroup, errors.username)} data-fid={FID.login.usernameGroup}>
                 <label
@@ -170,6 +223,7 @@ export default function LoginForm() {
               <button
                 className={styles.loginButton}
                 type="submit"
+                disabled={locked || undefined}
                 aria-busy={loading || undefined}
                 aria-disabled={loading || undefined}
                 data-fid={FID.login.loginButton}

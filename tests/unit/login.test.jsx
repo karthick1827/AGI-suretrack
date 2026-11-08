@@ -111,7 +111,7 @@ describe('legal links (FR-20, SCRUM-31)', () => {
   });
 });
 
-describe('typed values are preserved after a non-success submit (messages arrive in Story 1.4)', () => {
+describe('typed values after a non-success submit (FR-26, FR-27)', () => {
   const usersData = JSON.parse(readFileSync(fromRoot('src/data/json/users.json'), 'utf8'));
 
   it('uses the real users.json shape (policy and a per-account simulatedLatencyMs)', () => {
@@ -120,10 +120,10 @@ describe('typed values are preserved after a non-success submit (messages arrive
   });
 
   it.each([
-    ['unknown username', 'farmer', 'secret'],
-    ['wrong password', 'demo', 'Demo@1234'],
-    ['locked account', 'locked', 'Locked@123'],
-  ])('%s: Enter and the Login button keep /login and both typed values', async (_, user, pass) => {
+    ['unknown username', 'farmer', 'secret', ''],
+    ['wrong password', 'demo', 'Demo@1234', ''],
+    ['locked account', 'locked', 'Locked@123', 'Locked@123'],
+  ])('%s: Enter and the Login button keep /login and the Username; Password becomes %j', async (_, user, pass, kept) => {
     vi.mocked(getUsers).mockResolvedValue(usersData);
     await renderAt(paths.login());
     const username = screen.getByLabelText(t.usernameLabel);
@@ -137,7 +137,7 @@ describe('typed values are preserved after a non-success submit (messages arrive
     expect(window.location.pathname).toBe(paths.login());
     expect(window.location.search).toBe('');
     expect(username.value).toBe(user);
-    expect(password.value).toBe(pass);
+    expect(password.value).toBe(kept);
   });
 });
 
@@ -145,6 +145,7 @@ describe('copy and Figma ids are never literal in JSX (AD-15, AD-16)', () => {
   const files = [
     'src/pages/Login/LoginPage.jsx',
     'src/features/auth/LoginForm.jsx',
+    'src/features/auth/AlertBanner.jsx',
     'src/app/App.jsx',
     'src/app/RequireSession.jsx',
     'src/pages/Placeholder/Placeholder.jsx',

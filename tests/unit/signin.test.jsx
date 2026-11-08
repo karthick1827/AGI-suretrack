@@ -83,7 +83,7 @@ describe('valid sign-in (FR-24, FR-25)', () => {
 
     fillAndSubmit('demo', 'Demo@123');
     await waitFor(() => expect(loginButton().getAttribute('aria-busy')).toBe('true'));
-    expect(getUsers).toHaveBeenCalledWith({ signIn: true });
+    expect(getUsers).toHaveBeenCalledWith(expect.objectContaining({ signIn: true, username: 'demo', signal: expect.any(AbortSignal) }));
     expect(getSession()).toBeNull();
 
     await act(async () => release(usersData));
@@ -139,13 +139,14 @@ describe('case and spaces (FR-22, FR-24)', () => {
     expect(getSession().username).toBe('demo');
   });
 
-  it('the password is exact: demo@123 does not sign in, and shows nothing yet (Story 1.4)', async () => {
+  it('the password is exact: demo@123 does not sign in and shows the wrong-credentials banner (Story 1.4)', async () => {
     await renderAt(paths.login());
     fillAndSubmit('demo', 'demo@123');
     await waitForIdle();
     expect(window.location.pathname).toBe(paths.login());
     expect(getSession()).toBeNull();
     expect(liveRegion().textContent).toBe('');
+    expect(screen.getByRole('alert').textContent).toBe(t.errors.wrongCredentials);
     expect(usernameInput().value).toBe('demo');
   });
 });
@@ -414,7 +415,7 @@ describe('sign-in robustness', () => {
   });
 });
 
-describe('checkCredentials outcomes (no UI until Story 1.4)', () => {
+describe('checkCredentials outcomes', () => {
   it.each([
     ['demo', 'Demo@123', OUTCOMES.success],
     ['DeMo', 'Demo@123', OUTCOMES.success],

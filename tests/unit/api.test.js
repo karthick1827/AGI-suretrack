@@ -232,6 +232,50 @@ describe('sign-in latency (users.json policy, AD-14)', () => {
     await expect(pending).resolves.toEqual(readJson('src/data/json/users.json'));
   });
 
+  it("an account's own simulatedLatencyMs overrides the policy (slow: 16 s), matched trimmed and case-insensitive", async () => {
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const slow = readJson('src/data/json/users.json').users.find((user) => user.username === 'slow');
+    let settled = false;
+    const pending = getUsers({ signIn: true, username: ' SLOW ' }).then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(slow.simulatedLatencyMs - 1);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(settled).toBe(true);
+  });
+
+  it('calls onLoaded with users.json before the sign-in latency', async () => {
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const onLoaded = vi.fn();
+    const pending = getUsers({ signIn: true, username: 'demo', onLoaded });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onLoaded).toHaveBeenCalledWith(readJson('src/data/json/users.json'));
+    await vi.advanceTimersByTimeAsync(800);
+    await pending;
+  });
+
+  it('aborting the signal during the latency rejects with ABORTED', async () => {
+    vi.useFakeTimers();
+    const { getUsers } = await loadApi();
+    const controller = new AbortController();
+    const pending = getUsers({ signIn: true, username: 'slow', signal: controller.signal });
+    pending.catch(() => {});
+    await vi.advanceTimersByTimeAsync(15_000);
+    controller.abort();
+    await expect(pending).rejects.toEqual({ code: 'ABORTED', message: expect.any(String) });
+  });
+
+  it('an already-aborted signal rejects with ABORTED before any fetch', async () => {
+    const { getUsers } = await loadApi();
+    const controller = new AbortController();
+    controller.abort();
+    await expect(getUsers({ signIn: true, signal: controller.signal })).rejects.toMatchObject({ code: 'ABORTED' });
+  });
+
   it('plain getUsers() does not add the sign-in latency', async () => {
     vi.useFakeTimers();
     const { getUsers } = await loadApi();

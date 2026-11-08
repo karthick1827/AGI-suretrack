@@ -16,6 +16,9 @@
 // Listeners in the SAME tab are notified directly (the `storage` event only
 // reaches other tabs) with `{ crossTab: false }`; storage events give
 // `{ crossTab: true }`.
+//
+// It also owns `localStorage['suretrack.signin-attempts']`, the FR-30 lockout
+// counter (getAttempts / recordFailure / resetAttempts, below).
 import { DASHBOARD_STATES } from './paths.js';
 
 export const SESSION_KEY = 'suretrack.session';
@@ -192,6 +195,99 @@ export function signOut() {
     }
   }
   notify({ crossTab: false });
+}
+
+/* ------------------------------------------------------------------------ */
+/* Sign-in attempts (FR-30)                                                  */
+/* ------------------------------------------------------------------------ */
+//
+// `localStorage['suretrack.signin-attempts']` = { count, lockedUntil }: the
+// consecutive wrong-credential failures in this browser and, while a lockout
+// runs, its end as integer epoch ms (null otherwise). It survives reload and is
+// reset by a successful sign-in or when the lockout ends.
+
+export const ATTEMPTS_KEY = 'suretrack.signin-attempts';
+
+const NO_ATTEMPTS = Object.freeze({ count: 0, lockedUntil: null });
+const isCount = (value) => Number.isSafeInteger(value) && value >= 0;
+
+function readAttemptsRaw() {
+  const store = storage();
+  if (!store) return null;
+  try {
+    return store.getItem(ATTEMPTS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The attempts record as it stands at `now`. Pure: never writes storage.
+ * A missing or corrupt record reads as `{ count: 0, lockedUntil: null }`, and
+ * so does a lockout that has already ended (FR-30: the count resets to 0).
+ * Never throws.
+ * @param {number} [now=Date.now()]
+ * @returns {{ count: number, lockedUntil: number | null }}
+ */
+export function getAttempts(now = Date.now()) {
+  const raw = readAttemptsRaw();
+  if (raw === null) return { ...NO_ATTEMPTS };
+  let record;
+  try {
+    record = JSON.parse(raw);
+  } catch {
+    return { ...NO_ATTEMPTS };
+  }
+  if (record === null || typeof record !== 'object' || Array.isArray(record) || !isCount(record.count)) {
+    return { ...NO_ATTEMPTS };
+  }
+  const { count, lockedUntil } = record;
+  if (lockedUntil === null || lockedUntil === undefined) return { count, lockedUntil: null };
+  if (!isEpochMs(lockedUntil) || !(now < lockedUntil)) return { ...NO_ATTEMPTS };
+  return { count, lockedUntil };
+}
+
+function writeAttempts(record) {
+  const store = storage();
+  if (!store) return;
+  try {
+    store.setItem(ATTEMPTS_KEY, JSON.stringify(record));
+  } catch {
+    // Storage full or blocked: the count simply does not persist.
+  }
+}
+
+/**
+ * Count one wrong-credential failure (FR-26, FR-30). When the count reaches
+ * `maxFailedAttempts`, a lockout of `lockoutMinutes` starts at `now`.
+ * Returns the new record. Throws RangeError on an invalid policy value.
+ * @param {{ now?: number, maxFailedAttempts: number, lockoutMinutes: number }} options
+ * @returns {{ count: number, lockedUntil: number | null }}
+ */
+export function recordFailure({ now = Date.now(), maxFailedAttempts, lockoutMinutes }) {
+  if (!Number.isSafeInteger(maxFailedAttempts) || maxFailedAttempts < 1) {
+    throw new RangeError(`maxFailedAttempts must be an integer ≥ 1; got ${String(maxFailedAttempts)}`);
+  }
+  if (typeof lockoutMinutes !== 'number' || !Number.isFinite(lockoutMinutes) || lockoutMinutes <= 0) {
+    throw new RangeError(`lockoutMinutes must be a positive number; got ${String(lockoutMinutes)}`);
+  }
+  const current = getAttempts(now);
+  const count = current.count + 1;
+  const lockedUntil = count >= maxFailedAttempts ? Math.trunc(now) + Math.trunc(lockoutMinutes * MS_PER_MINUTE) : null;
+  const record = { count, lockedUntil };
+  writeAttempts(record);
+  return record;
+}
+
+/** Clear the attempts record (successful sign-in, or the lockout ended). Never throws. */
+export function resetAttempts() {
+  const store = storage();
+  if (!store) return;
+  try {
+    store.removeItem(ATTEMPTS_KEY);
+  } catch {
+    // Nothing more can be done.
+  }
 }
 
 /**

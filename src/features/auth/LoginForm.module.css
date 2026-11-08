@@ -416,3 +416,58 @@
   white-space: nowrap;
   border: 0;
 }
+
+/*
+ * FR-32 [ASSUMPTION]: the alert banner sits 16px (--space-6) below the 30px
+ * title, full column width, 24px above the Username label. Everything below
+ * the title moves down by --login-banner-shift (banner height + 8px, measured
+ * in LoginForm.jsx and set inline only while a banner shows); the column top
+ * stays at y 127.039. `translate` stacks with the FR-22 `top` shifts above.
+ */
+.banner {
+  position: absolute;
+  left: 0;
+  top: calc(30px + var(--space-6));
+  width: 392.43px;
+}
+
+.hasBanner .field,
+.hasBanner .loginButton,
+.hasBanner .forgotBox {
+  translate: 0 var(--login-banner-shift);
+}
+
+.hasBanner .innerStack {
+  margin-bottom: var(--login-banner-shift);
+}
+
+/* FR-29 [ASSUMPTION]: "Reset your password" — Roboto Medium 500, underlined, banner text colour. */
+.bannerLink {
+  display: inline;
+  margin: 0 0 0 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+  text-decoration: underline solid;
+  text-decoration-thickness: from-font;
+  text-underline-offset: from-font;
+  text-decoration-skip-ink: none;
+}
+
+.bannerLink:hover {
+  cursor: pointer;
+}
+
+.bannerLink:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-111827);
+  outline-offset: 2px;
+}
+
+/* FR-30 [ASSUMPTION]: during a lockout Login is disabled at opacity 0.5 with a not-allowed cursor. */
+.loginButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

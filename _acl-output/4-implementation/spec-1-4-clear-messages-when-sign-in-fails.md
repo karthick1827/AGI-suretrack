@@ -8,7 +8,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'ef2698a7ace0972389fc3586c10127e217a4dbca'
-implementation_status: in-progress
+implementation_status: in-review
 story_key: 1-4-clear-messages-when-sign-in-fails
 jira: SCRUM-28
 review_loop_iteration: 0
@@ -74,13 +74,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/lib/session.js`: the attempts record helpers, pure reads included.
-- [ ] `src/data/api.js`: abort signal support and per-user simulated latency.
-- [ ] `src/features/auth/useSignIn.js`: the outcome → banner mapping, lockout, timeout, offline, password clear and focus, and expired-reason handling.
-- [ ] `src/features/auth/AlertBanner.jsx` and `.module.css`: the FR-32 banner (live region, token styles).
-- [ ] `src/features/auth/LoginForm.jsx` and `.module.css`: render the banner, the disabled state and the Forgot link inside the expired-password banner (no-op until Story 1.5).
-- [ ] `tests/unit/signin-failures.test.jsx`: every I/O-matrix row, using fake timers for the lockout and timeout.
-- [ ] `tests/fidelity/signin-failures.spec.js`: a banner position and style check for one case, plus the at-rest page still matching the Story 1.2 baseline.
+- [x] `src/lib/session.js`: the attempts record helpers, pure reads included.
+- [x] `src/data/api.js`: abort signal support and per-user simulated latency.
+- [x] `src/features/auth/useSignIn.js`: the outcome → banner mapping, lockout, timeout, offline, password clear and focus, and expired-reason handling.
+- [x] `src/features/auth/AlertBanner.jsx` and `.module.css`: the FR-32 banner (live region, token styles).
+- [x] `src/features/auth/LoginForm.jsx` and `.module.css`: render the banner, the disabled state and the Forgot link inside the expired-password banner (no-op until Story 1.5).
+- [x] `tests/unit/signin-failures.test.jsx`: every I/O-matrix row, using fake timers for the lockout and timeout.
+- [x] `tests/fidelity/signin-failures.spec.js`: a banner position and style check for one case, plus the at-rest page still matching the Story 1.2 baseline.
 
 **Acceptance Criteria:**
 - Given `npm run lint && npm run build && npm test && npm run test:fidelity`, when run, then all pass, and the Login screenshot stays ≤ 0.5% with `login.spec.js` and its baseline untouched.

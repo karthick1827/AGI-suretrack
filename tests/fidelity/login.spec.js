@@ -152,7 +152,7 @@ test.describe('Login 6026:60111', () => {
     }
   });
 
-  test('submitting does nothing yet: URL stays /login, typed values kept (Story 1.3 adds sign-in)', async ({
+  test('wrong credentials: URL stays /login, Username kept, Password cleared and focused, banner shown (Story 1.4)', async ({
     page,
     baseURL,
   }) => {
@@ -161,17 +161,14 @@ test.describe('Login 6026:60111', () => {
     const password = page.getByLabel(t.passwordLabel);
     await username.fill('farmer');
     await password.fill('secret');
-    const assertUnchanged = async () => {
-      const url = new URL(page.url());
-      expect(url.href).toBe(new URL('/login', baseURL).href);
-      expect(url.search).toBe('');
-      await expect(username).toHaveValue('farmer');
-      await expect(password).toHaveValue('secret');
-    };
     await password.press('Enter');
-    await assertUnchanged();
-    await page.getByRole('button', { name: t.submit }).click();
-    await assertUnchanged();
+    await expect(page.getByRole('alert')).toHaveText(t.errors.wrongCredentials, { timeout: 5_000 });
+    const url = new URL(page.url());
+    expect(url.href).toBe(new URL('/login', baseURL).href);
+    expect(url.search).toBe('');
+    await expect(username).toHaveValue('farmer');
+    await expect(password).toHaveValue('');
+    await expect(password).toBeFocused();
   });
 
   test('focus ring: shown on keyboard focus for every control, never at rest (AD-13, FR-9)', async ({ page }) => {
