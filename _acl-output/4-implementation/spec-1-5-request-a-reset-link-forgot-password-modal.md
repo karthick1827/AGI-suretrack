@@ -7,6 +7,8 @@ title: 'Story 1.5 — Request a reset link (Forgot Password modal)'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: '10e78f4b5102bd7037075f44c234901dd9428dbe'
+implementation_status: in-progress
 story_key: 1-5-request-a-reset-link-forgot-password-modal
 jira: SCRUM-29
 review_loop_iteration: 0
