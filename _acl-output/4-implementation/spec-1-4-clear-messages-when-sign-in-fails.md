@@ -7,6 +7,8 @@ title: 'Story 1.4 — Clear messages when sign-in fails'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: 'ef2698a7ace0972389fc3586c10127e217a4dbca'
+implementation_status: in-progress
 story_key: 1-4-clear-messages-when-sign-in-fails
 jira: SCRUM-28
 review_loop_iteration: 0
