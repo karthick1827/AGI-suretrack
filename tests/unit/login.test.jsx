@@ -10,7 +10,7 @@ import { FID } from '../../src/lib/fid.js';
 import { paths } from '../../src/lib/paths.js';
 import { fromRoot } from './support/project.js';
 
-vi.mock('../../src/data/api.js', () => ({ getConfig: vi.fn(), getUsers: vi.fn() }));
+vi.mock('../../src/data/api.js', () => ({ MAX_TIMEOUT_MS: 2147483647, getConfig: vi.fn(), getUsers: vi.fn() }));
 
 const config = JSON.parse(readFileSync(fromRoot('public/app-config.json'), 'utf8'));
 const t = copy.login;
@@ -123,7 +123,7 @@ describe('typed values after a non-success submit (FR-26, FR-27)', () => {
     ['unknown username', 'farmer', 'secret', ''],
     ['wrong password', 'demo', 'Demo@1234', ''],
     ['locked account', 'locked', 'Locked@123', 'Locked@123'],
-  ])('%s: Enter and the Login button keep /login and the Username; Password becomes %j', async (_, user, pass, kept) => {
+  ])('%s: Enter and the Login button keep /login and the Username; Password cleared only for wrong credentials', async (_, user, pass, kept) => {
     vi.mocked(getUsers).mockResolvedValue(usersData);
     await renderAt(paths.login());
     const username = screen.getByLabelText(t.usernameLabel);

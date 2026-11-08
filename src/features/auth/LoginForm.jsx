@@ -5,7 +5,8 @@
 // that ignores repeat submits (FR-23). Story 1.4 adds the FR-32 alert banner
 // under the title (every sign-in failure and the session-expired notice), the
 // wrong-credentials password clear and focus (FR-26) and the lockout's
-// disabled Login button (FR-30). Error, banner, loading and disabled visuals
+// aria-disabled Login button (FR-30; it stays focusable, like the loading
+// state, and useSignIn's submit guard ignores it). Error, banner, loading and disabled visuals
 // live in the CSS Module's states block and only appear when that state is
 // active, so the at-rest render is unchanged. The Forgot link and the banner's
 // reset link are still non-functional buttons (the modal arrives in Story 1.5). Legal URLs come from the runtime config (FR-20, SCRUM-31);
@@ -24,12 +25,19 @@ const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' };
 
 // FR-32 [ASSUMPTION]: the banner sits 16px below the 30px title and 24px above
 // the Username label, which at rest is 32px below the title. Everything below
-// the title therefore moves down by the banner height + 16 + 24 - 32.
+// the title therefore moves down by the measured banner height + BANNER_SHIFT_EXTRA
+// (16 + 24 - 32 = 8px). This is the ONLY place the shift formula lives; the
+// CSS reads the result from --login-banner-shift.
 const BANNER_GAP_ABOVE = 16;
 const BANNER_GAP_BELOW = 24;
 const TITLE_TO_USERNAME_GAP = 32;
+export const BANNER_SHIFT_EXTRA = BANNER_GAP_ABOVE + BANNER_GAP_BELOW - TITLE_TO_USERNAME_GAP;
 
-/** The px the content below the banner moves down while `banner` shows (0 without one). */
+/**
+ * The px the content below the banner moves down while `banner` shows (0
+ * without one). A ResizeObserver re-measures whenever the banner's height
+ * changes (text wraps differently, fonts settle).
+ */
 function useBannerShift(banner) {
   const bannerRef = useRef(null);
   const [shift, setShift] = useState(0);
@@ -40,7 +48,7 @@ function useBannerShift(banner) {
       return undefined;
     }
     const measure = () =>
-      setShift(node.getBoundingClientRect().height + BANNER_GAP_ABOVE + BANNER_GAP_BELOW - TITLE_TO_USERNAME_GAP);
+      setShift(node.getBoundingClientRect().height + BANNER_SHIFT_EXTRA);
     measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
     const observer = new ResizeObserver(measure);
@@ -104,7 +112,9 @@ export default function LoginForm() {
     });
     // FR-22: focus moves to the first empty field.
     if (result.outcome === OUTCOMES.invalid) form.elements[result.field].focus();
-    // FR-26: wrong credentials keep the Username, then clear and focus the Password.
+    // FR-26: wrong credentials keep the Username, then clear and focus the
+    // Password. The inputs are uncontrolled (the password never sits in React
+    // state), so it is cleared directly on the DOM input.
     if (result.clearPassword) {
       form.elements.password.value = '';
       form.elements.password.focus();
@@ -159,7 +169,8 @@ export default function LoginForm() {
               {banner && (
                 <AlertBanner ref={bannerRef} className={styles.banner} message={banner.message}>
                   {banner.kind === BANNER_KINDS.passwordExpired && (
-                    <button className={styles.bannerLink} type="button">
+                    // FR-29: inert until Story 1.5 wires the Forgot Password modal.
+                    <button className={styles.bannerLink} type="button" aria-disabled="true">
                       {t.errors.resetPasswordLink}
                     </button>
                   )}
@@ -221,11 +232,10 @@ export default function LoginForm() {
               </div>
 
               <button
-                className={styles.loginButton}
+                className={locked ? `${styles.loginButton} ${styles.loginButtonLocked}` : styles.loginButton}
                 type="submit"
-                disabled={locked || undefined}
                 aria-busy={loading || undefined}
-                aria-disabled={loading || undefined}
+                aria-disabled={loading || locked || undefined}
                 data-fid={FID.login.loginButton}
               >
                 {loading && <span className={styles.spinner} aria-hidden="true" />}

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import App from '../../src/app/App.jsx';
-import { getUsers } from '../../src/data/api.js';
+import { MAX_TIMEOUT_MS, getConfig, getUsers } from '../../src/data/api.js';
 import {
   accountLockedMessage,
   copy,
@@ -20,6 +20,7 @@ import {
   createSessionRecord,
   getAttempts,
   getSession,
+  endLockout,
   recordFailure,
   resetAttempts,
 } from '../../src/lib/session.js';
@@ -30,6 +31,7 @@ vi.mock('../../src/data/api.js', async (importOriginal) => {
   return { ...actual, getConfig: vi.fn(actual.getConfig), getUsers: vi.fn(actual.getUsers) };
 });
 
+const actualApi = await vi.importActual('../../src/data/api.js');
 const config = JSON.parse(readFileSync(fromRoot('public/app-config.json'), 'utf8'));
 const usersData = JSON.parse(readFileSync(fromRoot('src/data/json/users.json'), 'utf8'));
 const { policy } = usersData;
@@ -63,6 +65,8 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   vi.stubGlobal('fetch', vi.fn(diskFetch));
   consoleSpies = ['error', 'warn', 'log', 'info'].map((level) => vi.spyOn(console, level));
+  vi.mocked(getUsers).mockImplementation(actualApi.getUsers);
+  vi.mocked(getConfig).mockImplementation(actualApi.getConfig);
 });
 
 afterEach(() => {
@@ -75,6 +79,7 @@ afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.mocked(getUsers).mockClear();
+    vi.mocked(getConfig).mockClear();
   }
 });
 
@@ -95,6 +100,41 @@ const usernameInput = () => screen.getByLabelText(t.usernameLabel);
 const passwordInput = () => screen.getByLabelText(t.passwordLabel);
 const loginButton = () => screen.getByRole('button', { name: t.submit });
 const banner = () => screen.queryByRole('alert');
+const isLockedOut = () =>
+  loginButton().getAttribute('aria-disabled') === 'true' && !loginButton().hasAttribute('aria-busy');
+// Service failures reuse the existing FR-31 timeout copy (see useSignIn.js header).
+const SERVICE_FAILURE = t.errors.timeout;
+
+/** Serve users.json through `respond(url)`; everything else from disk. */
+function stubUsersFetch(respond) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url, init) => (/users\.json/.test(String(url)) ? respond(String(url), init) : diskFetch(url))),
+  );
+}
+
+/** users.json with `patch` merged into its policy. */
+const usersWithPolicy = (patch) => () =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({ ...usersData, policy: { ...policy, ...patch } }),
+  });
+
+/** Make the locked path's config load (called with a signal) do `impl`; the legal-links load stays real. */
+function stubLockedPathConfig(impl) {
+  vi.mocked(getConfig).mockImplementation((options) => (options?.signal ? impl(options) : actualApi.getConfig(options)));
+}
+
+function storeLock(lockedUntil, count = 5) {
+  localStorage.setItem(ATTEMPTS_KEY, JSON.stringify({ count, lockedUntil }));
+}
+
+async function otherTabWrote() {
+  await act(async () => {
+    window.dispatchEvent(new StorageEvent('storage', { key: ATTEMPTS_KEY }));
+  });
+}
 
 /** Fill, click Login and let the sign-in latency (800 ms) pass. */
 async function signInAs(username, password, wait = policy.simulatedLatencyMs) {
@@ -118,7 +158,7 @@ describe('at rest (FR-32)', () => {
   it('renders no banner and no disabled Login button', async () => {
     await renderAt(paths.login());
     expect(banner()).toBeNull();
-    expect(loginButton().disabled).toBe(false);
+    expect(loginButton().hasAttribute('aria-disabled')).toBe(false);
   });
 });
 
@@ -133,17 +173,18 @@ describe('wrong credentials (FR-26)', () => {
     expect(usernameInput().value).toBe(user);
     expect(passwordInput().value).toBe('');
     expect(document.activeElement).toBe(passwordInput());
-    expect(loginButton().disabled).toBe(false);
+    expect(loginButton().hasAttribute('aria-disabled')).toBe(false);
     expectIdle();
     expect(getAttempts()).toEqual({ count: 1, lockedUntil: null });
     expectNoSession();
   });
 
-  it('the banner sits under the title, before the Username label, and is announced', async () => {
+  it('the banner sits under the title, before the Username label, and is announced (role="alert" only)', async () => {
     await renderAt(paths.login());
     await signInAs('demo', 'x');
     const alert = banner();
-    expect(alert.getAttribute('aria-live')).toBe('assertive');
+    expect(alert.hasAttribute('aria-live')).toBe(false);
+    expect(alert.hasAttribute('aria-atomic')).toBe(false);
     expect(alert.previousElementSibling.textContent).toBe(t.title);
     const label = screen.getByText(t.usernameLabel);
     expect(alert.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -214,6 +255,7 @@ describe('account status after a correct password (FR-27–FR-29)', () => {
     expect(alert.textContent).toBe(`${t.errors.passwordExpired}${t.errors.resetPasswordLink}`);
     const link = screen.getByRole('button', { name: t.errors.resetPasswordLink });
     expect(alert.contains(link)).toBe(true);
+    expect(link.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(link); // no-op until Story 1.5
     expect(banner()).not.toBeNull();
     expectNoSession();
@@ -236,15 +278,19 @@ describe('too many attempts (FR-30)', () => {
     expect(banner().textContent).toBe(tooManyAttemptsMessage(record.lockedUntil, Date.now()));
     expect(banner().textContent).toBe('Too many sign-in attempts. You can try again at 10:15 AM.');
     expect(passwordInput().value).toBe('');
-    expect(loginButton().disabled).toBe(true);
+    expect(isLockedOut()).toBe(true);
     expect(JSON.parse(localStorage.getItem(ATTEMPTS_KEY))).toEqual(record);
 
     // Reload: still disabled with the banner, and Enter runs no check.
     cleanup();
     vi.mocked(getUsers).mockClear();
     await renderAt(paths.login());
-    expect(loginButton().disabled).toBe(true);
+    expect(isLockedOut()).toBe(true);
     expect(banner().textContent).toBe(tooManyAttemptsMessage(record.lockedUntil, Date.now()));
+    // aria-disabled keeps it focusable; the submit guard ignores Enter and clicks.
+    loginButton().focus();
+    expect(document.activeElement).toBe(loginButton());
+    fireEvent.click(loginButton());
     fireEvent.change(usernameInput(), { target: { value: 'demo' } });
     fireEvent.change(passwordInput(), { target: { value: 'Demo@123' } });
     fireEvent.submit(passwordInput().form);
@@ -255,7 +301,7 @@ describe('too many attempts (FR-30)', () => {
 
     // The lockout ends: Login re-enables without a reload, the banner clears, the count resets.
     await advance(record.lockedUntil - Date.now());
-    expect(loginButton().disabled).toBe(false);
+    expect(isLockedOut()).toBe(false);
     expect(banner()).toBeNull();
     expect(localStorage.getItem(ATTEMPTS_KEY)).toBeNull();
     expect(getAttempts()).toEqual({ count: 0, lockedUntil: null });
@@ -291,7 +337,7 @@ describe('offline and timeout (FR-31)', () => {
     await advance(1);
     expect(banner().textContent).toBe(t.errors.timeout);
     expectIdle();
-    expect(loginButton().disabled).toBe(false);
+    expect(loginButton().hasAttribute('aria-disabled')).toBe(false);
     expect(usernameInput().value).toBe('slow');
     expect(passwordInput().value).toBe(slow.password);
     expect(getUsers.mock.calls[0][0].signal.aborted).toBe(true);
@@ -404,7 +450,7 @@ describe('copy.js time and Coach helpers (FR-27, FR-30)', () => {
     expect(formatSignInTime(new Date(2026, 10, 9, 0, 5).getTime(), NOW)).toBe('12:05 AM');
     expect(formatSignInTime(new Date(2026, 10, 9, 12, 0).getTime(), NOW)).toBe('12:00 PM');
     expect(formatSignInTime(new Date(2027, 0, 1, 9, 0).getTime(), NOW)).toBe('Jan 1, 2027 9:00 AM');
-    expect(() => formatSignInTime('not a date', NOW)).toThrow(RangeError);
+    expect(formatSignInTime('not a date', NOW)).toBeNull();
   });
 
   it('builds the locked messages with and without a time', () => {
@@ -416,5 +462,213 @@ describe('copy.js time and Coach helpers (FR-27, FR-30)', () => {
       `Your account is locked. Contact SureTrack Coach ${COACH}.`,
     );
     expect(() => accountLockedMessage({ lockedUntil: null, coachPhone: undefined, now: NOW })).toThrow(/coachPhone/);
+  });
+});
+
+describe('FR-31 deadline covers every step, counted from submit', () => {
+  it('a hung users.json fetch shows the timeout banner 15 s after submit', async () => {
+    stubUsersFetch(() => new Promise(() => {}));
+    await renderAt(paths.login());
+    await signInAs('demo', 'Demo@123', 14_999);
+    expect(loginButton().getAttribute('aria-busy')).toBe('true');
+    expect(banner()).toBeNull();
+    await advance(1);
+    expect(banner().textContent).toBe(t.errors.timeout);
+    expectIdle();
+    expectNoSession();
+  });
+
+  it('a users.json load that takes 3 s still times out at 15 s from submit (not 18 s)', async () => {
+    stubUsersFetch((url) => new Promise((resolve) => setTimeout(() => resolve(diskFetch(url)), 3_000)));
+    await renderAt(paths.login());
+    await signInAs('slow', 'Slow@123', 14_999);
+    expect(banner()).toBeNull();
+    await advance(1);
+    expect(banner().textContent).toBe(t.errors.timeout);
+    expectIdle();
+  });
+
+  it('a shorter policy.requestTimeoutMs tightens the deadline, still from submit', async () => {
+    stubUsersFetch(usersWithPolicy({ requestTimeoutMs: 5_000 }));
+    await renderAt(paths.login());
+    await signInAs('slow', 'Slow@123', 4_999);
+    expect(banner()).toBeNull();
+    await advance(1);
+    expect(banner().textContent).toBe(t.errors.timeout);
+  });
+
+  it('a hung config load on the locked path times out at 15 s from submit', async () => {
+    stubLockedPathConfig(() => new Promise(() => {}));
+    await renderAt(paths.login());
+    await signInAs('locked', 'Locked@123', 14_999);
+    expect(loginButton().getAttribute('aria-busy')).toBe('true');
+    await advance(1);
+    expect(banner().textContent).toBe(t.errors.timeout);
+    expectIdle();
+    expectNoSession();
+  });
+});
+
+describe('no silent failures', () => {
+  it.each([
+    ['the config is rejected', () => Promise.reject({ code: 'LOAD_FAILED', message: 'x' })],
+    ['the Coach phone is missing', () => Promise.resolve({ legal: config.legal, coach: {} })],
+    ['the Coach phone is blank', () => Promise.resolve({ coach: { phone: '  ' } })],
+  ])('locked path, %s: service banner, no Session, not busy', async (_, impl) => {
+    stubLockedPathConfig(impl);
+    await renderAt(paths.login());
+    await signInAs('locked-until', 'Locked@123');
+    expect(banner().textContent).toBe(SERVICE_FAILURE);
+    expectIdle();
+    expectNoSession();
+  });
+
+  it('users.json fails to load: service banner, values kept', async () => {
+    stubUsersFetch(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.reject(new Error('500')) }));
+    await renderAt(paths.login());
+    await signInAs('demo', 'Demo@123');
+    expect(banner().textContent).toBe(SERVICE_FAILURE);
+    expect(passwordInput().value).toBe('Demo@123');
+    expectIdle();
+    expectNoSession();
+  });
+
+  it.each([
+    ['maxFailedAttempts 0', { maxFailedAttempts: 0 }],
+    ['maxFailedAttempts 2.5', { maxFailedAttempts: 2.5 }],
+    ['lockoutMinutes null', { lockoutMinutes: null }],
+    ['requestTimeoutMs "15000"', { requestTimeoutMs: '15000' }],
+    ['sessionTtlMinutes 0', { sessionTtlMinutes: 0 }],
+  ])('unusable policy (%s): service banner, no silent counter', async (_, patch) => {
+    stubUsersFetch(usersWithPolicy(patch));
+    await renderAt(paths.login());
+    await signInAs('demo', 'x');
+    expect(banner().textContent).toBe(SERVICE_FAILURE);
+    expect(localStorage.getItem(ATTEMPTS_KEY)).toBeNull();
+    expectNoSession();
+  });
+
+  it('the Session cannot be written: service banner, no Session', async () => {
+    const setItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+      if (key === SESSION_KEY) throw new Error('QuotaExceededError');
+      return setItem.call(this, key, value);
+    });
+    await renderAt(paths.login());
+    await signInAs('demo', 'Demo@123');
+    expect(banner().textContent).toBe(SERVICE_FAILURE);
+    expectIdle();
+    expectNoSession();
+  });
+
+  it('offline detected after a failed fetch shows the offline banner', async () => {
+    let online = true;
+    vi.spyOn(navigator, 'onLine', 'get').mockImplementation(() => online);
+    stubUsersFetch(() => {
+      online = false;
+      return Promise.reject(new TypeError('Failed to fetch'));
+    });
+    await renderAt(paths.login());
+    await signInAs('demo', 'Demo@123');
+    expect(banner().textContent).toBe(t.errors.offline);
+    expectIdle();
+    expectNoSession();
+  });
+});
+
+describe('lockout timer and other tabs (FR-30)', () => {
+  it('a lockout written by another tab disables Login here at once; its reset re-enables it', async () => {
+    await renderAt(paths.login());
+    expect(isLockedOut()).toBe(false);
+    const until = NOW + 10 * MINUTE;
+    storeLock(until);
+    await otherTabWrote();
+    expect(isLockedOut()).toBe(true);
+    expect(banner().textContent).toBe(tooManyAttemptsMessage(until, NOW));
+
+    localStorage.removeItem(ATTEMPTS_KEY);
+    await otherTabWrote();
+    expect(isLockedOut()).toBe(false);
+    expect(banner()).toBeNull();
+  });
+
+  it('a stale end timer never wipes a newer lockout; it adopts the stored one', async () => {
+    const first = NOW + 15 * MINUTE;
+    const second = NOW + 30 * MINUTE;
+    storeLock(first);
+    await renderAt(paths.login());
+    expect(isLockedOut()).toBe(true);
+    storeLock(second); // written without a storage event
+    await advance(15 * MINUTE);
+    expect(isLockedOut()).toBe(true);
+    expect(JSON.parse(localStorage.getItem(ATTEMPTS_KEY)).lockedUntil).toBe(second);
+    expect(banner().textContent).toBe(tooManyAttemptsMessage(second, Date.now()));
+    await advance(15 * MINUTE);
+    expect(isLockedOut()).toBe(false);
+    expect(localStorage.getItem(ATTEMPTS_KEY)).toBeNull();
+  });
+
+  it('endLockout removes only the record for that lockout', () => {
+    storeLock(NOW + MINUTE);
+    expect(endLockout(NOW + 2 * MINUTE)).toBe(false);
+    expect(localStorage.getItem(ATTEMPTS_KEY)).not.toBeNull();
+    expect(endLockout(NOW + MINUTE)).toBe(true);
+    expect(localStorage.getItem(ATTEMPTS_KEY)).toBeNull();
+  });
+
+  it('a lockout longer than setTimeout allows is re-armed, not fired early', async () => {
+    const until = NOW + MAX_TIMEOUT_MS + 1_000;
+    storeLock(until);
+    await renderAt(paths.login());
+    await advance(MAX_TIMEOUT_MS);
+    expect(isLockedOut()).toBe(true);
+    await advance(1_000);
+    expect(isLockedOut()).toBe(false);
+  });
+
+  it('the lockout time is formatted at render time, so it drops the date after midnight', async () => {
+    const start = new Date(2026, 10, 9, 23, 50).getTime();
+    vi.setSystemTime(start);
+    const until = start + 20 * MINUTE;
+    storeLock(until);
+    await renderAt(paths.login());
+    expect(banner().textContent).toBe('Too many sign-in attempts. You can try again at Nov 10, 2026 12:10 AM.');
+    await advance(10 * MINUTE);
+    expect(banner().textContent).toBe('Too many sign-in attempts. You can try again at 12:10 AM.');
+    await advance(10 * MINUTE);
+    expect(isLockedOut()).toBe(false);
+  });
+});
+
+describe('session-expired notice is shown once (FR-34)', () => {
+  it('reason is dropped from history (from kept), so a reload does not show it again', async () => {
+    window.history.replaceState({ usr: { from: paths.alerts(), reason: 'expired' }, key: 'k', idx: 0 }, '', paths.login());
+    render(<App />);
+    await advance(0);
+    expect(banner().textContent).toBe(t.errors.sessionExpired);
+    expect(window.history.state.usr).toEqual({ from: paths.alerts() });
+
+    cleanup(); // reload: same history entry
+    render(<App />);
+    await advance(0);
+    expect(banner()).toBeNull();
+    await signInAs('demo', 'Demo@123');
+    expect(window.location.pathname).toBe(paths.alerts());
+  });
+});
+
+describe('out-of-range dates never throw', () => {
+  it('copy helpers fall back; session.js rejects lockedUntil past 8.64e15', () => {
+    expect(formatSignInTime(9e15, NOW)).toBeNull();
+    expect(formatSignInTime(NOW, Number.NaN)).toBeNull();
+    expect(tooManyAttemptsMessage(9e15, NOW)).toBeNull();
+    expect(accountLockedMessage({ lockedUntil: 9e15, coachPhone: COACH, now: NOW })).toBe(
+      `Your account is locked. Contact SureTrack Coach ${COACH}.`,
+    );
+    expect(accountLockedMessage({ lockedUntil: '+999999-01-01T00:00:00Z', coachPhone: COACH, now: NOW })).toBe(
+      `Your account is locked. Contact SureTrack Coach ${COACH}.`,
+    );
+    storeLock(9e15);
+    expect(getAttempts(NOW)).toEqual({ count: 0, lockedUntil: null });
   });
 });

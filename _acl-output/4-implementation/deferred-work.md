@@ -47,3 +47,12 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-1-3-sign-in-and-reach-the-dashboard.md`
   summary: Decide FR-21 autofocus on Username at page load vs. the Figma at-rest render (focus ring would show and break the Story 1.2 baseline).
   evidence: Autofocus not implemented to keep the at-rest render identical to Figma; needs a design/PM decision.
+- source_spec: `_acl-output/4-implementation/spec-1-4-clear-messages-when-sign-in-fails.md`
+  summary: Move FR-30 lockout enforcement server-side when the real auth API arrives; the dummy build keeps it per browser (clearing storage or another browser resets it).
+  evidence: Client-side localStorage lockout is a dummy-build limitation, not real brute-force protection.
+- source_spec: `_acl-output/4-implementation/spec-1-4-clear-messages-when-sign-in-fails.md`
+  summary: Make the attempts counter race-free across tabs (or accept and document lost increments) once real auth exists.
+  evidence: recordFailure does read-modify-write on localStorage; simultaneous failures in two tabs can lose a count.
+- source_spec: `_acl-output/4-implementation/spec-1-4-clear-messages-when-sign-in-fails.md`
+  summary: Remove per-account simulated latency before any real deployment; differing response timing can reveal which usernames exist.
+  evidence: signInLatencyMs picks delay by typed username (dummy-data aid only).

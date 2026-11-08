@@ -130,11 +130,12 @@ function toEpochMs(value) {
  * FR-27 / FR-30 `{time}`: `value` (epoch ms or ISO string) in the browser's
  * local time, `h:mm A` when it falls on the same local day as `now`, else
  * `MMM D, YYYY h:mm A` (e.g. `3:45 PM`, `Jan 1, 2027 9:00 AM`).
+ * Returns null (never throws) when `value` or `now` is not a representable date.
  */
 export function formatSignInTime(value, now = Date.now()) {
   const date = new Date(toEpochMs(value));
-  if (Number.isNaN(date.getTime())) throw new RangeError(`formatSignInTime: not a date: ${String(value)}`);
   const today = new Date(now);
+  if (Number.isNaN(date.getTime()) || Number.isNaN(today.getTime())) return null;
   const hours = date.getHours();
   const clock = `${hours % 12 || 12}:${String(date.getMinutes()).padStart(2, '0')} ${hours < 12 ? 'AM' : 'PM'}`;
   const sameDay =
@@ -151,15 +152,19 @@ export function formatSignInTime(value, now = Date.now()) {
  */
 export function accountLockedMessage({ lockedUntil, coachPhone, now = Date.now() }) {
   const until = toEpochMs(lockedUntil);
-  if (Number.isFinite(until) && until > now) {
-    return fill(copy.login.errors.accountLockedUntil, { time: formatSignInTime(until, now), coachPhone });
-  }
+  const time = Number.isFinite(until) && until > now ? formatSignInTime(until, now) : null;
+  if (time !== null) return fill(copy.login.errors.accountLockedUntil, { time, coachPhone });
   return fill(copy.login.errors.accountLocked, { coachPhone });
 }
 
-/** FR-30 banner text: `Too many sign-in attempts. You can try again at {time}.` */
+/**
+ * FR-30 banner text: `Too many sign-in attempts. You can try again at {time}.`
+ * Returns null (never throws) when `lockedUntil` is not a representable date;
+ * session.js never yields such a value.
+ */
 export function tooManyAttemptsMessage(lockedUntil, now = Date.now()) {
-  return fill(copy.login.errors.tooManyAttempts, { time: formatSignInTime(lockedUntil, now) });
+  const time = formatSignInTime(lockedUntil, now);
+  return time === null ? null : fill(copy.login.errors.tooManyAttempts, { time });
 }
 
 /** FR-72 accessible name: `<type>, <count>: <caption with " · " → ", ">`. */

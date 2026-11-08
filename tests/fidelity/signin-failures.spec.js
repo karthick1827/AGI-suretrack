@@ -120,13 +120,43 @@ test.describe('Sign-in failure banner (FR-26, FR-30, FR-32)', () => {
     });
   });
 
-  test('during a lockout Login is disabled at opacity 0.5 and the banner shows the time', async ({ page }) => {
+  test('multi-line banner (locked account with a time): content below moves by the measured height + 8px', async ({
+    page,
+  }) => {
+    await openLogin(page);
+    const password = page.getByLabel(t.passwordLabel);
+    await page.getByLabel(t.usernameLabel).fill('locked-until');
+    await password.fill('Locked@123');
+    await password.press('Enter');
+    const banner = page.getByRole('alert');
+    await expect(banner).toContainText(`Contact SureTrack Coach ${config.coach.phone}.`, { timeout: 5_000 });
+    await expect(page.getByRole('button', { name: t.submit })).not.toHaveAttribute('aria-busy', 'true');
+
+    const box = async (locator) => locator.boundingBox();
+    const bannerBox = await box(banner);
+    // Wraps: taller than one 20px line + padding + border.
+    expect(bannerBox.height).toBeGreaterThan(38);
+    const shift = bannerBox.height + 8; // BANNER_SHIFT_EXTRA = 16 + 24 - 32
+    const titleBox = await box(page.locator(`[data-fid="${FID.login.title}"]`));
+    near(bannerBox.y, titleBox.y + titleBox.height + 16);
+    const usernameGroup = await box(page.locator(`[data-fid="${FID.login.usernameGroup}"]`));
+    expect(bannerBox.y + bannerBox.height).toBeLessThanOrEqual(usernameGroup.y);
+    near(usernameGroup.y, FORM_TOP + 62 + shift);
+    near((await box(page.locator(`[data-fid="${FID.login.passwordGroup}"]`))).y, FORM_TOP + 152 + shift);
+    near((await box(page.locator(`[data-fid="${FID.login.loginButton}"]`))).y, FORM_TOP + 259 + shift);
+    near((await box(page.locator(`[data-fid="${FID.login.forgotLinkBox}"]`))).y, FORM_TOP + 333.92 + shift);
+    const legal = await box(page.locator(`[data-fid="${FID.login.legalText}"]`));
+    expect(legal.y + legal.height).toBeLessThanOrEqual(768);
+  });
+
+  test('during a lockout Login is aria-disabled at opacity 0.5 and the banner shows the time', async ({ page }) => {
     await page.addInitScript(
       ({ key }) => localStorage.setItem(key, JSON.stringify({ count: 5, lockedUntil: Date.now() + 15 * 60_000 })),
       { key: ATTEMPTS_KEY },
     );
     await openLogin(page);
     const button = page.getByRole('button', { name: t.submit });
+    await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toBeDisabled();
     expect(await button.evaluate((el) => [getComputedStyle(el).opacity, getComputedStyle(el).cursor])).toEqual([
       '0.5',

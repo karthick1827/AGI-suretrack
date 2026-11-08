@@ -10,7 +10,7 @@ import { paths } from '../../src/lib/paths.js';
 import { SESSION_KEY, SIGNOUT_KEY, createSessionRecord, getSession, signIn, signOut } from '../../src/lib/session.js';
 import { fromRoot } from './support/project.js';
 
-vi.mock('../../src/data/api.js', () => ({ getConfig: vi.fn(), getUsers: vi.fn() }));
+vi.mock('../../src/data/api.js', () => ({ MAX_TIMEOUT_MS: 2147483647, getConfig: vi.fn(), getUsers: vi.fn() }));
 
 const config = JSON.parse(readFileSync(fromRoot('public/app-config.json'), 'utf8'));
 const usersData = JSON.parse(readFileSync(fromRoot('src/data/json/users.json'), 'utf8'));
@@ -248,7 +248,9 @@ describe('guarded routes (FR-11, FR-33)', () => {
     );
     await renderAt(paths.dashboard());
     expect(window.location.pathname).toBe(paths.login());
-    expect(routerState()).toEqual({ from: paths.dashboard(), reason: 'expired' });
+    // Story 1.4 (FR-34): the expired banner shows once, then `reason` is dropped from history (from kept).
+    expect(screen.getByRole('alert').textContent).toBe(t.errors.sessionExpired);
+    expect(routerState()).toEqual({ from: paths.dashboard() });
     expect(localStorage.getItem(SESSION_KEY)).toBeNull();
   });
 
@@ -342,7 +344,8 @@ describe('sign-out and SessionSync (FR-34, FR-35)', () => {
         vi.advanceTimersByTime(1);
       });
       expect(window.location.pathname).toBe(paths.login());
-      expect(routerState()).toEqual({ from: paths.alerts(), reason: 'expired' });
+      expect(screen.getByRole('alert').textContent).toBe(t.errors.sessionExpired);
+      expect(routerState()).toEqual({ from: paths.alerts() });
       expect(localStorage.getItem(SESSION_KEY)).toBeNull();
     } finally {
       vi.useRealTimers();
@@ -355,7 +358,8 @@ describe('sign-out and SessionSync (FR-34, FR-35)', () => {
     storeSession({ expiresAt: Date.now() - 1, issuedAt: Date.now() - 60_000 });
     await act(async () => window.dispatchEvent(new Event('focus')));
     await waitFor(() => expect(window.location.pathname).toBe(paths.login()));
-    expect(routerState()).toEqual({ from: paths.alerts(), reason: 'expired' });
+    expect(screen.getByRole('alert').textContent).toBe(t.errors.sessionExpired);
+    expect(routerState()).toEqual({ from: paths.alerts() });
   });
 });
 

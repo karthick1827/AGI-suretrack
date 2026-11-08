@@ -29,7 +29,8 @@ const DASHBOARD_URLS = Object.freeze({
 
 const CONFIG_URL = `${import.meta.env.BASE_URL}app-config.json`;
 const DEV_DEFAULT_LATENCY_MS = 300;
-const MAX_TIMEOUT_MS = 2147483647; // setTimeout's maximum delay
+/** setTimeout's maximum delay; the one copy every caller clamps to. */
+export const MAX_TIMEOUT_MS = 2147483647;
 
 function dataError(code, message) {
   return { code, message };
@@ -179,7 +180,10 @@ export function getNotifications() {
   return load('notifications', () => ({ url: notificationsUrl, label: 'notifications.json' }));
 }
 
-/** Runtime config: legal URLs and the SureTrack Coach number (public/app-config.json). */
-export function getConfig() {
-  return load('config', () => ({ url: CONFIG_URL, label: 'app-config.json' }));
+/**
+ * Runtime config: legal URLs and the SureTrack Coach number (public/app-config.json).
+ * @param {{ signal?: AbortSignal }} [options]  aborting rejects with `{ code: 'ABORTED' }`
+ */
+export function getConfig(options) {
+  return load('config', () => ({ url: CONFIG_URL, label: 'app-config.json' }), options?.signal);
 }

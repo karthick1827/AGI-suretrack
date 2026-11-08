@@ -1,22 +1,41 @@
 // Sign-in flow for the Login form (FR-22–FR-34, AD-9).
 //
-// Check order (PRD FR-24, addendum A.5 rule 2): double-submit guard →
-// required fields (no data call) → active too-many-attempts lockout → offline
-// → load users.json with the sign-in latency, abandoned after
-// `policy.requestTimeoutMs` (timeout) → credentials → locked → inactive / no
-// subscription → password expired → Session + redirect.
+// Check order (PRD FR-24, addendum A.5 rule 2): double-submit guard → active
+// too-many-attempts lockout (a submit guard: the Login button is only
+// aria-disabled, so Enter could still submit) → required fields (no data call)
+// → offline → load users.json with the sign-in latency, all under one
+// FR-31 deadline → credentials → locked → inactive / no subscription →
+// password expired → Session + redirect.
 //
 // Every failure after the required-field check shows its verbatim message in
 // the one alert banner (FR-32); account-status messages appear only after a
-// correct password. Wrong credentials count towards the per-browser lockout
-// held by session.js (FR-30). No failure creates a Session. A users.json load
-// failure or an unusable runtime config has no PRD message, so it shows none.
+// correct password. Wrong credentials count towards the lockout held by
+// session.js (FR-30). No failure creates a Session.
+//
+// Service failures (users.json fails to load, an unusable policy, the Session
+// cannot be written, the Coach number is missing or the config fails) have no
+// PRD message of their own. They reuse existing FR-31 copy, never new copy:
+// the offline message when the browser reports it is offline, otherwise the
+// timeout message (`The server did not respond in time. Please try again.`),
+// the closest existing "service unavailable" wording. The user is never left
+// without a banner.
+//
+// Dummy-build limits: the lockout is counted per browser (not per account) and
+// the per-account `simulatedLatencyMs` exists only to exercise the timeout.
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { getConfig, getUsers } from '../../data/api.js';
+import { MAX_TIMEOUT_MS, getConfig, getUsers } from '../../data/api.js';
 import { accountLockedMessage, copy, tooManyAttemptsMessage } from '../../lib/copy.js';
 import { RESERVED_PREFIXES, paths } from '../../lib/paths.js';
-import { getAttempts, recordFailure, resetAttempts, signIn } from '../../lib/session.js';
+import {
+  MAX_SESSION_TTL_MINUTES,
+  endLockout,
+  getAttempts,
+  recordFailure,
+  resetAttempts,
+  signIn,
+  subscribeAttempts,
+} from '../../lib/session.js';
 
 export const OUTCOMES = Object.freeze({
   success: 'success',
@@ -33,7 +52,7 @@ export const OUTCOMES = Object.freeze({
   timeout: 'timeout',
 });
 
-/** Banner kinds: `passwordExpired` adds the FR-29 reset link; `lockout` clears itself when the lockout ends. */
+/** Banner kinds: `passwordExpired` adds the FR-29 reset link; `lockout` text is built at render time. */
 export const BANNER_KINDS = Object.freeze({
   error: 'error',
   lockout: 'lockout',
@@ -41,13 +60,11 @@ export const BANNER_KINDS = Object.freeze({
   sessionExpired: 'session-expired',
 });
 
-const MAX_TIMEOUT_MS = 2147483647; // setTimeout's maximum delay
+/** FR-31 deadline used from submit until users.json gives `policy.requestTimeoutMs` (same value, 15 s). */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
 
+const LOCKOUT_BANNER = Object.freeze({ kind: BANNER_KINDS.lockout });
 const errorBanner = (message) => ({ kind: BANNER_KINDS.error, message });
-const lockoutBanner = (lockedUntil, now = Date.now()) => ({
-  kind: BANNER_KINDS.lockout,
-  message: tooManyAttemptsMessage(lockedUntil, now),
-});
 
 /** FR-31: the browser reports it is offline. */
 function isOffline() {
@@ -57,6 +74,56 @@ function isOffline() {
 /** A positive finite number, else null. */
 function positiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/** Every policy field sign-in needs, validated up front; null when any is unusable. */
+function readPolicy(data) {
+  const policy = data?.policy;
+  const maxFailedAttempts = policy?.maxFailedAttempts;
+  const lockoutMinutes = positiveNumber(policy?.lockoutMinutes);
+  const requestTimeoutMs = positiveNumber(policy?.requestTimeoutMs);
+  const sessionTtlMinutes = positiveNumber(policy?.sessionTtlMinutes);
+  if (
+    !Number.isSafeInteger(maxFailedAttempts) ||
+    maxFailedAttempts < 1 ||
+    lockoutMinutes === null ||
+    requestTimeoutMs === null ||
+    sessionTtlMinutes === null ||
+    sessionTtlMinutes > MAX_SESSION_TTL_MINUTES
+  ) {
+    return null;
+  }
+  return { maxFailedAttempts, lockoutMinutes, requestTimeoutMs, sessionTtlMinutes };
+}
+
+/** `promise`, but rejecting with ABORTED as soon as `signal` aborts (even if the callee ignores it). */
+function untilAborted(promise, signal) {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject({ code: 'ABORTED', message: 'Sign-in check abandoned.' });
+    if (signal.aborted) {
+      onAbort();
+      promise.catch(() => {});
+      return;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
+/** Local midnight after `now`, in epoch ms. */
+function nextMidnight(now) {
+  const date = new Date(now);
+  date.setHours(24, 0, 0, 0);
+  return date.getTime();
 }
 
 const NO_ERRORS = Object.freeze({ username: false, password: false });
@@ -123,12 +190,6 @@ export function checkCredentials(data, username, password) {
   return { outcome: OUTCOMES.success, user };
 }
 
-/** The policy TTL in minutes, or null when users.json has no usable policy. */
-function sessionTtlMinutes(data) {
-  const value = data?.policy?.sessionTtlMinutes;
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
-}
-
 /**
  * @returns {{
  *   errors: { username: boolean, password: boolean },
@@ -147,8 +208,11 @@ export function useSignIn() {
   const [loading, setLoading] = useState(false);
   // FR-30: a lockout survives reload, so the first render already shows it.
   const [lockedUntil, setLockedUntil] = useState(() => getAttempts().lockedUntil);
+  // The clock the lockout text is formatted against (same-day `h:mm A` vs dated);
+  // refreshed when a lockout is adopted and at local midnight during one.
+  const [now, setNow] = useState(() => Date.now());
   const [banner, setBanner] = useState(() => {
-    if (lockedUntil !== null) return lockoutBanner(lockedUntil);
+    if (lockedUntil !== null) return LOCKOUT_BANNER;
     // FR-34: RequireSession / SessionSync send an expired Session here with reason 'expired'.
     if (location.state?.reason === 'expired') {
       return { kind: BANNER_KINDS.sessionExpired, message: copy.login.errors.sessionExpired };
@@ -159,6 +223,14 @@ export function useSignIn() {
   const mounted = useRef(false);
   const request = useRef(null);
 
+  /** Show the stored lockout state: start, move or end it (this tab, another tab, or the end timer). */
+  const adoptLock = (lock) => {
+    setLockedUntil(lock);
+    setNow(Date.now());
+    if (lock !== null) setBanner(LOCKOUT_BANNER);
+    else setBanner((current) => (current?.kind === BANNER_KINDS.lockout ? null : current));
+  };
+
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -167,16 +239,50 @@ export function useSignIn() {
     };
   }, []);
 
-  // FR-30: when the lockout ends, Login re-enables without a reload, the
-  // banner clears and the count resets to 0.
+  // FR-34: the expired notice is shown once. Drop `reason` from the history
+  // entry (keeping `from`), so a reload or Back does not show it again.
+  useEffect(() => {
+    if (location.state?.reason !== 'expired') return;
+    const { reason: _reason, ...rest } = location.state;
+    navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: rest });
+  }, [location, navigate]);
+
+  // FR-30: another tab's lockout disables Login here at once; its reset re-enables it.
+  useEffect(() => subscribeAttempts(() => adoptLock(getAttempts().lockedUntil)), []);
+
+  // FR-30: when the lockout ends, Login re-enables without a reload, the banner
+  // clears and the count resets to 0. The timer is clamped to setTimeout's
+  // maximum and re-armed; it also wakes at local midnight to refresh the time
+  // format. When it fires it trusts storage: a newer lockout is adopted, and
+  // only the record for THIS lockout is removed.
   useEffect(() => {
     if (lockedUntil === null) return undefined;
-    const delay = Math.min(Math.max(lockedUntil - Date.now(), 0), MAX_TIMEOUT_MS);
-    const timer = setTimeout(() => {
-      resetAttempts();
-      setLockedUntil(null);
-      setBanner((current) => (current?.kind === BANNER_KINDS.lockout ? null : current));
-    }, delay);
+    let timer;
+    const arm = () => {
+      const current = Date.now();
+      const wake = Math.min(lockedUntil, nextMidnight(current));
+      timer = setTimeout(onWake, Math.min(Math.max(wake - current, 0), MAX_TIMEOUT_MS));
+    };
+    const onWake = () => {
+      const current = Date.now();
+      const stored = getAttempts(current).lockedUntil;
+      if (stored !== null && stored !== lockedUntil) {
+        adoptLock(stored); // a newer lockout: this effect re-runs for it
+        return;
+      }
+      if (current < lockedUntil) {
+        if (stored === null) {
+          adoptLock(null); // reset elsewhere
+          return;
+        }
+        setNow(current); // midnight or a clamped delay: refresh the text, keep waiting
+        arm();
+        return;
+      }
+      endLockout(lockedUntil);
+      adoptLock(null);
+    };
+    arm();
     return () => clearTimeout(timer);
   }, [lockedUntil]);
 
@@ -184,80 +290,61 @@ export function useSignIn() {
     setErrors((current) => (current[field] ? { ...current, [field]: false } : current));
   };
 
+  /** A service failure (see the header): offline copy when offline, else the timeout copy. */
+  const serviceFailure = () => {
+    if (isOffline()) {
+      setBanner(errorBanner(copy.login.errors.offline));
+      return { outcome: OUTCOMES.offline };
+    }
+    setBanner(errorBanner(copy.login.errors.timeout));
+    return { outcome: OUTCOMES.unavailable };
+  };
+
   /** FR-26 / FR-30: count a wrong-credential failure; the one that reaches the limit starts the lockout. */
   const credentialFailure = (outcome, policy) => {
-    let record;
-    try {
-      record = recordFailure({ maxFailedAttempts: policy?.maxFailedAttempts, lockoutMinutes: policy?.lockoutMinutes });
-    } catch {
-      record = { lockedUntil: null }; // No usable policy: count nothing, still say "incorrect".
-    }
+    const record = recordFailure(policy);
     if (record.lockedUntil !== null) {
-      setLockedUntil(record.lockedUntil);
-      setBanner(lockoutBanner(record.lockedUntil));
+      adoptLock(record.lockedUntil);
       return { outcome: OUTCOMES.tooManyAttempts, clearPassword: true };
     }
     setBanner(errorBanner(copy.login.errors.wrongCredentials));
     return { outcome, clearPassword: true };
   };
 
-  /** FR-27: the Coach number comes from the runtime config. */
-  const lockedAccount = async (user) => {
-    let coachPhone;
-    try {
-      coachPhone = (await getConfig())?.coach?.phone;
-    } catch {
-      coachPhone = undefined;
-    }
-    if (!mounted.current || typeof coachPhone !== 'string' || coachPhone.trim() === '') {
-      return { outcome: OUTCOMES.unavailable };
-    }
-    setBanner(errorBanner(accountLockedMessage({ lockedUntil: user.lockedUntil, coachPhone })));
-    return { outcome: OUTCOMES.locked };
-  };
-
-  const attempt = async (username, password) => {
-    // FR-31: the check is abandoned after policy.requestTimeoutMs, counted from submit.
-    const controller = new AbortController();
-    const startedAt = Date.now();
-    const timeout = { timer: undefined, fired: false };
-    const onLoaded = (users) => {
-      const limit = positiveNumber(users?.policy?.requestTimeoutMs);
-      if (limit === null) return;
-      const remaining = Math.min(Math.max(limit - (Date.now() - startedAt), 0), MAX_TIMEOUT_MS);
-      timeout.timer = setTimeout(() => {
-        timeout.fired = true;
-        controller.abort();
-      }, remaining);
-    };
-
-    request.current = controller;
-    let data;
-    try {
-      data = await getUsers({ signIn: true, signal: controller.signal, username, onLoaded });
-    } catch {
-      if (timeout.fired && mounted.current) {
-        setBanner(errorBanner(copy.login.errors.timeout));
-        return { outcome: OUTCOMES.timeout };
-      }
-      return { outcome: OUTCOMES.unavailable };
-    } finally {
-      clearTimeout(timeout.timer);
-      request.current = null;
-    }
+  /** The checks after submit; every await is bounded by `signal` (the FR-31 deadline). */
+  const check = async (username, password, signal, tighten) => {
+    const data = await untilAborted(
+      getUsers({
+        signIn: true,
+        signal,
+        username,
+        onLoaded: (users) => {
+          const limit = positiveNumber(users?.policy?.requestTimeoutMs);
+          if (limit !== null) tighten(limit);
+        },
+      }),
+      signal,
+    );
     // Left the page while waiting: no Session, no navigation.
     if (!mounted.current) return { outcome: OUTCOMES.unavailable };
 
-    const ttlMinutes = sessionTtlMinutes(data);
-    if (ttlMinutes === null) return { outcome: OUTCOMES.unavailable };
+    const policy = readPolicy(data);
+    if (policy === null) return serviceFailure();
 
     const result = checkCredentials(data, username, password);
     switch (result.outcome) {
       case OUTCOMES.unknownUser:
       case OUTCOMES.wrongPassword:
-        return credentialFailure(result.outcome, data.policy);
-      case OUTCOMES.locked:
-        return lockedAccount(result.user);
+        return credentialFailure(result.outcome, policy);
+      case OUTCOMES.locked: {
+        // FR-27: the Coach number comes from the runtime config.
+        const config = await untilAborted(getConfig({ signal }), signal);
+        if (!mounted.current) return { outcome: OUTCOMES.unavailable };
+        const coachPhone = config?.coach?.phone;
+        if (typeof coachPhone !== 'string' || coachPhone.trim() === '') return serviceFailure();
+        setBanner(errorBanner(accountLockedMessage({ lockedUntil: result.user.lockedUntil, coachPhone })));
+        return { outcome: OUTCOMES.locked };
+      }
       case OUTCOMES.inactive:
         setBanner(errorBanner(copy.login.errors.accountInactive));
         return { outcome: result.outcome };
@@ -270,11 +357,11 @@ export function useSignIn() {
 
     let written;
     try {
-      written = signIn(result.user, { ttlMinutes });
+      written = signIn(result.user, { ttlMinutes: policy.sessionTtlMinutes });
     } catch {
       written = false; // RangeError: TTL outside what a Session may claim.
     }
-    if (!written) return { outcome: OUTCOMES.unavailable };
+    if (!written) return serviceFailure();
     resetAttempts(); // FR-25 / FR-30: a successful sign-in resets the count.
 
     // FR-25: back to the remembered page or /dashboard, replacing /login.
@@ -282,11 +369,48 @@ export function useSignIn() {
     return { outcome: OUTCOMES.success };
   };
 
+  /**
+   * FR-31: one AbortController and one deadline, armed at submit with
+   * DEFAULT_REQUEST_TIMEOUT_MS and re-armed to `policy.requestTimeoutMs`
+   * (still counted from submit) once users.json has loaded. It covers the
+   * users.json fetch, the sign-in latency and the locked path's config load.
+   */
+  const attempt = async (username, password) => {
+    const controller = new AbortController();
+    const startedAt = Date.now();
+    const deadline = { timer: undefined, fired: false };
+    const arm = (limitMs) => {
+      clearTimeout(deadline.timer);
+      const remaining = Math.min(Math.max(limitMs - (Date.now() - startedAt), 0), MAX_TIMEOUT_MS);
+      deadline.timer = setTimeout(() => {
+        deadline.fired = true;
+        controller.abort();
+      }, remaining);
+    };
+    arm(DEFAULT_REQUEST_TIMEOUT_MS);
+    request.current = controller;
+    try {
+      return await check(username, password, controller.signal, arm);
+    } catch {
+      if (!mounted.current) return { outcome: OUTCOMES.unavailable };
+      if (deadline.fired) {
+        setBanner(errorBanner(copy.login.errors.timeout));
+        return { outcome: OUTCOMES.timeout };
+      }
+      return serviceFailure(); // includes offline detected after a failed fetch
+    } finally {
+      clearTimeout(deadline.timer);
+      request.current = null;
+    }
+  };
+
   const submit = async ({ username: rawUsername, password }) => {
     if (inFlight.current) return { outcome: OUTCOMES.busy };
 
-    const now = Date.now();
-    const lock = getAttempts(now).lockedUntil;
+    // FR-30 submit guard: no check runs during a lockout (also one another tab started).
+    const lock = getAttempts().lockedUntil;
+    if (lock !== lockedUntil) adoptLock(lock);
+    if (lock !== null) return { outcome: OUTCOMES.tooManyAttempts };
 
     // FR-22: trim the username only; the password is used exactly as typed.
     const username = String(rawUsername ?? '').trim();
@@ -294,18 +418,10 @@ export function useSignIn() {
     const missing = { username: username === '', password: pass === '' };
     if (missing.username || missing.password) {
       setErrors(missing);
-      // FR-32: a new submit clears the banner, except a lockout that is still running.
-      setBanner(lock !== null ? lockoutBanner(lock, now) : null);
+      setBanner(null); // FR-32: a new submit clears the banner.
       return { outcome: OUTCOMES.invalid, field: missing.username ? 'username' : 'password' };
     }
     setErrors(NO_ERRORS);
-
-    // FR-30: no check runs during a lockout (also when another tab started it).
-    if (lock !== null) {
-      setLockedUntil(lock);
-      setBanner(lockoutBanner(lock, now));
-      return { outcome: OUTCOMES.tooManyAttempts };
-    }
 
     // FR-31: offline at submit, so no check runs.
     if (isOffline()) {
@@ -324,5 +440,12 @@ export function useSignIn() {
     }
   };
 
-  return { errors, loading, banner, locked: lockedUntil !== null, submit, clearError };
+  // FR-30: the lockout text is built at render time from `lockedUntil` and the clock.
+  let shown = banner;
+  if (banner?.kind === BANNER_KINDS.lockout) {
+    const message = lockedUntil === null ? null : tooManyAttemptsMessage(lockedUntil, now);
+    shown = message === null ? null : { kind: BANNER_KINDS.lockout, message };
+  }
+
+  return { errors, loading, banner: shown, locked: lockedUntil !== null, submit, clearError };
 }

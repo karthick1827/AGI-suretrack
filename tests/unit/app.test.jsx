@@ -7,7 +7,10 @@ import { getConfig } from '../../src/data/api.js';
 import { FID } from '../../src/lib/fid.js';
 import { fromRoot } from './support/project.js';
 
-vi.mock('../../src/data/api.js', () => ({ getConfig: vi.fn(() => Promise.resolve({ legal: {} })) }));
+vi.mock('../../src/data/api.js', () => ({
+  MAX_TIMEOUT_MS: 2147483647,
+  getConfig: vi.fn(() => Promise.resolve({ legal: {} })),
+}));
 
 afterEach(() => {
   cleanup();

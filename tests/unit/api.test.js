@@ -276,6 +276,13 @@ describe('sign-in latency (users.json policy, AD-14)', () => {
     await expect(getUsers({ signIn: true, signal: controller.signal })).rejects.toMatchObject({ code: 'ABORTED' });
   });
 
+  it('getConfig({ signal }) rejects with ABORTED when aborted', async () => {
+    const { getConfig } = await loadApi();
+    const controller = new AbortController();
+    controller.abort();
+    await expect(getConfig({ signal: controller.signal })).rejects.toMatchObject({ code: 'ABORTED' });
+  });
+
   it('plain getUsers() does not add the sign-in latency', async () => {
     vi.useFakeTimers();
     const { getUsers } = await loadApi();

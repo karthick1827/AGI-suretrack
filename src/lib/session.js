@@ -52,7 +52,9 @@ function notify(detail) {
   for (const listener of [...listeners]) listener(detail);
 }
 
-const isEpochMs = (value) => Number.isSafeInteger(value) && value >= 0;
+// 8.64e15 ms is the largest time a JavaScript Date can hold (ECMA-262 §21.4.1.1).
+export const MAX_EPOCH_MS = 8.64e15;
+const isEpochMs = (value) => Number.isSafeInteger(value) && value >= 0 && value <= MAX_EPOCH_MS;
 const isNonEmptyString = (value) => typeof value === 'string' && value !== '';
 const isValidTtl = (ttlMinutes) =>
   typeof ttlMinutes === 'number' && Number.isFinite(ttlMinutes) && ttlMinutes > 0 && ttlMinutes <= MAX_SESSION_TTL_MINUTES;
@@ -277,6 +279,39 @@ export function recordFailure({ now = Date.now(), maxFailedAttempts, lockoutMinu
   const record = { count, lockedUntil };
   writeAttempts(record);
   return record;
+}
+
+/**
+ * End the lockout that ends at `lockedUntil`: the record is removed only if it
+ * still holds that same `lockedUntil`, so a stale timer never wipes a newer
+ * lockout or a fresh count written by another tab. Returns true when removed.
+ * Never throws.
+ */
+export function endLockout(lockedUntil) {
+  const raw = readAttemptsRaw();
+  if (raw === null) return false;
+  let record;
+  try {
+    record = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+  if (record?.lockedUntil !== lockedUntil) return false;
+  resetAttempts();
+  return true;
+}
+
+/**
+ * Call `listener()` when another tab changes the attempts record (a lockout
+ * started or a reset), or clears storage. Returns the unsubscribe function.
+ */
+export function subscribeAttempts(listener) {
+  if (typeof window === 'undefined') return () => {};
+  const onStorage = (event) => {
+    if (event.key === null || event.key === ATTEMPTS_KEY) listener();
+  };
+  window.addEventListener('storage', onStorage);
+  return () => window.removeEventListener('storage', onStorage);
 }
 
 /** Clear the attempts record (successful sign-in, or the lockout ended). Never throws. */

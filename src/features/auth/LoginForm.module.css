@@ -420,9 +420,10 @@
 /*
  * FR-32 [ASSUMPTION]: the alert banner sits 16px (--space-6) below the 30px
  * title, full column width, 24px above the Username label. Everything below
- * the title moves down by --login-banner-shift (banner height + 8px, measured
- * in LoginForm.jsx and set inline only while a banner shows); the column top
- * stays at y 127.039. `translate` stacks with the FR-22 `top` shifts above.
+ * the title moves down by --login-banner-shift, which LoginForm.jsx measures
+ * and sets inline only while a banner shows (measured height +
+ * BANNER_SHIFT_EXTRA; the formula lives only there). The column top stays at
+ * y 127.039. `translate` stacks with the FR-22 `top` shifts above.
  */
 .banner {
   position: absolute;
@@ -441,7 +442,11 @@
   margin-bottom: var(--login-banner-shift);
 }
 
-/* FR-29 [ASSUMPTION]: "Reset your password" — Roboto Medium 500, underlined, banner text colour. */
+/*
+ * FR-29 [ASSUMPTION]: "Reset your password" — Roboto Medium 500, underlined,
+ * banner text colour. The 4px left margin (about one Roboto 14px word space)
+ * separates it from the message without adding a space to the copy.
+ */
 .bannerLink {
   display: inline;
   margin: 0 0 0 4px;
@@ -461,13 +466,23 @@
   cursor: pointer;
 }
 
+/* Inert until Story 1.5 (aria-disabled): no pointer cursor. */
+.bannerLink[aria-disabled='true']:hover {
+  cursor: default;
+}
+
 .bannerLink:focus-visible {
   outline: var(--border-width-md) solid var(--raw-111827);
   outline-offset: 2px;
 }
 
-/* FR-30 [ASSUMPTION]: during a lockout Login is disabled at opacity 0.5 with a not-allowed cursor. */
-.loginButton:disabled {
+/*
+ * FR-30 [ASSUMPTION]: during a lockout Login is aria-disabled (still
+ * focusable) and drawn at opacity 0.5 with a not-allowed cursor. A class, not
+ * [aria-disabled], because the loading state is aria-disabled too.
+ */
+.loginButtonLocked,
+.loginButtonLocked:hover {
   opacity: 0.5;
   cursor: not-allowed;
 }
