@@ -7,6 +7,8 @@ title: 'Story 2.1 — Signed-in app shell and Header'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: 'b56840ba2779ee51f779113c7559c007cf7413d9'
+implementation_status: in-progress
 story_key: 2-1-signed-in-app-shell-and-header
 jira: NEW
 review_loop_iteration: 0
