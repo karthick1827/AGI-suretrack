@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-06T06:28:22.437Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-06T06:28:22.437Z
 title: 'Story 1.3 — Sign in and reach the Dashboard'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-06'
 baseline_commit: '51514cfdc6574f1f670090dbc75c0f3059c027fa'
-implementation_status: in-review
+implementation_status: review
 story_key: 1-3-sign-in-and-reach-the-dashboard
 jira: SCRUM-27
 review_loop_iteration: 0
@@ -88,7 +87,72 @@ Failure messages (wrong credentials, locked, expired and so on) come in Story 1.
 
 ## Spec Change Log
 
+- 2026-11-09 — Review loop 1 (patches only, no spec defects): sign-in hardening (policy/TTL validation, storage-write check, unknown status denied, unmount guard, try/finally), pure session reads with purge in an effect, session bounds (60 s skew, 480-min max TTL), SessionSync rework (subscribe once; session loss keeps `{from, reason}`; cross-tab sign-in; expiry timer + visibility/focus; bfcache), hash kept in `from`, segment-aware `returnPath`, single polite live region. KEEP: session.js as sole storage owner, Login at-rest render unchanged.
+
 ## Verification
 
 **Commands:**
 - `npm run lint`, `npm run build`, `npm test`, `npm run test:fidelity`: expected exit code 0.
+
+## Implementation Review (Story 1.3)
+
+**Result:**
+- **Commits:** `51514cf` to `1b71bbf` on `feature/1-3-sign-in`.
+- **Lint and build:** `npm run lint` passes with 0 issues and `npm run build` succeeds.
+- **Unit tests:** `npm test` passes **506/506**.
+- **Fidelity check:** `npm run test:fidelity` passes **13/13**. The Login screenshot still differs from Figma by **≤ 0.436%**, and the Story 1.2 test and baseline are untouched.
+
+### Acceptance Criteria Checklist
+
+- [x] **Tab order and Enter (FR-21):** Username → Password → Login → Forgot → Privacy → Terms, and Enter submits.
+- [x] **Empty fields (FR-22):** no request is sent; `Username is required` or `Password is required` shows, and focus moves to the first empty field. The message spacing is checked.
+- [x] **Loading (FR-23):** loading lasts 800 ms and a double submit is ignored.
+- [x] **Dummy sign-in (FR-24):** checks `users.json` with the username trimmed and case-insensitive and the password exact. Only `active` accounts can sign in.
+- [x] **Successful sign-in (FR-25):** `suretrack.session` is written as v1 in epoch ms, with no password. The user goes to `state.from` or `/dashboard`, and `/login` is replaced in history.
+- [x] **Already signed in (FR-33):** a signed-in user who opens `/login` goes to `/dashboard`, including when the sign-in happened in another tab.
+- [x] **Sign-out (FR-35):** `signOut()` sends every tab to `/login` within 1 s, and Back doesn't show signed-in content (bfcache included).
+- [x] **Guarded routes:** they redirect to `/login` with `{ from (incl. hash), reason }`. Expiry while a page is open redirects with `reason: 'expired'`.
+- [x] **Bad stored records:** corrupt, expired or out-of-range records are ignored and purged without errors.
+
+### Review Findings
+
+- **Patched (16):** listed in the Spec Change Log above.
+- **Deferred (3):** in [deferred-work.md](deferred-work.md).
+  - The cross-tab test should use the real Logout button, which comes in Story 2.1.
+  - The architecture spine's AD-9 needs to list the `suretrack.signout` key.
+  - The FR-21 Username autofocus conflicts with Figma's at-rest look.
+- **Rejected:**
+  - **Account status order:** status is checked only after a correct password, as the PRD requires. Story 1.4 shows one generic message for wrong credentials.
+  - **Fixed-width placeholder:** 1366 px is required by AD-4.
+
+### Note for Story 2.1
+
+A same-tab Logout currently returns to `/login` with `from` set, so signing in again goes back to the page the user left. FR-35 implies an empty return path. Story 2.1 should decide this.
+
+## Suggested Review Order
+
+**Session (sole storage owner)**
+
+- v1 record, pure reads, bounds checks, signIn write check, cross-tab subscribe.
+  [`session.js:1`](../../src/lib/session.js#L1)
+
+**Sign-in flow**
+
+- Validation, 800 ms guard, users.json match, status rules, safe return path.
+  [`useSignIn.js:1`](../../src/features/auth/useSignIn.js#L1)
+- Form wiring, live region, error/loading states (at-rest markup unchanged).
+  [`LoginForm.jsx:1`](../../src/features/auth/LoginForm.jsx#L1)
+
+**Routing**
+
+- Guard with `{ from, reason }`.
+  [`RequireSession.jsx:1`](../../src/app/RequireSession.jsx#L1)
+- Routes + SessionSync (loss, cross-tab sign-in, expiry, bfcache).
+  [`App.jsx:1`](../../src/app/App.jsx#L1)
+
+**Tests**
+
+- I/O matrix, sync, expiry, bfcache.
+  [`signin.test.jsx:1`](../../tests/unit/signin.test.jsx#L1)
+- Browser checks: redirect, tab order, error layout, cross-tab sign-out.
+  [`signin.spec.js:1`](../../tests/fidelity/signin.spec.js#L1)
