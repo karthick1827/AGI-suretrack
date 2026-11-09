@@ -7,6 +7,8 @@ title: 'Story 2.3 — KPI strip'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: '4b8353cb1057872b5fb49a46f92fbe0622aec9d5'
+implementation_status: in-progress
 story_key: 2-3-kpi-strip
 jira: SCRUM-37
 review_loop_iteration: 0

@@ -67,7 +67,7 @@ development_status:
   epic-2: in-progress
   2-1-signed-in-app-shell-and-header: done
   2-2-dashboard-page-dashboard-states-and-card-shells: done
-  2-3-kpi-strip: backlog
+  2-3-kpi-strip: in-progress
   2-4-equipment-card-with-health-bars: backlog
   2-5-recent-alerts-card: backlog
   2-6-fan-activity-card-with-runtime-chart: backlog
