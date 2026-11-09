@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-09T05:52:11.735Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-09T05:52:11.735Z
 title: 'Story 2.3 — KPI strip'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: '4b8353cb1057872b5fb49a46f92fbe0622aec9d5'
-implementation_status: in-progress
+implementation_status: review
 story_key: 2-3-kpi-strip
 jira: SCRUM-37
 review_loop_iteration: 0
@@ -89,7 +88,89 @@ context:
 
 ## Spec Change Log
 
+- 2026-11-09 — **Pixel check on Windows (developer decision, Manager to confirm):** the KPI strip screenshot differs from the cropped Figma render on Windows by:
+  - Full: **1.029%**.
+  - Small: **0.868%**.
+  - All-good: **0.525%**.
+
+  The limit is **0.5%**. The cause is how Windows Chromium smooths the edges of the strip's dense 13.5 px and 22 px text. A sub-pixel shift probe found the current position is the best match. Every ±1 px box, computed style, copy, pointer and keyboard check passes.
+
+  Per the standing decision, the limit stays 0.5%. The Windows run is advisory and the **macOS CI run is authoritative**. macOS hasn't run yet because the repo has no remote. If macOS still exceeds 0.5%, it is a real failure.
+- 2026-11-09 — **Review loop 1 (patches only):**
+  - **Data guards:** an object, array or boolean value renders nothing instead of crashing. `allGood` and `subCountWeight` are read strictly. Breakdown items with no type or a duplicate type are skipped, and an unknown type renders as plain text with no link.
+  - **One KPI section:** the page renders one stable KPI section with the state passed in, so focus isn't lost on a state change.
+  - **Click targets:** the Equipment total link covers only its own 147 px block; there is no tile-wide overlay. Only links show the pointer cursor.
+  - **Accessible names:** each link reads as value + space + label (for example `7 Bins`).
+  - **Icon sizes:** set in CSS, with matching `width`/`height` attributes on the `<img>`.
+  - **Tests:**
+    - Real pointer clicks on every link.
+    - Tab into and out of the strip, with a focus ring on every link.
+    - Shell checks in the loading and error states.
+    - Exact class matching.
+  - **KEEP:** the visuals at rest are unchanged (the same pixel counts before and after) and the copy is verbatim.
+
 ## Verification
 
 **Commands:**
 - `npm run lint`, `npm run build`, `npm test`, `npm run test:fidelity`: expected to pass (Windows screenshot advisories documented).
+
+## Implementation Review (Story 2.3)
+
+**Result:**
+- **Commits:** `9c58784` and `936ba5a` on `feature/2-3-kpi-strip`.
+- **Lint and build:** `npm run lint` is clean and `npm run build` succeeds.
+- **Unit tests:** `npm test` passes **789/789**.
+- **Fidelity check:** `npm run test:fidelity` passes **52/57**. The 5 failures are all Windows screenshot comparisons:
+  - Header 0.516% (known).
+  - Forgot modal 0.705% (known).
+  - KPI strip: Full 1.029%, Small 0.868%, All-good 0.525% (see the Change Log).
+
+  macOS CI is authoritative. Every KPI measurement, style, copy and link check passes.
+
+### Acceptance Criteria Checklist
+
+- [x] **Full (FR-59 to FR-63):**
+  - `7` `Need attention · 2 critical` in red with the alert icon.
+  - `20` `Equipment` with `7 Bins`, `3 Piles`, `2 Flats`, `6 Tanks`, `2 Dryers` (Regular).
+  - `16` `Online`, `4` `Offline`, `7 of 24` `Fans running now`.
+- [x] **Small:** `1` `Need attention · 1 critical`; `2` `Equipment` (`1 Bin`, `1 Dryer`, Bold); `2`, `0`, `2 of 3`.
+- [x] **All-good:** `0` `Need attention · all good` with the green tick and a grey label; `1` `Equipment` (`1 Bin`, Bold); `1`, `0`, `2 of 3`.
+- [x] **Shell (FR-59):** radius 12, the KPI shadow, dividers, and per-state widths and x positions within ±1 px.
+- [x] **Navigation (FR-64):** each tile and sub-count is its own link through `paths.js`, works with mouse and keyboard, and opens the placeholder page.
+- [x] **Loading and error:** shown at 1318×90 in the white shell, with no layout shift.
+- [x] **Values:** shown verbatim; nothing is computed or formatted (FR-94).
+- [ ] **Strip screenshot ≤ 0.5%:** pending macOS. Windows is advisory (see the Change Log).
+
+### Review Findings
+
+- **Patched (12):** listed in the Spec Change Log above.
+- **Deferred:** none.
+- **Rejected:**
+  - Text or tile overflow clipping: the verbatim data fits the fixed 1366 canvas, and clipping risks the Figma visuals.
+  - Box-sizing: `reset.css` already sets `border-box`.
+  - Cross-checking the page state against `allGood`: `allGood` is the style switch the PRD defines.
+  - The Tanks width tied to its type: as drawn.
+  - Fans → `/equipment`: an FR-64 assumption, now commented in the code.
+  - Hover styles: none are designed.
+  - Whitespace collapse of verbatim text.
+  - Stronger source-scan regexes.
+
+## Suggested Review Order
+
+**KPI strip**
+
+- Tiles, verbatim values, strict guards, per-tile links and accessible names.
+  [`KpiStrip.jsx:1`](../../src/features/dashboard/kpi/KpiStrip.jsx#L1)
+- Per-state widths and x positions, shell, dividers, icon tiles; states block last.
+  [`KpiStrip.module.css:1`](../../src/features/dashboard/kpi/KpiStrip.module.css#L1)
+- One KPI section with the state variant; loading and error shell.
+  [`DashboardPage.jsx:1`](../../src/pages/Dashboard/DashboardPage.jsx#L1)
+
+**Tests**
+
+- I/O matrix, guards, names, no formatting.
+  [`kpi-strip.test.jsx:1`](../../tests/unit/kpi-strip.test.jsx#L1)
+- Per-state screenshot vs cropped Figma, ±1 px audit, pointer, Tab and Enter.
+  [`kpi-strip.spec.js:1`](../../tests/fidelity/kpi-strip.spec.js#L1)
+- KPI strip crop at (28, 138) with the alignment check.
+  [`global-setup.js:1`](../../tests/fidelity/support/global-setup.js#L1)
