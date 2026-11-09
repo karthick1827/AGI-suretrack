@@ -236,9 +236,17 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
       const actual = await page.screenshot({ clip, animations: 'disabled', caret: 'hide' });
       const reference = readFileSync(path.join(MASKED_BASELINE_DIR, baseline));
       const ratio = await diffRatio(actual, reference);
-      // Below the card header (clip y ≥ 75, card y ≥ 76): the Alert rows / Empty state alone.
+      // Below the card header (measured: the header block's bottom edge): the
+      // Alert rows / Empty state alone.
+      const headerBottom = await slot(page).evaluate((el) => {
+        const title = el.querySelector('h2');
+        if (!title) throw new Error('the Recent Alerts card has no header title h2');
+        return title.parentElement.parentElement.getBoundingClientRect().bottom + window.scrollY;
+      });
+      const top = Math.ceil(headerBottom - clip.y);
+      if (!(top > 0 && top < clip.height)) throw new Error(`the card header bottom (${headerBottom}) is outside the clip ${JSON.stringify(clip)}`);
       const below = async (png) =>
-        sharp(png).extract({ left: 0, top: 75, width: clip.width, height: clip.height - 75 }).png().toBuffer();
+        sharp(png).extract({ left: 0, top, width: clip.width, height: clip.height - top }).png().toBuffer();
       const bodyRatio = await diffRatio(await below(actual), await below(reference));
       const note = `pixel-diff ratio ≤ ${(ratio * 100).toFixed(3)} % (below the header ≤ ${(bodyRatio * 100).toFixed(3)} %; YIQ threshold 0.1, no AA exclusion)`;
       testInfo.annotations.push({ type: 'pixel-diff', description: note });
@@ -317,7 +325,13 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
                 cursor: cs(action).cursor,
                 outline: cs(action).outlineStyle,
               },
-              link: { tag: link.tagName, cursor: cs(link).cursor, outline: cs(link).outlineStyle, background: cs(link).backgroundColor },
+              link: {
+                tag: link.tagName,
+                cursor: cs(link).cursor,
+                outline: cs(link).outlineStyle,
+                background: cs(link).backgroundColor,
+                textDecorationLine: cs(link).textDecorationLine,
+              },
               item: { cursor: cs(row).cursor, background: cs(row).backgroundColor },
               separator: separator
                 ? `${cs(separator).borderBottomWidth} ${cs(separator).borderBottomStyle} ${cs(separator).borderBottomColor}`
@@ -353,7 +367,7 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
         const { padding, ...action } = st.action;
         expect(row.action).toEqual({ tag: 'A', ...action, padding, cursor: 'pointer', outline: 'none' });
         // Pointer only on <a>; no hover fill or focus ring at rest.
-        expect(row.link).toEqual({ tag: 'A', cursor: 'pointer', outline: 'none', background: 'rgba(0, 0, 0, 0)' });
+        expect(row.link).toEqual({ tag: 'A', cursor: 'pointer', outline: 'none', background: 'rgba(0, 0, 0, 0)', textDecorationLine: 'none' });
         expect(row.item).toEqual({ cursor: 'auto', background: 'rgba(0, 0, 0, 0)' });
         expect(row.separator).toBe(want.separator ? `${sw} ${ss} ${cssColour(sc)}` : null);
       });
@@ -419,9 +433,9 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
       [FID.recentAlerts.actionArrow, '16', '16', ''],
       [FID.recentAlerts.criticalGlyph, '15', '15', ''],
       [FID.recentAlerts.actionArrow, '16', '16', ''],
-      [FID.recentAlerts.warningGlyph, '13.8462', '13.8462', ''],
+      [FID.recentAlerts.warningGlyph, '14', '14', ''],
       [FID.recentAlerts.actionArrow, '16', '16', ''],
-      [FID.recentAlerts.warningGlyph, '13.8462', '13.8462', ''],
+      [FID.recentAlerts.warningGlyph, '14', '14', ''],
       [FID.recentAlerts.actionArrow, '16', '16', ''],
     ]);
     for (const img of await slot(page).locator('img').all()) {
@@ -451,15 +465,40 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
       await page.mouse.click(...at(b));
       await expect(page, `${part} → ${row.href}`).toHaveURL(urlEndingWith(row.href));
     }
-    // Beside the Action link (same line, right of it), below the icon, and on the separator track.
-    const item = (page) => slot(page).locator(`[data-alert-row="${row.id}"]`);
-    for (const [name, at] of [
-      ['right of the Action link', (b) => [b.x + 400, b.y + 58]],
-      ['below the icon', (b) => [b.x + 10, b.y + 60]],
-      ['the separator track', (b) => [b.x + 300, b.y + 74]],
-    ]) {
+    // Beside the Action link (same line, right of it), below the icon, and on
+    // the separator track: points computed from the measured boxes.
+    const within = (page, sel) => slot(page).locator(`[data-alert-row="${row.id}"] ${sel}`);
+    const spotsFromBoxes = [
+      [
+        'right of the Action link',
+        async (page) => {
+          const action = await boxOf(within(page, '[data-alert-link="action"]'));
+          const sep = await boxOf(within(page, '[data-alert-part="separator"]'));
+          return [(action.x + action.width + sep.x + sep.width) / 2, action.y + action.height / 2];
+        },
+      ],
+      [
+        'below the icon',
+        async (page) => {
+          const icon = await boxOf(within(page, '[data-alert-part="icon"]'));
+          const item = await boxOf(slot(page).locator(`[data-alert-row="${row.id}"]`));
+          return [icon.x + icon.width / 2, (icon.y + icon.height + item.y + item.height) / 2];
+        },
+      ],
+      [
+        'the separator track',
+        async (page) => {
+          const sep = await boxOf(within(page, '[data-alert-part="separator"]'));
+          return [sep.x + sep.width / 2, sep.y + sep.height / 2];
+        },
+      ],
+    ];
+    for (const [name, at] of spotsFromBoxes) {
       await openDashboard(page, 'full');
-      await page.mouse.click(...at(await boxOf(item(page))));
+      const [x, y] = await at(page);
+      // The point is on the row link itself, not on the Action link.
+      expect(await page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.closest('a')?.dataset.alertLink ?? null, [x, y]), name).toBe('row');
+      await page.mouse.click(x, y);
       await expect(page, `${name} → ${row.href}`).toHaveURL(urlEndingWith(row.href));
     }
     await openDashboard(page, 'full');
@@ -535,7 +574,11 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
     const row = expected.full.rows[1];
     const item = await boxOf(slot(page).locator(`[data-alert-row="${row.id}"]`));
     const card = await boxOf(slot(page).locator('section'));
-    const y = item.y + 60; // below the icon, left of the Action link: blank row area
+    const icon = await boxOf(slot(page).locator(`[data-alert-row="${row.id}"] [data-alert-part="icon"]`));
+    const next = await boxOf(slot(page).locator(`[data-alert-row="${expected.full.rows[2].id}"]`));
+    // Below the icon, left of the Action link: blank row area (from the measured boxes).
+    const y = (icon.y + icon.height + item.y + item.height) / 2;
+    const gapY = (item.y + item.height + next.y) / 2;
     const probe = () =>
       pixelsAt(page, [
         [card.x, y], // card border
@@ -544,7 +587,7 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
         [item.x + item.width - 2, y], // inside the row's right edge
         [item.x + item.width + 1, y], // card padding, just outside the row
         [card.x + card.width - 1, y], // card border
-        [item.x + 10, item.y + item.height + 6], // the 12 px gap below the row
+        [item.x + 10, gapY], // the 12 px gap below the row
       ]);
     const atRest = await probe();
     for (const rgb of atRest.slice(1, 5)) expect(closeTo(rgb, '#ffffff', 2), `at rest rgb(${rgb})`).toBe(true);
@@ -568,16 +611,12 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
     expect(closeTo(fill, '#f0fff8', 2), `row fill while on the Action rgb(${fill})`).toBe(true);
   });
 
-  test('bad data: unknown severity, missing deviceId, duplicate id and more than 4 items draw at most 4 rows, no unnamed link', async ({ page }) => {
+  test('bad data (Full): unknown severity, missing deviceId, duplicate id and more than 4 items draw at most 4 rows, no unnamed link', async ({ page }) => {
     await page.route(DASHBOARD_JSON, async (route) => {
       const response = await route.fetch();
       const doc = await response.json();
-      // The Small document has one item: derive the others from it.
-      const [a1] = doc.recentAlerts.items;
-      if (!a1) throw new Error('the Small document has no Recent Alerts item to derive test items from');
-      const a2 = { ...a1, id: 'a2', severity: 'Warning' };
-      const a3 = { ...a1, id: 'a3', severity: 'Warning' };
-      const a4 = { ...a1, id: 'a4' };
+      const [a1, a2, a3, a4] = doc.recentAlerts.items;
+      if (!a4) throw new Error('the Full document has fewer than four Recent Alerts items');
       doc.recentAlerts.items = [
         { ...a1, severity: 'Info' },
         { ...a2, deviceId: '' },
@@ -588,32 +627,65 @@ test.describe('Recent Alerts card (FR-73 to FR-77)', () => {
       ];
       await route.fulfill({ response, json: doc });
     });
-    await openDashboard(page, 'small');
-    const got = await slot(page).evaluate((el) => {
-      const card = el.querySelector('section').getBoundingClientRect();
-      const list = el.querySelector('[data-alert-list]');
-      return {
-        rows: [...el.querySelectorAll('[data-alert-row]')].map((row) => [
-          row.dataset.alertRow,
-          row.querySelector('[data-alert-link="row"]') ? 'row-link' : 'plain',
-          row.querySelector('[data-alert-link="action"]') ? 'action-link' : 'plain',
-          row.querySelectorAll('[data-alert-part="icon"]').length,
-        ]),
-        unnamed: [...el.querySelectorAll('a')].filter((a) => a.textContent.trim() === '' && !a.getAttribute('aria-labelledby')).length,
-        overflow: getComputedStyle(list).overflow,
-        listBottom: list.getBoundingClientRect().bottom,
-        cardBottom: card.bottom,
-      };
-    });
+    await openDashboard(page, 'full');
+    const got = await slot(page).evaluate((el) => ({
+      rows: [...el.querySelectorAll('[data-alert-row]')].map((row) => [
+        row.dataset.alertRow,
+        row.querySelector('[data-alert-link="row"]') ? 'row-link' : 'plain',
+        row.querySelector('[data-alert-link="action"]') ? 'action-link' : 'none',
+        row.querySelectorAll('[data-alert-part="icon"]').length,
+      ]),
+      unnamed: [...el.querySelectorAll('a')].filter((a) => a.textContent.trim() === '' && !a.getAttribute('aria-labelledby')).length,
+    }));
     expect(got.rows).toEqual([
       ['a1', 'row-link', 'action-link', 0],
-      ['a2', 'plain', 'plain', 1],
+      ['a2', 'plain', 'none', 1],
       ['a3', 'row-link', 'action-link', 1],
       ['a4', 'row-link', 'action-link', 1],
     ]);
     expect(got.unnamed).toBe(0);
-    // Four rows in the 240 px Small card are clipped to the card body, never painted outside it.
-    expect(got.overflow).toBe('clip');
-    expect(got.listBottom).toBeLessThan(got.cardBottom);
+  });
+
+  test('Small with four items: exactly one row is rendered, and Tab never lands on a hidden link', async ({ page }) => {
+    await page.route(DASHBOARD_JSON, async (route) => {
+      const response = await route.fetch();
+      const doc = await response.json();
+      const [a1] = doc.recentAlerts.items;
+      if (!a1) throw new Error('the Small document has no Recent Alerts item to derive test items from');
+      doc.recentAlerts.items = ['a1', 'a2', 'a3', 'a4'].map((id, i) => ({ ...a1, id, title: `${a1.title} ${i + 1}` }));
+      await route.fulfill({ response, json: doc });
+    });
+    await openDashboard(page, 'small');
+    await expect(slot(page).locator('[data-alert-row]')).toHaveCount(1);
+    await expect(slot(page).locator('a')).toHaveCount(3);
+    // Tab from the element before the card until focus leaves it: every stop is visible.
+    await slot(page).evaluate((el) => {
+      const focusable = [...document.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, [tabindex]')].filter(
+        (node) => node.tabIndex >= 0 && !el.contains(node) && node.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      if (focusable.length === 0) throw new Error('no focusable element precedes the Recent Alerts card');
+      focusable.at(-1).focus();
+    });
+    const stops = [];
+    for (let i = 0; i < 10; i += 1) {
+      await page.keyboard.press('Tab');
+      const stop = await page.evaluate(() => {
+        const el = document.activeElement;
+        const section = el.closest('[data-section="recentAlerts"]');
+        if (!section) return null;
+        const card = section.querySelector('section').getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + Math.min(10, r.width / 2), r.top + r.height / 2);
+        return {
+          key: el.dataset.alertLink ?? 'viewAll',
+          inside: r.top >= card.top && r.bottom <= card.bottom && r.left >= card.left && r.right <= card.right,
+          hitsItself: Boolean(hit && el.contains(hit)),
+        };
+      });
+      if (stop === null) break;
+      stops.push(stop);
+    }
+    expect(stops.map((stop) => stop.key)).toEqual(['viewAll', 'row', 'action']);
+    for (const stop of stops) expect(stop, stop.key).toMatchObject({ inside: true, hitsItself: true });
   });
 });

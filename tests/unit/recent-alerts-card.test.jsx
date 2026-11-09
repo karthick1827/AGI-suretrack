@@ -8,7 +8,8 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import App from '../../src/app/App.jsx';
 import { getConfig, getDashboard, getUsers } from '../../src/data/api.js';
 import RecentAlertsCard from '../../src/features/dashboard/alerts/RecentAlertsCard.jsx';
-import { MAX_ALERT_ROWS, alertItems, hasAlertContent } from '../../src/features/dashboard/alerts/alertItems.js';
+import cardStyles from '../../src/features/dashboard/alerts/RecentAlertsCard.module.css';
+import { ALERT_ROWS, MAX_ALERT_ROWS, alertItems, hasAlertContent } from '../../src/features/dashboard/alerts/alertItems.js';
 import alertCrit from '../../src/assets/icons/alert_crit.svg';
 import alertWarn from '../../src/assets/icons/alert_warn.svg';
 import arrowRight from '../../src/assets/icons/arrow_right.svg';
@@ -89,7 +90,7 @@ function Where() {
 }
 
 /** The card alone, inside a router that reports where a link went. */
-const renderCard = (data) =>
+const renderCard = (data, variant = 'full') =>
   render(
     <MemoryRouter initialEntries={[paths.dashboard()]}>
       <Routes>
@@ -97,7 +98,7 @@ const renderCard = (data) =>
           path="*"
           element={
             <>
-              <RecentAlertsCard data={data} variant="full" />
+              <RecentAlertsCard data={data} variant={variant} />
               <Where />
             </>
           }
@@ -119,7 +120,11 @@ const part = (row, name) => {
 };
 const rowLink = (row) => row.querySelector('[data-alert-link="row"]');
 const actionLink = (row) => row.querySelector('[data-alert-link="action"]');
-const rowText = (row) => ['title', 'meta', 'severity', 'time', 'action-label'].map((name) => part(row, name).textContent);
+/** Title, meta, severity, time and the Action label (null when no Action is drawn). */
+const rowText = (row) => [
+  ...['title', 'meta', 'severity', 'time'].map((name) => part(row, name).textContent),
+  row.querySelector('[data-alert-part="action-label"]')?.textContent ?? null,
+];
 const hasSeparator = (row) => row.querySelector('[data-alert-part="separator"]') !== null;
 const iconOf = (row) => row.querySelector('[data-alert-part="icon"] img');
 const where = () => screen.getByTestId('where').textContent;
@@ -158,7 +163,7 @@ describe('Recent Alerts per Dashboard state (FR-73 to FR-77, FR-94)', () => {
     expect(document.querySelector('[data-alert-empty]')).toBeNull();
   });
 
-  it('severity selects the icon: Critical → alert_crit.svg 15×15, Warning → alert_warn.svg 13.846 (AD-5, AD-15)', async () => {
+  it('severity selects the icon: Critical → alert_crit.svg 15×15, Warning → alert_warn.svg (14 in HTML, 13.846 in CSS) (AD-5, AD-15)', async () => {
     await openDashboard('full');
     expect(
       rows().map((row) => {
@@ -168,8 +173,8 @@ describe('Recent Alerts per Dashboard state (FR-73 to FR-77, FR-94)', () => {
     ).toEqual([
       [alertCrit, '15', '15', '', FID.recentAlerts.criticalGlyph],
       [alertCrit, '15', '15', '', FID.recentAlerts.criticalGlyph],
-      [alertWarn, '13.8462', '13.8462', '', FID.recentAlerts.warningGlyph],
-      [alertWarn, '13.8462', '13.8462', '', FID.recentAlerts.warningGlyph],
+      [alertWarn, '14', '14', '', FID.recentAlerts.warningGlyph],
+      [alertWarn, '14', '14', '', FID.recentAlerts.warningGlyph],
     ]);
     for (const row of rows()) {
       const arrow = actionLink(row).querySelector('img');
@@ -181,7 +186,10 @@ describe('Recent Alerts per Dashboard state (FR-73 to FR-77, FR-94)', () => {
       ]);
       expect(arrow.dataset.fid).toBe(FID.recentAlerts.actionArrow);
     }
-    for (const img of slot().querySelectorAll('img')) expect(img.hasAttribute('width') && img.hasAttribute('height')).toBe(true);
+    // HTML width/height are integers (the exact 13.846 px is CSS).
+    for (const img of slot().querySelectorAll('img')) {
+      for (const name of ['width', 'height']) expect(img.getAttribute(name)).toMatch(/^\d+$/);
+    }
   });
 
   it('Small: only the HotSpot Detected · 759 | Wheat Storage row, keeping its separator', async () => {
@@ -355,13 +363,57 @@ describe('Recent Alerts loading and error (FR-95, FR-96, AD-18)', () => {
   });
 
   it('the shared rule: hasAlertContent / alertItems agree with what the card draws', () => {
-    expect(hasAlertContent({ items: [] })).toBe(true);
+    expect(hasAlertContent({ items: [], empty: { title: 'No Alerts Right Now', body: null } })).toBe(true);
+    expect(hasAlertContent({ items: [], empty: { title: '  ', body: 'Body' } })).toBe(true);
     expect(hasAlertContent({ items: [alert()] })).toBe(true);
-    for (const bad of [null, undefined, [], 'x', 7, {}, { items: null }, { items: {} }, { items: [null, 1, {}] }]) {
-      expect(hasAlertContent(bad)).toBe(false);
+    for (const bad of [
+      null,
+      undefined,
+      [],
+      'x',
+      7,
+      {},
+      { items: null },
+      { items: {} },
+      { items: [null, 1, {}] },
+      { items: [] },
+      { items: [], empty: null },
+      { items: [], empty: { title: ' ', body: '' } },
+      { items: [], empty: { title: {}, body: [] } },
+    ]) {
+      expect(hasAlertContent(bad), JSON.stringify(bad)).toBe(false);
       expect(alertItems(bad)).toEqual([]);
     }
     expect(MAX_ALERT_ROWS).toBe(4);
+    expect(ALERT_ROWS).toEqual({ full: 4, small: 1, allgood: 1 });
+  });
+
+  it('ready with an empty items array but no usable Empty-state title or body → the section error, never a blank block', async () => {
+    vi.mocked(getDashboard).mockResolvedValue({ ...DOCS.allgood, recentAlerts: { ...DOCS.allgood.recentAlerts, empty: { title: ' ', body: null } } });
+    await openDashboard('allgood', 'error');
+    expect(within(slot()).getByText(copy.dashboard.sectionError)).toBeTruthy();
+    expect(slot().querySelector('[data-alert-empty]')).toBeNull();
+  });
+
+  it.each([
+    ['small', 1],
+    ['allgood', 1],
+    ['full', 4],
+  ])('%s with four items renders exactly %i row(s): rows the frame cannot show (and their links) are never rendered', async (state, count) => {
+    vi.mocked(getDashboard).mockResolvedValue({ ...DOCS[state], recentAlerts: DOCS.full.recentAlerts });
+    await openDashboard(state);
+    expect(rows().map((row) => row.dataset.alertRow)).toEqual(['a1', 'a2', 'a3', 'a4'].slice(0, count));
+    // View All plus the row link and Action link of each rendered row; nothing else is focusable.
+    expect(slot().querySelectorAll('a')).toHaveLength(1 + 2 * count);
+    expect(rows().map(hasSeparator)).toEqual(count === 1 ? [true] : [true, true, true, false]);
+  });
+
+  it('an unknown variant falls back to Full (4 rows)', () => {
+    for (const variant of ['nope', undefined, '__proto__', 'toString']) {
+      const { unmount } = renderCard(DOCS.full.recentAlerts, variant);
+      expect(rows()).toHaveLength(4);
+      unmount();
+    }
   });
 });
 
@@ -395,64 +447,107 @@ describe('bad data and verbatim readings (AD-7, AD-14)', () => {
     expect(rows().map(hasSeparator)).toEqual([true, true, true, false]);
   });
 
-  it('an unknown severity renders no icon and uncoloured, verbatim text; never crashes', () => {
-    renderCard({ items: [alert({ id: 'i', severity: 'Info' }), alert({ id: 'c', severity: 'critical' }), alert({ id: 'p', severity: '__proto__' })] });
-    for (const row of rows()) {
-      expect(iconOf(row)).toBeNull();
+  it('an unknown severity renders no icon and no severity colour class; the text is verbatim; never crashes', () => {
+    const toneClasses = [cardStyles.criticalText, cardStyles.warningText, cardStyles.critical, cardStyles.warning];
+    expect(toneClasses.every((name) => typeof name === 'string' && name !== '')).toBe(true);
+    for (const severity of ['Info', 'critical', '__proto__', 'toString', 7, null]) {
+      renderCard({ items: [alert({ id: 'u', severity })] });
+      const [row] = rows();
+      expect(iconOf(row), String(severity)).toBeNull();
       expect(row.querySelector('[data-alert-part="icon"]')).toBeNull();
+      for (const name of toneClasses) expect(row.querySelector(`.${CSS.escape(name)}`), `${severity}: ${name}`).toBeNull();
+      expect(part(row, 'severity').textContent).toBe(severity === null ? '' : String(severity));
       expect(rowLink(row)).not.toBeNull();
+      cleanup();
     }
-    expect(rows().map((row) => part(row, 'severity').textContent)).toEqual(['Info', 'critical', '__proto__']);
-    // Neutral text: the known severities carry a colour class the unknown ones do not.
-    renderCard({ items: [alert({ id: 'k' })] });
-    const known = part(document.querySelector('[data-alert-row="k"]'), 'severity').className.split(' ');
-    for (const row of rows().filter((r) => r.dataset.alertRow !== 'k')) {
-      expect(part(row, 'severity').className.split(' ').length).toBeLessThan(known.length);
-    }
+    // The known severities do carry them.
+    renderCard({ items: [alert({ id: 'c' }), alert({ id: 'w', severity: 'Warning' })] });
+    const [c, w] = rows();
+    expect(part(c, 'severity').classList.contains(cardStyles.criticalText)).toBe(true);
+    expect(part(w, 'severity').classList.contains(cardStyles.warningText)).toBe(true);
   });
 
-  it('a missing or unusable deviceId → neither the row nor the Action is a link (drawn, never an unnamed link)', () => {
+  it('a missing or unusable deviceId → the row is drawn but not a link, and no Action is drawn at all', () => {
     renderCard({
       items: [
         alert({ id: 'none', deviceId: undefined }),
         alert({ id: 'blank', deviceId: '  ' }),
         alert({ id: 'dot', deviceId: '..' }),
-        alert({ id: 'num', deviceId: 759 }),
+        alert({ id: 'obj', deviceId: { id: 759 } }),
       ],
     });
     for (const row of rows()) {
       expect(rowLink(row), row.dataset.alertRow).toBeNull();
       expect(actionLink(row), row.dataset.alertRow).toBeNull();
-      expect(part(row, 'action').textContent).toBe('View Hotspot');
+      expect(row.querySelector('[data-alert-part="action-label"]')).toBeNull();
+      expect(row.querySelectorAll(`[data-fid="${FID.recentAlerts.actionArrow}"]`)).toHaveLength(0);
     }
     expect(screen.queryAllByRole('link')).toHaveLength(0);
-    // A numeric deviceId still renders verbatim in the meta line (only strings route).
-    expect(part(document.querySelector('[data-alert-row="num"]'), 'meta').textContent).toBe('759 | Wheat Storage');
   });
 
-  it('an unknown actionKey or an empty Action label → the Action is not a link; the row still is', () => {
-    renderCard({ items: [alert({ id: 'k', actionKey: 'reboot' }), alert({ id: 'e', action: '  ' }), alert({ id: 'o', action: { x: 1 } })] });
+  it('a numeric deviceId is used as its String(): the meta line and both links work', async () => {
+    renderCard({ items: [alert({ id: 'num', deviceId: 759 })] });
+    const [row] = rows();
+    expect(part(row, 'meta').textContent).toBe('759 | Wheat Storage');
+    expect(rowLink(row).getAttribute('href')).toBe(paths.equipmentDetail('759'));
+    expect(actionLink(row).getAttribute('href')).toBe(paths.alertAction('759', 'hotspot'));
+    await act(async () => fireEvent.click(part(row, 'action-label')));
+    expect(where()).toBe(paths.alertAction('759', 'hotspot'));
+  });
+
+  it('an unknown actionKey or an empty Action label → no Action at all (no label, no lone arrow); the row is still a link', () => {
+    renderCard({
+      items: [
+        alert({ id: 'k', actionKey: 'reboot' }),
+        alert({ id: 'e', action: '  ' }),
+        alert({ id: 'o', action: { x: 1 } }),
+        alert({ id: 'n', actionKey: undefined }),
+      ],
+    });
     for (const row of rows()) {
       expect(actionLink(row)).toBeNull();
+      expect(row.querySelector('[data-alert-part="action-label"]')).toBeNull();
+      expect(row.querySelectorAll(`[data-fid="${FID.recentAlerts.actionArrow}"]`)).toHaveLength(0);
       expect(rowLink(row).getAttribute('href')).toBe(paths.equipmentDetail('759'));
     }
   });
 
-  it('the row link is named only by its shown texts (aria-labelledby); unshown readings add nothing', () => {
+  it('each Action link is described by its row title (aria-describedby), so duplicate Action names keep context', () => {
+    renderCard({ items: [alert({ id: 'a', title: 'Static Pressure', action: 'Check Fans' }), alert({ id: 'b', title: 'Fan Stalled', action: 'Check Fans' })] });
+    for (const row of rows()) {
+      const describedBy = actionLink(row).getAttribute('aria-describedby');
+      expect(describedBy).toBe(part(row, 'title').id);
+      expect(document.getElementById(describedBy)).toBe(part(row, 'title'));
+    }
+    cleanup();
+    renderCard({ items: [alert({ id: 'blank', title: '   ' })] });
+    expect(actionLink(rows()[0]).hasAttribute('aria-describedby')).toBe(false);
+  });
+
+  it('list semantics: the rows are a role="list" of role="listitem" row containers', async () => {
+    await openDashboard('full');
+    const list = within(slot()).getByRole('list');
+    expect(within(list).getAllByRole('listitem')).toEqual(rows());
+  });
+
+  it('the row link is named only by its visible texts (aria-labelledby); blank or unshown readings add nothing', () => {
     renderCard({
       items: [
         alert({ id: 'mute', title: null, location: [], severity: {}, time: Number.NaN }),
         alert({ id: 'title', location: null, severity: null, time: null }),
+        alert({ id: 'space', title: '   ', severity: ' ', time: '\t' }),
       ],
     });
-    const [mute, titled] = rows();
+    const [mute, titled, space] = rows();
     // The deviceId alone still shows in the meta line, so it names the row.
     expect(part(mute, 'meta').textContent).toBe('759');
     expect(within(mute).getByRole('link', { name: '759' })).toBe(rowLink(mute));
     expect(within(titled).getByRole('link', { name: 'HotSpot Detected 759' })).toBe(rowLink(titled));
+    // Whitespace-only texts are not referenced.
+    expect(rowLink(space).getAttribute('aria-labelledby')).toBe(part(space, 'meta').id);
     for (const link of screen.getAllByRole('link')) {
       for (const id of (link.getAttribute('aria-labelledby') ?? '').split(' ').filter(Boolean)) {
-        expect(document.getElementById(id)?.textContent).toBeTruthy();
+        expect(document.getElementById(id)?.textContent.trim()).toBeTruthy();
       }
     }
   });
@@ -465,7 +560,7 @@ describe('bad data and verbatim readings (AD-7, AD-14)', () => {
       ],
     });
     const [bad, numeric] = rows();
-    expect(rowText(bad)).toEqual(['', '759', '', '', '']);
+    expect(rowText(bad)).toEqual(['', '759', '', '', null]);
     expect(rowText(numeric)).toEqual(['42', '759 | Wheat Storage', 'Critical', '0', 'View Hotspot']);
     expect(document.body.textContent).not.toMatch(/NaN|Infinity|\[object Object\]|undefined|true/);
     expect(document.body.innerHTML).not.toMatch(/NaN|\[object Object\]|undefined/);
@@ -507,14 +602,23 @@ describe('bad data and verbatim readings (AD-7, AD-14)', () => {
     expect(rows()).toHaveLength(0);
   });
 
-  it('an empty items array with no usable `empty` copy → the Empty block with nothing written in it', () => {
+  it('the Empty state draws only the shown parts: never an empty <h3> or <p>; nothing at all without copy', () => {
     renderCard({ items: [], empty: { title: 7, body: { x: 1 } } });
-    const empty = document.querySelector('[data-alert-empty]');
+    let empty = document.querySelector('[data-alert-empty]');
     expect(part(empty, 'empty-title').textContent).toBe('7');
-    expect(part(empty, 'empty-body').textContent).toBe('');
+    expect(empty.querySelector('p')).toBeNull();
     cleanup();
-    renderCard({ items: [], empty: null });
-    expect(document.querySelector('[data-alert-empty]').textContent).toBe('');
+    renderCard({ items: [], empty: { title: '  ', body: 'Body only' } });
+    empty = document.querySelector('[data-alert-empty]');
+    expect(empty.querySelector('h3')).toBeNull();
+    expect(part(empty, 'empty-body').textContent).toBe('Body only');
+    cleanup();
+    for (const emptyValue of [null, undefined, { title: '', body: ' ' }, 'No Alerts']) {
+      renderCard({ items: [], empty: emptyValue });
+      expect(document.querySelector('[data-alert-empty]')).toBeNull();
+      expect(document.querySelector('h3, p')).toBeNull();
+      cleanup();
+    }
   });
 
   it('keys are stable (the item id): re-rendering reuses each row element, also when the order changes', () => {

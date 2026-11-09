@@ -4,13 +4,17 @@
 // draws the Alert rows, or the FR-77 Empty state, below it.
 //
 // Rows: one per usable `recentAlerts.items[]` entry (alertItems.js: an object
-// with a non-empty string `id`, the first of a duplicate id wins, at most
-// four), in file order. Each row shows the severity icon, title,
-// `<deviceId> | <location>` meta line, severity text, time and Action link.
-// Every shown reading is rendered verbatim (FR-94, AD-7): nothing is computed,
-// refreshed or formatted. Only strings and finite numbers render; any other
-// value renders nothing. `severity` selects the icon and colour (`Critical`,
-// `Warning`); any other severity renders no icon and uncoloured text.
+// with a non-empty string `id`, the first of a duplicate id wins), in file
+// order, and only as many as the Dashboard state's frame draws (the page's
+// `variant`: Full 4, Small and All-good 1; anything else → Full). Rows that
+// would fall outside the card are never rendered, so no hidden link can take
+// focus. Each row shows the severity icon, title, `<deviceId> | <location>`
+// meta line, severity text, time and Action link. Every shown reading is
+// rendered verbatim (FR-94, AD-7): nothing is computed, refreshed or
+// formatted. Only strings and finite numbers render (a numeric deviceId is
+// used as its String()); any other value renders nothing. `severity` selects
+// the icon and colour (`Critical`, `Warning`); any other severity renders no
+// icon and uncoloured text.
 //
 // Separators (FR-76): every row has its bottom separator except the last row
 // of a list with two or more rows (Full row 4); a single row keeps it (Small).
@@ -22,13 +26,16 @@
 // laid over its second column, so a click on the Action link opens only the
 // Action and a click anywhere else in the row opens the equipment. No link is
 // nested in another and nothing is overlaid with pseudo-elements. A row with
-// no usable deviceId, or with nothing to name it by, is drawn but is not a
-// link; an Action with no usable actionKey or no label is not a link. The row
+// no usable deviceId is drawn but is not a link. The Action is drawn only as
+// a link: with no usable deviceId or actionKey, or no label, nothing is drawn
+// for it (never a lone arrow, never something that looks clickable). The row
 // link is named by its own texts (aria-labelledby: title, meta, severity,
-// time), so no new copy is needed.
+// time) and each Action link is described by its row's title
+// (aria-describedby), so no new copy is needed.
 //
 // Empty state (FR-77): an empty `items` array draws the `recentAlerts.empty`
-// title and body (verbatim) in the #F4F5F6 block.
+// title and body (verbatim) in the #F4F5F6 block; a missing title or body is
+// left out (the page shows the section error when both are missing).
 import { useId } from 'react';
 import { Link } from 'react-router';
 import { alertMetaLine } from '../../../lib/copy.js';
@@ -37,11 +44,10 @@ import { paths } from '../../../lib/paths.js';
 import alertCritSvg from '../../../assets/icons/alert_crit.svg';
 import alertWarnSvg from '../../../assets/icons/alert_warn.svg';
 import arrowRightSvg from '../../../assets/icons/arrow_right.svg';
-import { alertItems, hasNoAlerts } from './alertItems.js';
+import { alertItems, emptyCopy, hasNoAlerts } from './alertItems.js';
 import styles from './RecentAlertsCard.module.css';
 
 const cx = (...names) => names.filter(Boolean).join(' ');
-const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /** A reading renders only if it is a string or a finite number (verbatim, never formatted). */
 const shown = (value) =>
@@ -53,27 +59,32 @@ const textOf = (value) => {
   return reading === null ? '' : String(reading);
 };
 
-/** A paths.js target, or undefined when the builder rejects the data (never throws). */
+/**
+ * A paths.js target, or undefined when the builder rejects the data: paths.js
+ * throws a TypeError for rejected input. Any other error is a bug and is
+ * rethrown.
+ */
 const target = (build) => {
   try {
     return build();
-  } catch {
-    return undefined;
+  } catch (error) {
+    if (error instanceof TypeError) return undefined;
+    throw error;
   }
 };
 
 /**
  * Severity → icon and colour (FR-74, Figma glyphs 6337:54670 / 6337:54715).
- * The glyph sizes are the Figma exports' own (15 and 13.846 px, AD-5).
+ * `size` is the integer HTML width/height; CSS sets the exact Figma size
+ * (15 px, 13.846 px).
  */
 const SEVERITIES = Object.freeze({
   Critical: Object.freeze({ tone: 'critical', src: alertCritSvg, size: 15, fid: FID.recentAlerts.criticalGlyph }),
-  Warning: Object.freeze({ tone: 'warning', src: alertWarnSvg, size: 13.8462, fid: FID.recentAlerts.warningGlyph }),
+  Warning: Object.freeze({ tone: 'warning', src: alertWarnSvg, size: 14, fid: FID.recentAlerts.warningGlyph }),
 });
 
 /** FR-74 meta line: `<deviceId> | <location>` when both are shown, else whichever is. */
-function metaOf(item) {
-  const [deviceId, location] = [textOf(item.deviceId), textOf(item.location)];
+function metaOf(deviceId, location) {
   if (deviceId !== '' && location !== '') return alertMetaLine({ deviceId, location });
   return deviceId !== '' ? deviceId : location;
 }
@@ -97,22 +108,27 @@ function SeverityIcon({ severity }) {
 function AlertRow({ item, last }) {
   const id = useId();
   const severity = typeof item.severity === 'string' && Object.hasOwn(SEVERITIES, item.severity) ? SEVERITIES[item.severity] : null;
+  // A numeric deviceId is used as its String(), for the meta line and the links alike.
+  const deviceId = textOf(item.deviceId);
   const texts = {
     title: textOf(item.title),
-    meta: metaOf(item),
+    meta: metaOf(deviceId, textOf(item.location)),
     severity: textOf(item.severity),
     time: textOf(item.time),
   };
   const partId = (name) => `${id}-${name}`;
+  // Only texts with something visible name the row link.
   const nameIds = Object.keys(texts)
-    .filter((name) => texts[name] !== '')
+    .filter((name) => texts[name].trim() !== '')
     .map(partId);
 
-  const detailTo = target(() => paths.equipmentDetail(item.deviceId));
-  const actionTo = detailTo === undefined ? undefined : target(() => paths.alertAction(item.deviceId, item.actionKey));
+  // paths.js accepts only a non-blank deviceId, which the meta line then
+  // shows, so a routable row always has a name.
+  const detailTo = target(() => paths.equipmentDetail(deviceId));
+  const actionTo = detailTo === undefined ? undefined : target(() => paths.alertAction(deviceId, item.actionKey));
   const actionLabel = textOf(item.action);
-  const rowIsLink = detailTo !== undefined && nameIds.length > 0;
   const actionIsLink = actionTo !== undefined && actionLabel.trim() !== '';
+  const titleShown = texts.title.trim() !== '';
 
   const body = (
     <>
@@ -145,25 +161,9 @@ function AlertRow({ item, last }) {
     </>
   );
 
-  const action = (
-    <>
-      <span className={styles.actionLabel} data-alert-part="action-label">
-        {actionLabel}
-      </span>
-      <img
-        className={styles.arrow}
-        src={arrowRightSvg}
-        alt=""
-        width={16}
-        height={16}
-        data-fid={FID.recentAlerts.actionArrow}
-      />
-    </>
-  );
-
   return (
-    <div className={cx(styles.item, last && styles.last)} data-alert-row={item.id}>
-      {rowIsLink ? (
+    <div className={cx(styles.item, last && styles.last)} role="listitem" data-alert-row={item.id}>
+      {detailTo !== undefined ? (
         <Link className={cx(styles.row, styles.link)} to={detailTo} aria-labelledby={nameIds.join(' ')} data-alert-link="row">
           {body}
         </Link>
@@ -171,43 +171,59 @@ function AlertRow({ item, last }) {
         <div className={styles.row}>{body}</div>
       )}
       {actionIsLink ? (
-        <Link className={cx(styles.action, styles.actionLink)} to={actionTo} data-alert-link="action">
-          {action}
+        <Link
+          className={styles.action}
+          to={actionTo}
+          aria-describedby={titleShown ? partId('title') : undefined}
+          data-alert-link="action"
+        >
+          <span className={styles.actionLabel} data-alert-part="action-label">
+            {actionLabel}
+          </span>
+          <img
+            className={styles.arrow}
+            src={arrowRightSvg}
+            alt=""
+            width={16}
+            height={16}
+            data-fid={FID.recentAlerts.actionArrow}
+          />
         </Link>
-      ) : (
-        <span className={styles.action} data-alert-part="action">
-          {action}
-        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** FR-77: the Empty state; title and body verbatim from `recentAlerts.empty`, each only when shown. */
+function EmptyState({ data }) {
+  const { title, body } = emptyCopy(data);
+  if (title === null && body === null) return null;
+  return (
+    <div className={styles.empty} data-fid={FID.recentAlerts.empty} data-alert-empty="">
+      {title === null ? null : (
+        <h3 className={styles.emptyTitle} data-alert-part="empty-title">
+          {title}
+        </h3>
+      )}
+      {body === null ? null : (
+        <p className={styles.emptyBody} data-alert-part="empty-body">
+          {body}
+        </p>
       )}
     </div>
   );
 }
 
-/** FR-77: the Empty state, title and body verbatim from `recentAlerts.empty`. */
-function EmptyState({ empty }) {
-  const content = isObject(empty) ? empty : {};
-  return (
-    <div className={styles.empty} data-fid={FID.recentAlerts.empty} data-alert-empty="">
-      <h3 className={styles.emptyTitle} data-alert-part="empty-title">
-        {shown(content.title)}
-      </h3>
-      <p className={styles.emptyBody} data-alert-part="empty-body">
-        {shown(content.body)}
-      </p>
-    </div>
-  );
-}
-
 /**
- * @param {{ data: object }} props `data` = the `recentAlerts` slice. The
- *   page also passes its `variant`; the Alert rows are drawn alike in every
- *   Dashboard state, so it is not read.
+ * @param {{ data: object, variant?: 'full' | 'small' | 'allgood' }} props
+ *   `data` = the `recentAlerts` slice; `variant` = the Dashboard state, which
+ *   sets how many rows the frame draws (anything else → Full).
  */
-export default function RecentAlertsCard({ data }) {
-  if (hasNoAlerts(data)) return <EmptyState empty={data.empty} />;
-  const items = alertItems(data);
+export default function RecentAlertsCard({ data, variant }) {
+  if (hasNoAlerts(data)) return <EmptyState data={data} />;
+  const items = alertItems(data, variant);
   return (
-    <div className={styles.list} data-alert-list="">
+    <div className={styles.list} role="list" data-alert-list="">
       {items.map((item, index) => (
         <AlertRow key={item.id} item={item} last={items.length > 1 && index === items.length - 1} />
       ))}

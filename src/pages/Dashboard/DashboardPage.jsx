@@ -14,7 +14,8 @@
 // the KPI strip and the Equipment card use because their layout differs per
 // state. A ready slice that is missing, or has no content its section can
 // draw (the Equipment card with no usable rows; Recent Alerts with no usable
-// `items` array), shows that section's error. The KPI section draws the KPI
+// items, or an empty `items` array without Empty-state copy), shows that
+// section's error. The KPI section draws the KPI
 // strip (Story 2.3), the Equipment card its rows (Story 2.4) and Recent
 // Alerts its Alert rows or Empty state (Story 2.5) when ready; until Stories
 // 2.6–2.8 add their contents, the other `ready` cards show only their shell

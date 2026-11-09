@@ -68,3 +68,6 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-2-4-equipment-card-with-health-bars.md`
   summary: Decide a minimum visible width for a non-zero Health segment (e.g. 1 alert among hundreds of units renders sub-pixel). Needs a PRD change to FR-69's exact formula.
   evidence: healthSegments follows FR-69 exactly; tiny counts give a near-zero segment that still reserves a 2 px gap.
+- source_spec: `_acl-output/4-implementation/spec-2-5-recent-alerts-card.md`
+  summary: Design to review the Warning severity text colour #D97706 on white at 12 px (about 3.2:1, below WCAG AA 4.5:1 for small text).
+  evidence: Colour is verbatim from Figma/PRD FR-74; changing it is a token/design change.

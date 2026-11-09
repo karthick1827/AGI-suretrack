@@ -459,8 +459,15 @@ describe('robustness (AD-18)', () => {
       grain: { ...DOCS.full.grain, subtitle: undefined },
     };
     renderPage(readyContext(doc));
-    expect(within(section('equipmentCard')).queryByRole('link', { name: DOCS.full.equipmentCard.link })).toBeNull();
-    expect(within(section('recentAlerts')).queryByRole('link', { name: DOCS.full.recentAlerts.link })).toBeNull();
+    // No header link at all (the card's own row links are not header links).
+    expect(section('equipmentCard').querySelector(`a[href="${paths.equipment()}"]`)).toBeNull();
+    expect(section('recentAlerts').querySelector(`a[href="${paths.alerts()}"]`)).toBeNull();
+    // Every link that is drawn has a non-blank accessible name.
+    for (const key of ['equipmentCard', 'recentAlerts']) {
+      const links = within(section(key)).queryAllByRole('link');
+      expect(within(section(key)).queryAllByRole('link', { name: /\S/ })).toEqual(links);
+      expect(links.length).toBeGreaterThan(0);
+    }
     for (const key of ['fanActivity', 'grain']) {
       expect(section(key).querySelector('h2')).toBeNull();
       expect(section(key).textContent).toBe('');

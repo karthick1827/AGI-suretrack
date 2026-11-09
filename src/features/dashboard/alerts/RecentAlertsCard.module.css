@@ -11,11 +11,12 @@
  * bottom and starts 7 px (8 − 1) below the header, landing on the frame's box
  * (as in EquipmentCard).
  *
- * Overflow: the list may shrink to the card body (min-height 0) and clips its
- * rows, so extra rows (e.g. four items in the 240 px Small card) never paint
- * outside the card; the 4 px clip margin keeps the FR-58 focus ring (2 px at
- * offset 2) visible around every row. At rest (Full 4 rows = 3 × 90 + 70 =
- * 340 px, exactly the content box; Small 1 row) nothing is clipped.
+ * Rows: the card renders only as many rows as the state's frame draws (Full
+ * 4 = 3 × 90 + 70 = 340 px, exactly the content box; Small and All-good 1),
+ * so no row (and no link) is ever hidden. The clip is a guard only: the list
+ * may shrink to the card body (min-height 0) and never paints outside the
+ * card; the 4 px clip margin keeps the FR-58 focus ring (2 px at offset 2)
+ * visible around every row. At rest nothing is clipped.
  */
 .list {
   display: flex;
@@ -66,8 +67,9 @@
   grid-template-columns: subgrid;
 }
 
-/* Rows that are links: pointer only on <a>. */
+/* Rows that are links: pointer only on <a>; no underline at rest. */
 .link {
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -96,7 +98,8 @@
   background: var(--raw-dc2626);
 }
 
-/* Warning: #FFA526 circle, padding 3.077, 13.846×13.846 white glyph. */
+/* Warning: #FFA526 circle, padding 3.077, 13.846×13.846 white glyph (the
+   HTML width/height attributes are the integer 14; this is the exact size). */
 .warning {
   padding: 3.077px;
   background: var(--raw-ffa526);
@@ -212,7 +215,8 @@
 }
 
 /* Action link ("Button", FR-75): height 24, gap 6, padding-y 6, radius 6,
-   overflow clip; laid over the row's second column, below the top row. */
+   overflow clip; laid over the row's second column, below the top row. It
+   is only ever drawn as an <a> (pointer). */
 .action {
   display: flex;
   grid-row: 3;
@@ -225,9 +229,6 @@
   overflow: clip;
   border-radius: 6px;
   text-decoration: none;
-}
-
-.actionLink {
   cursor: pointer;
 }
 
@@ -297,18 +298,18 @@
 /* FR-58: #F0FFF8 row hover (also while the pointer is on the row's Action
    link), inside the card's content box; no layout shift. */
 .link:hover,
-.item:has(> .actionLink:hover) > .link {
+.item:has(> .action:hover) > .link {
   background: var(--raw-f0fff8);
 }
 
 /* FR-58: underline on Action link hover. */
-.actionLink:hover .actionLabel {
+.action:hover .actionLabel {
   text-decoration: underline;
 }
 
 /* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */
 .link:focus-visible,
-.actionLink:focus-visible {
+.action:focus-visible {
   outline: var(--border-width-md) solid var(--raw-006a36);
   outline-offset: 2px;
 }
