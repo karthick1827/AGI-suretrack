@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-09T06:26:31.562Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-09T06:26:31.562Z
 title: 'Story 2.4 — Equipment card with Health bars'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'fc6e3f482c15d6b1a4d442aed4d9397e042e3255'
-implementation_status: in-progress
+implementation_status: review
 story_key: 2-4-equipment-card-with-health-bars
 jira: SCRUM-37
 review_loop_iteration: 0
@@ -93,7 +92,96 @@ context:
 
 ## Spec Change Log
 
+- 2026-11-09 — **Row spacing follows the Figma frames (Manager to confirm):** the PRD row rule (padding 12/8, each border 1 px) puts Full rows 2–4 about 2 px lower than the Full frame, which fails ±1 px. The rows match the frames instead:
+  - The list is pulled out 1 px on the top, left and right, because Figma's card border takes no layout space.
+  - Full rows 2–4 (Figma "Item" wrappers) use padding 10/10.
+  - Plain bordered rows (Full row 5, Small row 2, All-good row 1) use padding-right 1 px, because every frame draws their bar at x 129.
+
+  Each value is explained in the CSS and pinned by the tests.
+- 2026-11-09 — **Pixel check on Windows (developer decision, Manager to confirm):** the card screenshot differs from the cropped Figma render on Windows by:
+  - Full: **0.758%**.
+  - Small: **0.889%**.
+  - All-good: **0.804%**.
+
+  The limit is **0.5%**. About 1,110 to 1,180 pixels per state come from the card header text: Story 2.2's header uses SF Pro, which Windows doesn't have, so it draws Inter. Without the header the card is at 0.345% / 0.155% / 0.084%. Every ±1 px, style, copy, hover, focus and navigation check passes. The limit stays 0.5%, and **macOS CI is authoritative**.
+- 2026-11-09 — **Caption digit weight:** `tokens.css` has no 700 token, so the caption digits use a raw `700`, as the KPI strip already does. Adding a bold token is a token change (Ask First). **Manager to decide** whether to add one.
+- 2026-11-09 — **Review loop 1 (patches only):**
+  - **Overflow:** extra rows are clipped inside the card body and never drawn over the header. Full centring uses `safe center`.
+  - **Hover:** the row hover fill stays inside the card border. The focus ring is checked for clipping on all four sides.
+  - **Data guards:**
+    - A row with no usable name is not a link.
+    - A numeric caption renders as text.
+    - A ready card with no usable rows shows the error state.
+    - Counts must be non-negative integers.
+    - For a duplicate type, the first row wins.
+  - **Page:** every section gets `variant`, and an unknown variant falls back to Full.
+  - **Tests:**
+    - Per-row padding is asserted on all four sides.
+    - The card has its own crop references.
+    - Clear errors replace crashes in the test helpers.
+    - Behavioural checks replace the brittle source-text checks.
+    - A pixel test covers hover.
+    - A test confirms 7 rows stay inside the card.
+  - **KEEP:** the visuals at rest are unchanged (the same pixel counts before and after) and the copy is verbatim.
+
 ## Verification
 
 **Commands:**
 - `npm run lint`, `npm run build`, `npm test`, `npm run test:fidelity`: expected to pass (Windows screenshot advisories documented).
+
+## Implementation Review (Story 2.4)
+
+**Result:**
+- **Commits:** `39a2f6a` and `a41416c` on `feature/2-4-equipment-card`.
+- **Lint and build:** `npm run lint` is clean and `npm run build` succeeds.
+- **Unit tests:** `npm test` passes **863/863**.
+- **Fidelity check:** `npm run test:fidelity` passes **68/76**. The 8 failures are all Windows screenshot comparisons:
+  - Equipment card: Full 0.758%, Small 0.889%, All-good 0.804%.
+  - The five recorded earlier: Header, Forgot modal, and KPI Full, Small and All-good.
+
+  macOS CI is authoritative.
+
+### Acceptance Criteria Checklist
+
+- [x] **Header (FR-66):** `Equipment (20)` / `Health by type` with `View All` and the chevron.
+- [x] **Rows (FR-67/FR-68):** `Bins 7`, `Piles 3`, `Flats 2`, `Tanks 6`, `Dryers 2`, with dividers per state, within ±1 px of each frame.
+- [x] **Health bars (FR-69):** Bins 201.43 / 67.14 / 201.43; Piles 157.33 / 314.67; Flats and Dryers 474; Tanks 78.67 / 393.33. All within ±1 px.
+- [x] **Colours and hatch (FR-70):** alert `#C62828`, healthy `#15803D`, and the verbatim 17-stripe offline hatch.
+- [x] **Captions (FR-71):** verbatim, with the digit runs bold.
+- [x] **Small and All-good:** `Equipment (2)` with `Bin 1` all alert and `Dryer 1` all healthy; `Equipment (1)` with `Bin 1` all healthy.
+- [x] **Navigation (FR-72):** rows open `/equipment?type=<typeKey>` and View All opens `/equipment`, with mouse and keyboard.
+- [ ] **Card screenshot ≤ 0.5%:** pending macOS. Windows is advisory (see the Change Log).
+
+### Review Findings
+
+- **Patched (14):** listed in the Spec Change Log above.
+- **Deferred (1):** a minimum visible width for a tiny non-zero segment (needs an FR-69 change), in [deferred-work.md](deferred-work.md).
+- **Rejected:**
+  - Text ellipsis or truncation: it risks the Figma visuals.
+  - Removing the Figma-matching 1 px row offsets.
+  - The `Number.MAX_VALUE` empty bar.
+  - The "pixel ratio not asserted" concern: snapshots point at the cropped Figma baselines.
+
+## Suggested Review Order
+
+**Equipment card**
+
+- Rows, the Health bar, the hatch, the caption digit runs, row links and guards.
+  [`EquipmentCard.jsx:1`](../../src/features/dashboard/equipment/EquipmentCard.jsx#L1)
+- Figma-matching row offsets, the overflow clip, and the states block (hover and focus).
+  [`EquipmentCard.module.css:1`](../../src/features/dashboard/equipment/EquipmentCard.module.css#L1)
+- The FR-69 formula (pure).
+  [`geometry.js:1`](../../src/lib/geometry.js#L1)
+- The usable-rows rule shared by the page and the card.
+  [`equipmentRows.js:1`](../../src/features/dashboard/equipment/equipmentRows.js#L1)
+- Sections always receive `variant`.
+  [`DashboardPage.jsx:1`](../../src/pages/Dashboard/DashboardPage.jsx#L1)
+
+**Tests**
+
+- FR-69 values and edge cases.
+  [`geometry.test.js:1`](../../tests/unit/geometry.test.js#L1)
+- The I/O matrix and guards.
+  [`equipment-card.test.jsx:1`](../../tests/unit/equipment-card.test.jsx#L1)
+- Screenshot, ±1 px audit, padding, hover, focus, overflow and navigation.
+  [`equipment-card.spec.js:1`](../../tests/fidelity/equipment-card.spec.js#L1)
