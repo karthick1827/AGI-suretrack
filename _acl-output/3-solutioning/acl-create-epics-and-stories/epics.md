@@ -539,6 +539,8 @@ A signed-in customer sees the Header and the full Dashboard: the KPI strip, Equi
 
 ### Story 2.1: Signed-in app shell and Header (NEW)
 
+- [x] Story 2.1 completed — Manager approved 2026-11-10 (spec-2-1); feature/2-1-app-shell
+
 As a signed-in farm customer,
 I want a Header showing where I am, my notifications badge and a way to log out,
 So that I can move around SureTrack and end my session safely.

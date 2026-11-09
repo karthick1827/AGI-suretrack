@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T05:02:48.042Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 spec_approved_by: Manager (via Markdown Studio)
 spec_approved_at: 2026-11-08T20:54:10.297Z
 title: 'Story 2.1 — Signed-in app shell and Header'
@@ -7,7 +10,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'b56840ba2779ee51f779113c7559c007cf7413d9'
-implementation_status: review
+implementation_status: done
 story_key: 2-1-signed-in-app-shell-and-header
 jira: NEW
 review_loop_iteration: 0

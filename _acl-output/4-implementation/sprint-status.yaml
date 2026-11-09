@@ -65,7 +65,7 @@ development_status:
   1-5-request-a-reset-link-forgot-password-modal: done
   epic-1-retrospective: optional
   epic-2: in-progress
-  2-1-signed-in-app-shell-and-header: review
+  2-1-signed-in-app-shell-and-header: done
   2-2-dashboard-page-dashboard-states-and-card-shells: backlog
   2-3-kpi-strip: backlog
   2-4-equipment-card-with-health-bars: backlog
