@@ -7,6 +7,8 @@ title: 'Story 2.2 — Dashboard page, Dashboard states and card shells'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-10'
+baseline_commit: '37bf9fb493675ef8b8738404d9ed100fe453981d'
+implementation_status: in-progress
 story_key: 2-2-dashboard-page-dashboard-states-and-card-shells
 jira: NEW
 review_loop_iteration: 0
