@@ -173,6 +173,7 @@ test.describe('Sign in and reach the Dashboard', () => {
 
     // Story 2.1: the real Logout, from the avatar's profile menu.
     await first.bringToFront();
+    const historyBefore = await first.evaluate(() => window.history.length);
     await first.getByRole('button', { name: copy.shell.avatarLabel }).click();
     await first.getByRole('button', { name: copy.shell.logout }).click();
 
@@ -187,8 +188,16 @@ test.describe('Sign in and reach the Dashboard', () => {
     await second.goBack();
     await expect(second).toHaveURL(urlOf(paths.login()));
     await expect(comingSoon(second)).toHaveCount(0);
-    // Logout replaced the Dashboard entry: Back never shows signed-in content.
+    // Logout REPLACED the Dashboard entry: no history entry was added, and
+    // Back never passes through /dashboard, not even transiently.
+    expect(await first.evaluate(() => window.history.length)).toBe(historyBefore);
+    const visited = [];
+    first.on('framenavigated', (frame) => {
+      if (frame === first.mainFrame()) visited.push(frame.url());
+    });
     await first.goBack();
+    await first.waitForLoadState();
+    expect(visited.filter((url) => new URL(url, 'http://x').pathname === paths.dashboard())).toEqual([]);
     await expect(first).not.toHaveURL(urlOf(paths.dashboard()));
     await expect(dashboardTitle(first)).toHaveCount(0);
   });

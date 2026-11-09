@@ -1,13 +1,13 @@
 // Story 1.2 / 1.3 — Login route, legal links and copy discipline (FR-11, FR-20, AD-16).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { parse } from '@babel/parser';
 import { readFileSync } from 'node:fs';
 import App from '../../src/app/App.jsx';
 import { getConfig, getUsers } from '../../src/data/api.js';
 import { copy } from '../../src/lib/copy.js';
 import { FID } from '../../src/lib/fid.js';
 import { paths } from '../../src/lib/paths.js';
+import { jsxLiterals } from './support/jsx-literals.js';
 import { fromRoot } from './support/project.js';
 
 vi.mock('../../src/data/api.js', () => ({ MAX_TIMEOUT_MS: 2147483647, getConfig: vi.fn(), getUsers: vi.fn() }));
@@ -150,46 +150,6 @@ describe('copy and Figma ids are never literal in JSX (AD-15, AD-16)', () => {
     'src/app/RequireSession.jsx',
     'src/pages/Placeholder/Placeholder.jsx',
   ];
-  const TEXT_ATTRIBUTES = new Set(['alt', 'aria-label', 'title', 'placeholder']);
-
-  /**
-   * Every JSX literal that would put user-visible text on screen. Parsing the
-   * JSX means {expressions} are set aside exactly, so text written next to an
-   * expression (`Hello {name}`) is still caught.
-   */
-  function jsxLiterals(source) {
-    const ast = parse(source, { sourceType: 'module', plugins: ['jsx'] });
-    const found = [];
-    const stringOf = (node) => (node?.type === 'StringLiteral' ? node.value : null);
-    const visit = (node, parent) => {
-      if (!node || typeof node.type !== 'string') return;
-      if (node.type === 'JSXText' && node.value.trim() !== '') found.push(`text: ${node.value.trim()}`);
-      if (node.type === 'JSXExpressionContainer' && parent?.type === 'JSXElement') {
-        const e = node.expression;
-        if (e.type === 'StringLiteral' || e.type === 'TemplateLiteral') {
-          found.push(`child expression: ${source.slice(e.start, e.end)}`);
-        }
-      }
-      if (node.type === 'JSXAttribute') {
-        const name = node.name.name;
-        const value = node.value?.type === 'JSXExpressionContainer' ? node.value.expression : node.value;
-        const literal = stringOf(value);
-        if (literal && TEXT_ATTRIBUTES.has(name)) found.push(`${name}="${literal}"`);
-        if (literal !== null && name === 'data-fid') found.push(`data-fid="${literal}"`);
-        if (literal !== null && (name === 'to' || name === 'href') && literal.startsWith('/')) {
-          found.push(`${name}="${literal}"`);
-        }
-      }
-      for (const [key, value] of Object.entries(node)) {
-        if (key === 'loc' || key === 'start' || key === 'end' || key === 'extra') continue;
-        if (Array.isArray(value)) for (const child of value) visit(child, node);
-        else if (value && typeof value === 'object') visit(value, node);
-      }
-    };
-    visit(ast.program, null);
-    return found;
-  }
-
   it('the checker catches literals, including text next to an expression', () => {
     const sample = [
       'export const A = () => (',

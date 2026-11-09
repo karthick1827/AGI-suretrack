@@ -103,11 +103,13 @@ export default function OverlayProvider({ children, routeKey }) {
     setOverlay((current) => (current?.id === id ? { ...current, props: { ...current.props, ...props } } : current));
   }, []);
 
-  const close = useCallback((id) => {
+  const close = useCallback((id, options) => {
     if (openId.current === null) return; // nothing open: a no-op
     if (id !== undefined && id !== openId.current) return; // another overlay is open
     openId.current = null;
-    pendingFocus.current = triggerRef.current;
+    // `restoreFocus: false`: focus already moved on to another control (a menu
+    // closing because the user tabbed or clicked elsewhere), so leave it there.
+    pendingFocus.current = options?.restoreFocus === false ? null : triggerRef.current;
     triggerRef.current = null;
     setOverlay(null);
   }, []);

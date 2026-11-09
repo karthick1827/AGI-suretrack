@@ -92,7 +92,8 @@ export const SHELL_TABS = Object.freeze(['dashboard', 'equipment', 'alerts']);
  * `equipment`, `/alerts…` → `alerts`, anything else (`/dashboard`) → `dashboard`.
  */
 export function tabForPath(pathname) {
-  const path = typeof pathname === 'string' ? pathname : '';
+  // Case-insensitive, like the router's own matching (`/Equipment`, `/ALERTS`).
+  const path = typeof pathname === 'string' ? pathname.toLowerCase() : '';
   const under = (base) => path === base || path.startsWith(`${base}/`);
   if (under(routePatterns.equipment)) return 'equipment';
   if (under(routePatterns.alerts)) return 'alerts';

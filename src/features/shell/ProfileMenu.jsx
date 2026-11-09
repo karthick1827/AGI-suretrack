@@ -4,15 +4,20 @@
 // position (x 26, y 379 inside the panel).
 //
 // Opened by AvatarButton through useOverlay() as kind `menu` (no focus trap).
-// Esc and a route change are handled by the overlay owner; a click outside
-// the panel (and outside the avatar, which toggles it) closes it here. It
-// listens for the click, not the press, so the press's own focus change is
-// over and focus can return to the avatar.
-// Focus moves to Logout on open and returns to the avatar on close.
+// Focus moves to Logout on open. It closes on:
+//   - Esc and a route change (the overlay owner): focus returns to the avatar;
+//   - focus leaving panel + avatar (focusout whose relatedTarget is outside
+//     both): focus stays where the user moved it;
+//   - a press outside panel + avatar. The pointerdown target decides: on a
+//     focusable control (bell, nav tab, …) the menu closes and that control
+//     keeps focus; elsewhere it closes when the press ends (pointerup) and
+//     focus returns to the avatar. A press inside that is released outside
+//     never closes it. The avatar itself toggles the menu.
 //
-// Logout calls session.signOut(); the app's SessionSync then shows /login in
-// every tab, with no return path and no banner (FR-35).
-import { useEffect, useId, useRef } from 'react';
+// Logout calls session.signOut() once (a second activation is ignored); the
+// app's SessionSync then shows /login in every tab, with no return path and
+// no banner (FR-35).
+import { useEffect, useRef } from 'react';
 import { copy } from '../../lib/copy.js';
 import { FID } from '../../lib/fid.js';
 import { signOut } from '../../lib/session.js';
@@ -22,31 +27,68 @@ import styles from './ProfileMenu.module.css';
 
 export const PROFILE_MENU_ID = 'profile-menu';
 
-export default function ProfileMenu({ triggerRef }) {
+const FOCUSABLE = 'a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [contenteditable]';
+
+export default function ProfileMenu({ panelId, triggerRef, onOpenChange }) {
   const { close } = useOverlayActions();
   const panelRef = useRef(null);
   const logoutRef = useRef(null);
-  const titleId = useId();
+  const loggingOut = useRef(false);
+  const titleId = `${panelId}-title`;
 
   useEffect(() => {
+    onOpenChange?.(true);
     logoutRef.current?.focus();
-  }, []);
+    return () => onOpenChange?.(false);
+  }, [onOpenChange]);
 
   useEffect(() => {
-    const onOutsideClick = (event) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (panelRef.current?.contains(target)) return;
-      if (triggerRef?.current?.contains(target)) return; // the avatar toggles the menu itself
+    const inside = (node) =>
+      node instanceof Node && (panelRef.current?.contains(node) || triggerRef?.current?.contains(node));
+    const press = { outside: false };
+
+    const onPointerDown = (event) => {
+      press.outside = !inside(event.target);
+      if (!press.outside) return;
+      const control = event.target instanceof Element ? event.target.closest(FOCUSABLE) : null;
+      if (control) {
+        press.outside = false;
+        close(PROFILE_MENU_ID, { restoreFocus: false });
+      }
+    };
+    const onPointerUp = () => {
+      if (!press.outside) return;
+      press.outside = false;
       close(PROFILE_MENU_ID);
     };
-    document.addEventListener('click', onOutsideClick, true);
-    return () => document.removeEventListener('click', onOutsideClick, true);
+    const onFocusOut = (event) => {
+      if (event.relatedTarget && !inside(event.relatedTarget)) close(PROFILE_MENU_ID, { restoreFocus: false });
+    };
+
+    const panel = panelRef.current;
+    const trigger = triggerRef?.current;
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('pointerup', onPointerUp, true);
+    panel?.addEventListener('focusout', onFocusOut);
+    trigger?.addEventListener('focusout', onFocusOut);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('pointerup', onPointerUp, true);
+      panel?.removeEventListener('focusout', onFocusOut);
+      trigger?.removeEventListener('focusout', onFocusOut);
+    };
   }, [close, triggerRef]);
+
+  const logout = () => {
+    if (loggingOut.current) return;
+    loggingOut.current = true;
+    signOut();
+  };
 
   return (
     <div
       ref={panelRef}
+      id={panelId}
       className={styles.panel}
       role="dialog"
       aria-labelledby={titleId}
@@ -62,7 +104,7 @@ export default function ProfileMenu({ triggerRef }) {
           ref={logoutRef}
           type="button"
           className={styles.logout}
-          onClick={() => signOut()}
+          onClick={logout}
           data-fid={FID.profileMenu.logout}
         >
           <img

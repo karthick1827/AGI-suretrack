@@ -1,4 +1,15 @@
 /* Bell (FR-53), Figma I6227:63670;6194:35257, and badge 6194:35281. */
+
+/* The badge's positioning box: the bell's 20 px column, full Header height,
+   so left 9 / top 18 land exactly where Figma draws them. */
+.wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 64px;
+}
+
 .bell {
   display: block;
   flex-shrink: 0;
@@ -12,7 +23,8 @@
   height: 20px;
 }
 
-/* Absolute at left 9, top 18 of the icon-action box; 14×14, radius 100. */
+/* Absolute at left 9, top 18; 14 px high, radius 100. min-width keeps the
+   14×14 disc for one digit and lets longer counts grow to the right. */
 .badge {
   position: absolute;
   left: 9px;
@@ -20,8 +32,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
+  min-width: 14px;
   height: 14px;
+  padding: 0 3px;
   overflow: hidden;
   border-radius: 100px;
   background: var(--raw-ff0000);

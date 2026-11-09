@@ -1,18 +1,24 @@
 // Avatar (FR-54): a 48×48 holder, content at its right edge, holding a 32 px
 // round button with the avatar photo over the #1C447E fallback disc. It opens
 // and closes the profile menu through the overlay owner (AD-12, kind `menu`).
-import { useRef } from 'react';
+//
+// `aria-expanded` follows the panel itself: the open panel reports its own
+// mount and unmount (onOpenChange), so it is true exactly while the panel is
+// on screen. Activating the avatar while it is open closes it (never a second
+// copy). `aria-controls` names the panel.
+import { useId, useRef, useState } from 'react';
 import { copy } from '../../lib/copy.js';
 import { FID } from '../../lib/fid.js';
-import { OVERLAY_KINDS, useOverlay } from '../../ui/overlay/useOverlay.js';
+import { OVERLAY_KINDS, useOverlayActions } from '../../ui/overlay/useOverlay.js';
 import ProfileMenu, { PROFILE_MENU_ID } from './ProfileMenu.jsx';
 import avatarPng from '../../assets/avatar.png';
 import styles from './AvatarButton.module.css';
 
 export default function AvatarButton() {
-  const { open, close, current } = useOverlay();
+  const { open, close } = useOverlayActions();
   const buttonRef = useRef(null);
-  const expanded = current?.id === PROFILE_MENU_ID;
+  const panelId = useId();
+  const [expanded, setExpanded] = useState(false);
 
   const toggle = () => {
     if (expanded) {
@@ -23,7 +29,7 @@ export default function AvatarButton() {
       id: PROFILE_MENU_ID,
       kind: OVERLAY_KINDS.menu,
       component: ProfileMenu,
-      props: { triggerRef: buttonRef },
+      props: { panelId, triggerRef: buttonRef, onOpenChange: setExpanded },
       trigger: buttonRef.current,
     });
   };
@@ -37,6 +43,7 @@ export default function AvatarButton() {
         aria-label={copy.shell.avatarLabel}
         aria-haspopup="dialog"
         aria-expanded={expanded}
+        aria-controls={panelId}
         onClick={toggle}
         data-fid={FID.shell.avatarButton}
       >

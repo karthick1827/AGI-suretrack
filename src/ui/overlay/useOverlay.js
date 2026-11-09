@@ -29,8 +29,9 @@ export const OverlayStateContext = createContext(undefined);
  *   focus back on close; a replacement without a trigger keeps the trigger
  *   of the overlay it replaces.
  * - `update(id, props)` merges new props into the open overlay `id`.
- * - `close(id?)` unmounts the open overlay (its state is discarded) and
- *   returns focus to its trigger. With an `id`, it only closes that overlay.
+ * - `close(id?, { restoreFocus }?)` unmounts the open overlay (its state is
+ *   discarded) and returns focus to its trigger, unless `restoreFocus` is
+ *   false. With an `id`, it only closes that overlay.
  */
 export function useOverlayActions() {
   const value = useContext(OverlayActionsContext);

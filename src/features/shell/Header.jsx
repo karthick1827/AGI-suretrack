@@ -7,6 +7,8 @@
 //
 // Not rendered (FR-51): the hidden "Farm Test" switcher. The divider keeps its
 // slot; its Figma path is exported at opacity 0, so it stays invisible.
+// <img> width/height attributes are whole-pixel hints; the exact sizes
+// (176.895 × 14, the 0-high divider line) live in Header.module.css.
 import { copy } from '../../lib/copy.js';
 import { FID } from '../../lib/fid.js';
 import AvatarButton from './AvatarButton.jsx';
@@ -33,12 +35,12 @@ export default function Header({ activeTab, badge, onBellClick }) {
           className={styles.logo}
           src={logoSvg}
           alt={copy.brand.logoAlt}
-          width="176.895"
+          width="177"
           height="14"
           data-fid={FID.shell.logo}
         />
         <div className={styles.divider} aria-hidden="true" data-fid={FID.shell.headerDivider}>
-          <img className={styles.dividerLine} src={navlineSvg} alt="" width="24" height="0" />
+          <img className={styles.dividerLine} src={navlineSvg} alt="" width="24" />
         </div>
       </div>
       <NavTabs activeTab={activeTab} />

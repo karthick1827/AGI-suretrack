@@ -29,6 +29,9 @@ import {
 } from './support/fidelity.js';
 
 const users = JSON.parse(readFileSync(path.resolve('src/data/json/users.json'), 'utf8'));
+// The badge reading comes from the state document, never a hard-coded value.
+const fullDoc = JSON.parse(readFileSync(path.resolve('src/data/json/dashboard.full.json'), 'utf8'));
+const BADGE = String(fullDoc.header.bellBadge);
 const demo = users.users.find((user) => user.username === 'demo');
 const s = copy.shell;
 const fid = (page, id) => page.locator(`[data-fid="${id}"]`);
@@ -40,7 +43,7 @@ async function openSignedIn(page, url = paths.dashboard()) {
   await page.evaluate(([key, value]) => localStorage.setItem(key, value), [SESSION_KEY, JSON.stringify(record)]);
   await page.goto(url);
   await fid(page, FID.shell.header).waitFor();
-  await expect(fid(page, FID.shell.badgeText)).toHaveText('2');
+  await expect(fid(page, FID.shell.badgeText)).toHaveText(BADGE);
   await waitForFonts(page);
   await page.waitForFunction(() => [...document.images].every((img) => img.complete && img.naturalWidth > 0));
 }
@@ -109,7 +112,8 @@ test.describe('Signed-in shell 6215:58878', () => {
     expect(tabStroke).toEqual([`${cssColour('#006a36')} 0px -4px 0px 0px inset`, '0px', 'pointer']);
     const canvasBg = await page.locator('main').evaluate((el) => getComputedStyle(el.parentElement).backgroundColor);
     expect(canvasBg).toBe(cssColour('#f3f4f6'));
-    // Header shadow: the generated-code drop-shadow (PRD Q-S2).
+    // Header shadow: the generated-code drop-shadow (PRD Q-S2). A box-shadow
+    // was measured and rejected: its blur matches the Figma render less well.
     const filter = await fid(page, FID.shell.header).evaluate((el) => getComputedStyle(el).filter);
     expect(filter).toBe('drop-shadow(rgba(39, 39, 39, 0.1) 0px 2px 2px)');
   });
@@ -129,7 +133,7 @@ test.describe('Signed-in shell 6215:58878', () => {
         [FID.shell.navLabelDashboard]: { text: s.tabs.dashboard },
         [FID.shell.navLabelEquipment]: { text: s.tabs.equipment },
         [FID.shell.navLabelAlerts]: { text: s.tabs.alerts },
-        [FID.shell.badgeText]: { text: '2' },
+        [FID.shell.badgeText]: { text: BADGE },
         [FID.shell.pageTitle]: { text: s.pageTitles.dashboard },
       }),
     ).toEqual([]);

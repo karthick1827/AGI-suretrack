@@ -39,6 +39,13 @@ export const MAX_CLOCK_SKEW_MS = 60_000;
 const MS_PER_MINUTE = 60_000;
 const listeners = new Set();
 
+/**
+ * The stored Session string this tab logged out of but could not remove
+ * (storage removal threw). Until a new sign-in, that exact record reads as no
+ * Session in this tab, so a failed removal never keeps the user signed in.
+ */
+let revokedRaw = null;
+
 function storage() {
   try {
     return typeof window === 'undefined' ? null : window.localStorage;
@@ -118,7 +125,7 @@ function readRaw() {
  */
 export function getSessionState(now = Date.now()) {
   const raw = readRaw();
-  if (raw === null) return { session: null, reason: 'required' };
+  if (raw === null || raw === revokedRaw) return { session: null, reason: 'required' };
   let record;
   try {
     record = JSON.parse(raw);
@@ -177,6 +184,7 @@ export function signIn(user, { now = Date.now(), ttlMinutes }) {
     }
     return false;
   }
+  revokedRaw = null;
   notify({ crossTab: false });
   return true;
 }
@@ -192,8 +200,11 @@ export function signOut() {
     try {
       store.removeItem(SESSION_KEY);
     } catch {
-      // Fall through to the sign-out marker.
+      // Fall through: the record is revoked in memory below.
     }
+    // Whatever is still stored (removal threw or was ignored) is revoked in
+    // this tab, so the same tab still leaves for /login.
+    revokedRaw = readRaw();
     try {
       store.setItem(SIGNOUT_KEY, String(Date.now()));
     } catch {

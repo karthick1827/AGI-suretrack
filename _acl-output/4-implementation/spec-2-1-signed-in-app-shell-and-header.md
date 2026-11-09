@@ -103,6 +103,21 @@ Every signed-in route renders this shell (AD-17). `/dashboard` shows the shell, 
   - **Logout without return path:** `signOut()` now notifies same-tab listeners with `{ crossTab: false, signedOut: true }`, and `SessionSync` sends that tab to `/login` with no router state. Other tabs keep `{ from, reason: 'required' }`, which shows no banner.
   - **Pixel check on Windows (advisory):** Header 451 px = **0.516%** against 0.5% (text and icon anti-aliasing at sub-pixel x; every measurement and copy audit passes). Profile panel: passes (0.455% upper bound). Login is unchanged (≤ 0.436%), and Forgot Password is unchanged at the documented 0.70% Windows advisory. macOS CI is authoritative.
 
+- 2026-11-09 — **Review fixes (21 items):**
+  - **Dashboard state:** the shell resolves the state once per mount and loads the state document again only when `?state` or the Session's `dashboardState` changes. Child pages get `{ state, status, doc, retry }` through the Outlet context, so Story 2.2 doesn't fetch it again.
+  - **Badge:** it shows only positive counts, grows with `min-width`, and is linked to the bell by `aria-describedby`.
+  - **Bell:** `aria-disabled` when there is no handler. It has its own positioning wrapper.
+  - **Logout:**
+    - If removing the Session from storage fails, that record is cancelled in memory, so the tab still goes to `/login`.
+    - A second activation is ignored.
+  - **Profile menu:**
+    - It closes when focus moves outside the panel and the avatar.
+    - For a press outside, the `pointerdown` target decides: on a focusable control, focus stays on that control; elsewhere, focus returns to the avatar.
+    - The avatar has `aria-controls`, and `aria-expanded` is true while the panel is open.
+  - **Paths:** `tabForPath` ignores case.
+  - **Header shadow:** it stays a `drop-shadow`. A `box-shadow` was measured and rejected: its rows below the Header were 223/228/236/242, against ≈226/230/235/238 in the Figma render (`drop-shadow` gives 227/230/234/237).
+  - **Windows pixel advisories:** unchanged. Header is 0.516% (451 px); Forgot Password is 0.70% (1581 px).
+
 ## Verification
 
 **Commands:**

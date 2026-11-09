@@ -13,6 +13,11 @@
   height: 64px;
   padding: 0 24px;
   background: var(--primitives-color-base-white);
+  /* Kept as drop-shadow, not box-shadow: Chromium blurs a box-shadow with half
+     the spread of a drop-shadow, so box-shadow rows below the Header came out
+     223/228/236/242 against Figma's ≈226/230/235/238 (drop-shadow: 227/230/
+     234/237). The Header clip is unaffected either way; the shadow rows match
+     the Figma render only with drop-shadow. */
   filter: drop-shadow(var(--shadow-card));
 }
 
@@ -50,9 +55,8 @@
 }
 
 /* "Icon action Header" I6227:63670;6194:35256: bell + 48 px avatar holder, no
-   gap; the badge is positioned against this box (left 9, top 18). */
+   gap. The badge positions itself inside BellButton's own wrapper. */
 .actions {
-  position: relative;
   display: flex;
   align-items: center;
   flex-shrink: 0;

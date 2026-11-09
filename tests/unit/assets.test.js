@@ -17,8 +17,12 @@ const figmaSvgs = ['login', 'dashboard'].flatMap((dir) =>
 );
 
 describe('src/assets/icons — Figma SVGs, byte-identical', () => {
-  it('copies every exported SVG', () => {
-    expect(figmaSvgs.length).toBe(26); // + logout.svg, exported from 6026:52937 (Story 2.1)
+  it('copies every SVG listed in figma-assets/ (the listing is the manifest)', () => {
+    expect(figmaSvgs.length).toBeGreaterThan(0);
+    const icons = new Set(readdirSync(ICONS));
+    expect(figmaSvgs.map(([name]) => name).filter((name) => !icons.has(name))).toEqual([]);
+    // Story 2.1: the Logout icon exported from 6026:52937 is part of the set.
+    expect(figmaSvgs.map(([name]) => name)).toContain('logout.svg');
   });
 
   it.each(figmaSvgs)('%s matches its Figma export checksum', (name, source) => {

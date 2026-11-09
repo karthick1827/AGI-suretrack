@@ -15,12 +15,7 @@ const isState = (value) => typeof value === 'string' && DASHBOARD_STATES.include
  * @returns {'full' | 'small' | 'allgood'}
  */
 export function resolveDashboardState(search, session) {
-  let fromUrl = null;
-  try {
-    fromUrl = (search instanceof URLSearchParams ? search : new URLSearchParams(search ?? '')).get('state');
-  } catch {
-    fromUrl = null;
-  }
+  const fromUrl = (search instanceof URLSearchParams ? search : new URLSearchParams(search ?? '')).get('state');
   if (isState(fromUrl)) return fromUrl;
   if (isState(session?.dashboardState)) return session.dashboardState;
   return DEFAULT_DASHBOARD_STATE;
