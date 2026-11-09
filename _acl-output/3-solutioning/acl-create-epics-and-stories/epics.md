@@ -781,6 +781,7 @@ So that I understand energy use and drying progress.
 **Given** each state
 **When** the card is compared with its Reference render
 **Then** it passes the Fidelity check
+- [x] Story 2.6 completed — Manager approved 2026-11-09 (spec-2-6); feature/2-6-fan-activity
 
 ### Story 2.7: Grain On Hand card (SCRUM-39)
 

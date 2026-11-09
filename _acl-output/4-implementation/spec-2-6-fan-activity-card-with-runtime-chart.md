@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T10:50:27.485Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 spec_approved_by: Manager (via Markdown Studio)
 spec_approved_at: 2026-11-09T10:09:05.598Z
 title: 'Story 2.6 — Fan activity card with Runtime chart'
@@ -7,7 +10,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: '8fe9cb9564e92f3085e02611fd5335115e3d7565'
-implementation_status: review
+implementation_status: done
 story_key: 2-6-fan-activity-card-with-runtime-chart
 jira: NEW
 review_loop_iteration: 0
