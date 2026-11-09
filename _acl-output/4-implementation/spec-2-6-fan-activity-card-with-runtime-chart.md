@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-09T10:09:05.598Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-09T10:09:05.598Z
 title: 'Story 2.6 — Fan activity card with Runtime chart'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: '8fe9cb9564e92f3085e02611fd5335115e3d7565'
-implementation_status: in-progress
+implementation_status: review
 story_key: 2-6-fan-activity-card-with-runtime-chart
 jira: NEW
 review_loop_iteration: 0
@@ -99,7 +98,93 @@ context:
 
 ## Spec Change Log
 
+- 2026-11-09 — **Values follow the Figma frames (Manager to confirm):** each is explained in the CSS.
+  1. **Value label position:** FR-81 says "horizontally centred", but every label in the renders starts at bar x + 4, which puts it about 2 px right of centre. That is what the PRD's own 16.5% inset produces. The labels match the frames.
+  2. **Day label box:** fixed at 19 px (5 px padding plus a 14 px line) so bar bottoms land on whole pixels, as the renders show.
+  3. **Bar placement:** columns are placed with `translateX` so fractional bar edges anti-alias as Figma draws them.
+  4. **Stat tiles:** the value and label line boxes are centred in their 20 px and 17 px boxes.
+- 2026-11-09 — **Bar heights in Small and All-good (design to confirm, with Q-N2):** in the Small and All-good renders, five bars are 1 px taller than `barPx`: Thu 62, Fri 67, Sat 73, Sun 69 and Mon 80, against the data's 61, 66, 72, 68 and 79. Full matches `barPx` exactly. The spec requires `barPx` at 0 px, so the app draws the data values. This 1 px accounts for the whole 0.153% text-masked residual in those states.
+- 2026-11-09 — **Pixel check on Windows (developer decision, Manager to confirm):** the card screenshot differs from the cropped Figma render on Windows by:
+  - Full: **2.064%**.
+  - Small: **2.193%**.
+  - All-good: **2.126%**.
+
+  The limit is **0.5%**. With the text boxes masked, the difference is 0.028% / 0.153% / 0.153%, so the cause is text rendering plus the 1 px bars above. Every bar is at exactly `barPx` (0 px), and every ±1 px, style and copy check passes. The limit stays 0.5% and **macOS CI is authoritative**.
+- 2026-11-09 — **Review loop 1 (patches only):**
+  - **One scale per chart:** `barPx` is used only when every drawn bar has a usable one. A usable `barPx` is an integer from 0 to 82, the tallest bar whose label still fits. Anything else is rejected, never capped; otherwise the formula is used for all bars.
+  - **Data rules:**
+    - Negative hours are dropped.
+    - Only the last bar can be Today.
+    - A chart counts as content only if it draws a visible label.
+    - One visible-text rule covers every text.
+  - **Accessibility:**
+    - The chart is an image named by `chartLabel` only when all 7 bars are drawn. Otherwise it is a list of day and hours pairs.
+    - The tile list has an explicit `role="list"`.
+  - **Tests:**
+    - The per-state classes are defined and tested by data attribute.
+    - New geometry cases cover negative hours, off-window max, mixed scales and invalid `barPx`.
+    - The fidelity check pins the column geometry to the constants.
+    - The card-only image wait has a timeout.
+  - **KEEP:** the visuals at rest are unchanged (the same pixel counts before and after) and the copy is verbatim.
+
 ## Verification
 
 **Commands:**
 - `npm run lint`, `npm run build`, `npm test`, `npm run test:fidelity`: expected to pass (Windows screenshot advisories documented).
+
+## Implementation Review (Story 2.6)
+
+**Result:**
+- **Commits:** `ed591b5` and `fe456c7` on `feature/2-6-fan-activity`.
+- **Lint and build:** `npm run lint` is clean and `npm run build` succeeds.
+- **Unit tests:** `npm test` passes **989/989**.
+- **Fidelity check:** `npm run test:fidelity` passes **98/112**. The 14 failures are all Windows screenshot comparisons:
+  - Fan activity: Full 2.064%, Small 2.193%, All-good 2.126%.
+  - The 11 recorded earlier: Header, Forgot modal, KPI ×3, Equipment ×3 and Recent Alerts ×3.
+
+  macOS CI is authoritative.
+
+### Acceptance Criteria Checklist
+
+- [x] **Header and Stat tiles (FR-78/FR-79):** `Fan activity` / `All storage fans`; `7` Running Now, `86 h` Runtime Today and `410 kWh` Energy Today in Full and Small; `2 of 3`, `7 h 24 m` and `38 kWh` in All-good. Three tiles of about 118 px with 16 px gaps.
+- [x] **Runtime chart (FR-80):** bars of 54/61/66/72/68/79/76 px, exactly from `barPx`, 24 wide, radius 5/5/2/2, `#0B7A3B` (Today `#0A5C30`), centred in 55.14 px columns on one baseline.
+- [x] **Labels (FR-81):** `62h` to `86h` 18 px above each bar. `Wed` to `Mon` in Roboto 400; `Today` in Roboto 700 `#111827`.
+- [x] **Caption (FR-82):** verbatim, on 2 lines.
+- [x] **Accessible name:** `Fan runtime hours for the last 7 days, from 62 to 90 hours`.
+- [ ] **Card screenshot ≤ 0.5%:** pending macOS. Windows is advisory (see the Change Log).
+
+### Review Findings
+
+- **Patched (11):** listed in the Spec Change Log above.
+- **Deferred (1):** audit the earlier unit tests that use `classList.contains(styles[x])`, because Vitest's CSS-module proxy returns a class name for any key. In [deferred-work.md](deferred-work.md).
+- **Rejected:**
+  - Long day, hours or caption text overflow: the canvas is fixed.
+  - The `.bar` `max-width: 30px`: a PRD value.
+  - Computing the content rule once and sharing it.
+  - The screenshot ratio assertion: snapshots already point at the cropped Figma baselines.
+  - The taller test viewport.
+  - `box-sizing`: the global reset sets it.
+  - Source-scan brittleness.
+  - The documented CardShell margin coupling.
+
+## Suggested Review Order
+
+**Fan activity card**
+
+- `runtimeBars`: one scale, the strict `barPx` rule, Today and the column-geometry constants.
+  [`geometry.js:1`](../../src/lib/geometry.js#L1)
+- Tiles, bars, the visible-text and content rules shared with the page.
+  [`fanActivity.js:1`](../../src/features/dashboard/fan/fanActivity.js#L1)
+- Stat tiles, the chart (image or list), labels and caption.
+  [`FanActivityCard.jsx:1`](../../src/features/dashboard/fan/FanActivityCard.jsx#L1)
+- Frame-matching values and per-state chart heights.
+  [`FanActivityCard.module.css:1`](../../src/features/dashboard/fan/FanActivityCard.module.css#L1)
+
+**Tests**
+
+- FR-80 heights and edge cases.
+  [`geometry.test.js:1`](../../tests/unit/geometry.test.js#L1)
+- The I/O matrix, guards and accessibility.
+  [`fan-activity-card.test.jsx:1`](../../tests/unit/fan-activity-card.test.jsx#L1)
+- The screenshot, 0 px bars, ±1 px audit and geometry pin.
+  [`fan-activity-card.spec.js:1`](../../tests/fidelity/fan-activity-card.spec.js#L1)
