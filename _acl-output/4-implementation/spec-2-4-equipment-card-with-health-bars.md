@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T06:26:31.562Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 2.4 — Equipment card with Health bars'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
