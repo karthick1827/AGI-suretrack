@@ -13,6 +13,7 @@
 // `data` = its slice of the document. Until Stories 2.3–2.8 add their
 // contents, a `ready` section shows only its shell and card header; `loading`
 // and `error` show the FR-95 / FR-96 blocks.
+import { useRef } from 'react';
 import { useOutletContext } from 'react-router';
 import { FID } from '../../lib/fid.js';
 import { CONTENT_TOP, FRAME, SECTION_KEYS, pageHeight } from '../../lib/dashboardLayout.js';
@@ -21,8 +22,13 @@ import CardShell from '../../ui/CardShell.jsx';
 import SectionState from '../../ui/SectionState.jsx';
 import styles from './DashboardPage.module.css';
 
-/** KPI strip slot (FR-59 shell). Its contents come in Story 2.3. */
-function KpiSection({ status, onRetry }) {
+const STATUSES = ['loading', 'ready', 'error'];
+const DEFAULT_STATE = 'full';
+
+const isText = (value) => typeof value === 'string' && value.trim() !== '';
+
+/** KPI strip slot (FR-59 shell). Its contents (from `data`) come in Story 2.3. */
+function KpiSection({ status, data: _data, onRetry }) {
   return (
     <div className={styles.kpiShell} data-fid={FID.kpi.strip}>
       {status === 'ready' ? null : <SectionState status={status} onRetry={onRetry} />}
@@ -34,14 +40,15 @@ function KpiSection({ status, onRetry }) {
 function cardSection({ headerSize, subtitleTone, linkTo }) {
   return function CardSection({ status, data, onRetry }) {
     const ready = status === 'ready';
+    // No header block unless the document gives both strings (FR-94: verbatim, never invented).
     const header =
-      ready && data
+      ready && isText(data?.title) && isText(data?.subtitle)
         ? {
             title: data.title,
             subtitle: data.subtitle,
             headerSize,
             subtitleTone,
-            link: linkTo && data.link ? { to: linkTo(), label: data.link } : undefined,
+            link: linkTo && isText(data.link) ? { to: linkTo(), label: data.link } : undefined,
           }
         : null;
     return (
@@ -53,34 +60,65 @@ function cardSection({ headerSize, subtitleTone, linkTo }) {
 }
 
 /** The section component for each key of SECTION_KEYS (FR-65 header variants). */
-const SECTIONS = {
+const SECTIONS = Object.freeze({
   kpi: KpiSection,
   equipmentCard: cardSection({ headerSize: 'regular', subtitleTone: 'dark', linkTo: () => paths.equipment() }),
   recentAlerts: cardSection({ headerSize: 'regular', subtitleTone: 'dark', linkTo: () => paths.alerts() }),
   fanActivity: cardSection({ headerSize: 'regular', subtitleTone: 'muted' }),
   grain: cardSection({ headerSize: 'compact', subtitleTone: 'muted' }),
   liquid: cardSection({ headerSize: 'compact', subtitleTone: 'muted' }),
-};
+});
 
 export default function DashboardPage() {
-  const { state, status, doc, retry } = useOutletContext();
-  const frame = FRAME[state] ?? FRAME.full;
+  const context = useOutletContext();
+  const pageRef = useRef(null);
+  // Without the layout's context there is no document and nothing to retry.
+  const state = Object.hasOwn(FRAME, context?.state ?? '') ? context.state : DEFAULT_STATE;
+  const frame = FRAME[state];
+  const status = STATUSES.includes(context?.status) ? context.status : 'error';
+  const doc = context?.doc ?? null;
+  const retry = typeof context?.retry === 'function' ? context.retry : undefined;
+
+  // Retry unmounts the focused button (the sections go back to `loading`):
+  // keep a keyboard user's place by moving focus to the page region first.
+  const onRetry = retry
+    ? () => {
+        const pageEl = pageRef.current;
+        if (pageEl && pageEl.contains(document.activeElement)) {
+          // tabindex -1 only while it holds focus: at rest the page is not
+          // focusable, so a pointer press on it still counts as an outside
+          // press for overlays and never moves focus.
+          pageEl.setAttribute('tabindex', '-1');
+          pageEl.addEventListener('blur', () => pageEl.removeAttribute('tabindex'), { once: true });
+          pageEl.focus({ preventScroll: true });
+        }
+        retry();
+      }
+    : undefined;
 
   return (
-    <div className={styles.page} style={{ height: pageHeight(frame) - CONTENT_TOP }} data-state={state}>
+    <div
+      ref={pageRef}
+      className={styles.page}
+      style={{ height: pageHeight(frame) - CONTENT_TOP }}
+      data-state={state}
+    >
       {SECTION_KEYS.map((key) => {
         const Section = SECTIONS[key];
         const { x, y, w, h } = frame.sections[key];
+        const data = doc?.[key] ?? null;
+        // A ready document without this section's slice is a load error for that section.
+        const sectionStatus = status === 'ready' && data === null ? 'error' : status;
         return (
           <div
             key={key}
             className={styles.slot}
             style={{ left: x, top: y - CONTENT_TOP, width: w, height: h }}
             data-section={key}
-            data-status={status}
-            aria-busy={status === 'loading' ? true : undefined}
+            data-status={sectionStatus}
+            aria-busy={sectionStatus === 'loading' ? true : undefined}
           >
-            <Section status={status} data={doc?.[key] ?? null} onRetry={retry} />
+            <Section status={sectionStatus} data={data} onRetry={onRetry} />
           </div>
         );
       })}

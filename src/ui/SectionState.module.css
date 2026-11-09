@@ -41,6 +41,12 @@
 
 /* states */
 
+/* No onRetry: the button is disabled (no pointer cursor, no hover underline). */
+.retry:disabled {
+  cursor: default;
+  text-decoration: none;
+}
+
 /* FR-58: underline on link hover, no layout shift. */
 .retry:hover {
   text-decoration: underline;

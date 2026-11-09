@@ -73,15 +73,18 @@ export const FRAME = deepFreeze({
   },
 });
 
-/** The bottom edge of the lowest section in `frame` (page y, px). */
+/** The bottom edge of the lowest section in `frame` (page y, px); 0 with no sections. */
 export function lastRowBottom(frame) {
-  return Math.max(...Object.values(frame.sections).map(({ y, h }) => y + h));
+  const boxes = Object.values(frame?.sections ?? {});
+  return boxes.length === 0 ? 0 : Math.max(...boxes.map(({ y, h }) => y + h));
 }
 
 /**
  * The document height of `frame`: the last card row plus `pageBottomSpacePx`
- * (FR-50, AD-4). Equals the Figma frame height: 1052 / 860 / 856.
+ * (FR-50, AD-4). Equals the Figma frame height: 1052 / 860 / 856. A missing
+ * `pageBottomSpacePx` counts as 0.
  */
 export function pageHeight(frame) {
-  return lastRowBottom(frame) + frame.pageBottomSpacePx;
+  const bottom = frame?.pageBottomSpacePx;
+  return lastRowBottom(frame) + (Number.isFinite(bottom) ? bottom : 0);
 }

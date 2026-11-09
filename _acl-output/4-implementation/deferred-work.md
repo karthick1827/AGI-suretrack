@@ -59,3 +59,9 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-1-5-request-a-reset-link-forgot-password-modal.md`
   summary: Wire requestPasswordReset to a real reset-email endpoint before production; the dummy build always reports success.
   evidence: requestPasswordReset is a no-network stub returning { ok: true }; users would see a confirmation with no email sent.
+- source_spec: `_acl-output/4-implementation/spec-2-2-dashboard-page-dashboard-states-and-card-shells.md`
+  summary: Give each section's Retry an accessible name that says which section it reloads, and announce section errors once (one live region, not six alerts). Needs new copy approved in the PRD.
+  evidence: Six identical "Retry" buttons; error text has no live region. New copy is Ask First.
+- source_spec: `_acl-output/4-implementation/spec-2-2-dashboard-page-dashboard-states-and-card-shells.md`
+  summary: Decide the Retry hit-target size (44 px like View All) for the FR-96 [ASSUMPTION] error state.
+  evidence: Retry has no min-height; FR-96 styling is an assumption, so a design decision is needed.

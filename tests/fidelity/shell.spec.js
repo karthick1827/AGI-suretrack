@@ -196,9 +196,14 @@ test.describe('Signed-in shell 6215:58878', () => {
         return `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor} ${cs.outlineOffset} ${cs.cursor}`;
       });
     for (const control of controls) expect(await ring(control)).toMatch(/^none .* pointer$/);
-    // Start the Tab sequence from a blank spot of the Header (the page below it
-    // now holds the Dashboard sections, Story 2.2).
-    await page.locator('body').click({ position: { x: 400, y: 32 } });
+    // Deterministic start for the Tab walk: nothing focused, sequential focus
+    // navigation from the top of the document (no blind click on the page).
+    await page.evaluate(() => {
+      document.activeElement?.blur();
+      document.body.tabIndex = -1;
+      document.body.focus();
+      document.body.removeAttribute('tabindex');
+    });
     for (const control of controls) {
       await page.keyboard.press('Tab');
       await expect(control).toBeFocused();

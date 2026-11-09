@@ -51,10 +51,19 @@
     "boxShadow": "rgba(39, 39, 39, 0.15) 0px 2px 4px 0px"
   },
   "cardHeader": {
+    "offset": [21, 21],
     "regular": { "h": 56, "paddingBottom": "12px" },
     "compact": { "h": 33, "paddingBottom": "12px" },
     "title": { "color": "#1f2937", "fontWeight": "590", "fontSize": "20px", "lineHeight": "25px" },
     "subtitleDark": { "color": "#000000cc", "fontWeight": "400", "fontSize": "12px", "lineHeight": "18px" },
     "subtitleMuted": { "color": "#4b5563", "fontWeight": "400", "fontSize": "12px", "lineHeight": "18px" }
+  },
+  "viewAll": {
+    "$comment": "FR-65: min-height 44, padding 13.5 2, gap 6. Height = 27 px padding + the 17.5 px text line = 44.5 (≥ 44 hit target). Top-right of the header: card border 1 + padding 20 = 21 from the slot edge; the chevron sits inside the 2 px right padding (23).",
+    "minHeight": "44px",
+    "padding": ["13.5px", "2px", "13.5px", "2px"],
+    "gap": "6px",
+    "link": { "top": 21, "right": 21, "h": 44.5 },
+    "chevron": { "right": 23, "w": 12, "h": 16 }
   }
 }

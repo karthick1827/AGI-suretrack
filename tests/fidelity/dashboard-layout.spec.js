@@ -112,13 +112,19 @@ test.describe('Dashboard layout 6215:58878 / 6864:4514 / 6879:15603', () => {
     const kpi = await page.locator(`[data-fid="${FID.kpi.strip}"]`).evaluate((el) => {
       const cs = getComputedStyle(el);
       const r = el.getBoundingClientRect();
-      return { backgroundColor: cs.backgroundColor, radius: cs.borderTopLeftRadius, boxShadow: cs.boxShadow, box: [r.x, r.y, r.width, r.height] };
+      // Page coordinates, like measure(): add the scroll offset.
+      return {
+        backgroundColor: cs.backgroundColor,
+        radius: cs.borderTopLeftRadius,
+        boxShadow: cs.boxShadow,
+        box: [r.x + window.scrollX, r.y + window.scrollY, r.width, r.height],
+      };
     });
     expect(kpi).toEqual({
       backgroundColor: cssColour(expected.kpiShell.backgroundColor),
       radius: expected.kpiShell.radius,
       boxShadow: expected.kpiShell.boxShadow,
-      box: [24, 136, 1318, 90],
+      box: ['x', 'y', 'w', 'h'].map((k) => expected.full.sections.kpi[k]),
     });
 
     // Card header ("Margin"): 56 px on Equipment, Recent Alerts and Fan
@@ -155,11 +161,44 @@ test.describe('Dashboard layout 6215:58878 / 6864:4514 / 6879:15603', () => {
       const muted = key !== 'equipmentCard' && key !== 'recentAlerts';
       expect(headers[key]).toEqual({
         h: size.h,
-        offset: [21, 21],
+        offset: h.offset,
         paddingBottom: size.paddingBottom,
         title: type(h.title),
         subtitle: type(muted ? h.subtitleMuted : h.subtitleDark),
       });
+    }
+  });
+
+  test('View All (full): 44 px hit target at the header top-right, 12×16 chevron (FR-65)', async ({ page }) => {
+    await openSignedIn(page, paths.dashboard('full'));
+    await waitForStatus(page, 'ready');
+    await waitForFonts(page);
+    const v = expected.viewAll;
+    for (const key of ['equipmentCard', 'recentAlerts']) {
+      const got = await page.locator(`[data-section="${key}"]`).evaluate((slot) => {
+        const link = slot.querySelector('a');
+        const chevron = link.querySelector('img');
+        const s = slot.getBoundingClientRect();
+        const rel = (el) => {
+          const r = el.getBoundingClientRect();
+          return { top: r.y - s.y, right: s.right - r.right, w: r.width, h: r.height };
+        };
+        const cs = getComputedStyle(link);
+        return {
+          link: rel(link),
+          chevron: rel(chevron),
+          style: [cs.minHeight, [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft], cs.columnGap],
+        };
+      });
+      const problems = [];
+      const near = (name, actual, want) => {
+        if (Math.abs(actual - want) > BOX_TOLERANCE_PX) problems.push(`${key} ${name}: expected ${want}, got ${actual}`);
+      };
+      for (const k of ['top', 'right', 'h']) near(`link.${k}`, got.link[k], v.link[k]);
+      for (const k of ['right', 'w', 'h']) near(`chevron.${k}`, got.chevron[k], v.chevron[k]);
+      if (got.link.h < 44) problems.push(`${key}: hit target below 44 px (${got.link.h})`);
+      expect(problems).toEqual([]);
+      expect(got.style).toEqual([v.minHeight, v.padding, v.gap]);
     }
   });
 

@@ -34,3 +34,11 @@
   background: var(--primitives-color-base-white);
   box-shadow: var(--shadow-kpi);
 }
+
+/* states */
+
+/* The page region takes focus only programmatically, after Retry (tabIndex
+   -1, never in the Tab order); it shows no ring, so nothing changes at rest. */
+.page:focus {
+  outline: none;
+}

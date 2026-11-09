@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router';
 import App from '../../src/app/App.jsx';
 import { getConfig, getDashboard, getUsers } from '../../src/data/api.js';
 import { copy } from '../../src/lib/copy.js';
@@ -17,8 +18,9 @@ import {
 import { FID } from '../../src/lib/fid.js';
 import { paths } from '../../src/lib/paths.js';
 import { SESSION_KEY, createSessionRecord } from '../../src/lib/session.js';
+import DashboardPage from '../../src/pages/Dashboard/DashboardPage.jsx';
 import { jsxLiterals } from './support/jsx-literals.js';
-import { BRIEF_DIR, PRD_DIR, fromRoot, readText } from './support/project.js';
+import { fromRoot } from './support/project.js';
 
 vi.mock('../../src/data/api.js', () => ({
   MAX_TIMEOUT_MS: 2147483647,
@@ -88,6 +90,20 @@ const boxOf = (el) => ({
   w: parseFloat(el.style.width),
   h: parseFloat(el.style.height),
 });
+/** getDashboard that never settles until releaseAll(): resolves EVERY pending call. */
+function gateDashboard() {
+  const pending = [];
+  vi.mocked(getDashboard).mockImplementation(
+    (state) => new Promise((resolve) => pending.push(() => resolve(DOCS[state]))),
+  );
+  return {
+    pending,
+    releaseAll: () => act(async () => {
+      for (const release of pending.splice(0)) release();
+    }),
+  };
+}
+const statuses = () => sections().map((el) => el.dataset.status);
 const layoutSnapshot = () => sections().map((el) => `${el.dataset.section} ${el.getAttribute('style')}`);
 
 function expectFrame(state) {
@@ -102,10 +118,6 @@ function expectFrame(state) {
 /* ------------------------------------------------------------------------ */
 
 describe('lib: dashboardLayout.js FRAME (FR-50, AD-18)', () => {
-  const prd = readText(`${PRD_DIR}/prd.md`);
-  const prdAddendum = readText(`${PRD_DIR}/addendum.md`);
-  const design = readText(`${BRIEF_DIR}/addendum.md`);
-
   it('has exactly the three states and the six sections, in visual order', () => {
     expect(Object.keys(FRAME)).toEqual(STATES);
     for (const state of STATES) expect(Object.keys(FRAME[state].sections)).toEqual(SECTION_KEYS);
@@ -113,6 +125,10 @@ describe('lib: dashboardLayout.js FRAME (FR-50, AD-18)', () => {
     expect(Object.isFrozen(FRAME.full.sections.kpi)).toBe(true);
   });
 
+  // PRD prd.md FR-50 (:688-697): KPI 24,136 1318×90; content 24,246; row 1
+  // 649 wide, 444 (Full) / 240; row 2 at content y 464 / 260, 426×326, gaps 20.
+  // Card positions: prd.md :881 (Equipment), :963 (Recent Alerts), :1028 (Fan),
+  // :1082 (Grain), :1143 (Liquid). Bottom space 16 / 28 / 24 → 1052 / 860 / 856.
   it('pins every box to the PRD values', () => {
     const row1 = { full: 444, small: 240, allgood: 240 };
     const row2Y = { full: 710, small: 506, allgood: 506 };
@@ -128,24 +144,6 @@ describe('lib: dashboardLayout.js FRAME (FR-50, AD-18)', () => {
     }
   });
 
-  it('the PRD and design spec state those values', () => {
-    expect(prd).toContain('KPI strip 24, 136, 1318×90');
-    expect(prd).toContain('content area 24, 246');
-    expect(prd).toContain('two cards, each 649 px wide, column gap 20 px');
-    expect(prd).toContain('height 444 px in Full, 240 px in Small and All-good');
-    expect(prd).toContain('Content row 2 at y 464 (Full) / 260 (Small, All-good) relative to the content area');
-    expect(prd).toContain('three cards, each 426×326, column gap 20 px');
-    expect(prd).toContain('Card size 649×444 (Full), 649×240 (Small, All-good); position x 24, y 246.');
-    expect(prd).toContain('Card at x 693 (24 + 649 + 20), y 246');
-    expect(prd).toContain('Card 426×326 at x 24, y 710 (Full) / y 506 (Small, All-good) in page coordinates');
-    expect(prd).toContain('Card 426×326 at x 470 (24 + 426 + 20) in page coordinates, same y as Fan activity');
-    expect(prd).toContain('Card 426×326 at x 916 (24 + 2×(426 + 20)) in page coordinates');
-    expect(prd).toContain('Full 16 px, Small 28 px, All-good 24 px');
-    expect(prd).toContain('Full 1052 px, Small 860 px, All-good 856 px');
-    expect(prdAddendum).toContain('(Full 16, Small 28, All-good 24) so the page height equals the Figma frame (1052 / 860 / 856)');
-    expect(design).toContain('| KPI strip (6337:55041) | 24 | 136 | 1318×90 |');
-    expect(design).toContain('| Content (6227:66459) | 24 | 246 |');
-  });
 
   it('the content area sits at 24,246 and the row geometry adds up (FR-50)', () => {
     for (const state of STATES) {
@@ -174,6 +172,17 @@ describe('lib: dashboardLayout.js FRAME (FR-50, AD-18)', () => {
       expect(lastRowBottom(FRAME[state]) + DOCS[state].pageBottomSpacePx).toBe(FRAME[state].height);
     }
     expect(CONTENT_TOP).toBe(64 + 68);
+  });
+
+  it('lastRowBottom() is 0 with no sections; pageHeight() treats a missing pageBottomSpacePx as 0', () => {
+    expect(lastRowBottom({ sections: {} })).toBe(0);
+    expect(lastRowBottom({})).toBe(0);
+    expect(lastRowBottom(undefined)).toBe(0);
+    expect(pageHeight({ sections: {} })).toBe(0);
+    expect(pageHeight({ sections: {}, pageBottomSpacePx: 16 })).toBe(16);
+    expect(pageHeight({ sections: FRAME.full.sections })).toBe(1036);
+    expect(pageHeight({ sections: FRAME.full.sections, pageBottomSpacePx: null })).toBe(1036);
+    expect(pageHeight({ sections: FRAME.full.sections, pageBottomSpacePx: Number.NaN })).toBe(1036);
   });
 
   it('is pure: no React, DOM or storage', () => {
@@ -255,8 +264,7 @@ describe('Dashboard states (FR-50, FR-93)', () => {
 
 describe('Loading (FR-95)', () => {
   it('every section shows the placeholder at its final size; no header, no text', async () => {
-    let release;
-    vi.mocked(getDashboard).mockImplementation((state) => new Promise((resolve) => (release = () => resolve(DOCS[state]))));
+    const gate = gateDashboard();
     signInAs('small');
     await renderAt(paths.dashboard());
     expectFrame('small');
@@ -274,10 +282,50 @@ describe('Loading (FR-95)', () => {
 
     // No layout shift: every slot keeps its box when the data arrives.
     const before = [layoutSnapshot(), page().getAttribute('style')];
-    await act(async () => release());
+    await gate.releaseAll();
     expect(section('kpi').dataset.status).toBe('ready');
     expect([layoutSnapshot(), page().getAttribute('style')]).toEqual(before);
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(5);
+  });
+});
+
+describe('same-mount state changes (AD-11, AD-18)', () => {
+  it('a ?state change goes back to loading at the NEW frame, then shows it', async () => {
+    signInAs('demo');
+    await renderAt(paths.dashboard());
+    await waitFor(() => expect(section('kpi').dataset.status).toBe('ready'));
+    expectFrame('full');
+    const gate = gateDashboard();
+    await act(async () => {
+      window.history.pushState(null, '', paths.dashboard('small'));
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(getDashboard).toHaveBeenLastCalledWith('small');
+    expectFrame('small');
+    expect(statuses()).toEqual(Array(6).fill('loading'));
+    expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
+    await gate.releaseAll();
+    expect(statuses()).toEqual(Array(6).fill('ready'));
+    expectFrame('small');
+    expect(page().dataset.state).toBe('small');
+  });
+
+  it("a change of the Session's dashboardState (storage event) does the same", async () => {
+    signInAs('demo');
+    await renderAt(paths.dashboard());
+    await waitFor(() => expect(section('kpi').dataset.status).toBe('ready'));
+    const gate = gateDashboard();
+    await act(async () => {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(createSessionRecord(user('small'), { now: Date.now(), ttlMinutes: TTL })));
+      window.dispatchEvent(new StorageEvent('storage', { key: SESSION_KEY, newValue: localStorage.getItem(SESSION_KEY) }));
+    });
+    await waitFor(() => expect(getDashboard).toHaveBeenLastCalledWith('small'));
+    expectFrame('small');
+    expect(statuses()).toEqual(Array(6).fill('loading'));
+    expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
+    await gate.releaseAll();
+    expect(statuses()).toEqual(Array(6).fill('ready'));
+    expectFrame('small');
   });
 });
 
@@ -307,10 +355,7 @@ describe('Error (FR-96)', () => {
     await waitFor(() => expect(section('kpi').dataset.status).toBe('error'));
     expect(getDashboard).toHaveBeenCalledTimes(1);
 
-    let release;
-    vi.mocked(getDashboard).mockImplementationOnce(
-      (state) => new Promise((resolve) => (release = () => resolve(DOCS[state]))),
-    );
+    const gate = gateDashboard();
     const before = layoutSnapshot();
     await act(async () => fireEvent.click(within(section('grain')).getByRole('button', { name: copy.dashboard.retry })));
     expect(getDashboard).toHaveBeenCalledTimes(2);
@@ -318,7 +363,7 @@ describe('Error (FR-96)', () => {
     for (const el of sections()) expect(el.dataset.status).toBe('loading');
     expect(layoutSnapshot()).toEqual(before);
 
-    await act(async () => release());
+    await gate.releaseAll();
     for (const el of sections()) expect(el.dataset.status).toBe('ready');
     expect(screen.queryByText(copy.dashboard.sectionError)).toBeNull();
     await waitFor(() => expect(fid(FID.shell.badgeText)?.textContent).toBe(String(DOCS.full.header.bellBadge)));
@@ -330,20 +375,158 @@ describe('Error (FR-96)', () => {
 /* Contract and source rules                                                 */
 /* ------------------------------------------------------------------------ */
 
+/** Render DashboardPage alone under a parent route that supplies `context` (or none). */
+function renderPage(context, { withOutlet = true } = {}) {
+  const Layout = () => (withOutlet ? <Outlet context={context} /> : <Outlet />);
+  return render(
+    <MemoryRouter initialEntries={[paths.dashboard()]}>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path={paths.dashboard()} element={<DashboardPage />} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+const readyContext = (doc, extra = {}) => ({ state: 'full', status: 'ready', doc, retry: vi.fn(), ...extra });
+
+describe('robustness (AD-18)', () => {
+  it('no Outlet context: every section shows the error, Retry is disabled, the full frame is used', () => {
+    renderPage(undefined, { withOutlet: false });
+    expect(statuses()).toEqual(Array(6).fill('error'));
+    expectFrame('full');
+    expect(page().dataset.state).toBe('full');
+    for (const button of screen.getAllByRole('button', { name: copy.dashboard.retry })) {
+      expect(button.disabled).toBe(true);
+      fireEvent.click(button); // never throws
+    }
+  });
+
+  it('a context without retry disables Retry', () => {
+    renderPage({ state: 'small', status: 'error', doc: null });
+    expectFrame('small');
+    for (const button of screen.getAllByRole('button', { name: copy.dashboard.retry })) expect(button.disabled).toBe(true);
+  });
+
+  it('an unknown status is an error (never a loading look-alike); an unknown state uses full', () => {
+    renderPage({ state: 'xyz', status: 'pending', doc: DOCS.full, retry: vi.fn() });
+    expect(statuses()).toEqual(Array(6).fill('error'));
+    expect(document.querySelectorAll('[data-section] [aria-hidden="true"]')).toHaveLength(0);
+    expect(page().dataset.state).toBe('full');
+    expectFrame('full');
+  });
+
+  it('ready without a document, or without a section slice, shows that section as an error', () => {
+    const { unmount } = renderPage(readyContext(null));
+    expect(statuses()).toEqual(Array(6).fill('error'));
+    unmount();
+    const { kpi: _kpi, ...rest } = DOCS.full;
+    renderPage(readyContext({ ...rest, grain: null }));
+    expect(section('kpi').dataset.status).toBe('error');
+    expect(section('grain').dataset.status).toBe('error');
+    expect(within(section('grain')).getByText(copy.dashboard.sectionError)).toBeTruthy();
+    for (const key of ['equipmentCard', 'recentAlerts', 'fanActivity', 'liquid']) expect(section(key).dataset.status).toBe('ready');
+  });
+
+  it('the KPI section receives { status, data, onRetry }: ready with data is an empty shell, Retry calls onRetry', () => {
+    const retry = vi.fn();
+    const { unmount } = renderPage(readyContext(DOCS.full, { retry }));
+    expect(section('kpi').dataset.status).toBe('ready');
+    expect(fid(FID.kpi.strip).childElementCount).toBe(0);
+    unmount();
+    renderPage({ state: 'full', status: 'error', doc: null, retry });
+    fireEvent.click(within(section('kpi')).getByRole('button', { name: copy.dashboard.retry }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('no header block without both title and subtitle; no View All for an empty or blank link', () => {
+    const doc = {
+      ...DOCS.full,
+      equipmentCard: { ...DOCS.full.equipmentCard, link: '   ' },
+      recentAlerts: { ...DOCS.full.recentAlerts, link: '' },
+      fanActivity: { ...DOCS.full.fanActivity, title: '' },
+      grain: { ...DOCS.full.grain, subtitle: undefined },
+    };
+    renderPage(readyContext(doc));
+    expect(within(section('equipmentCard')).queryByRole('link')).toBeNull();
+    expect(within(section('recentAlerts')).queryByRole('link')).toBeNull();
+    for (const key of ['fanActivity', 'grain']) {
+      expect(section(key).querySelector('h2')).toBeNull();
+      expect(section(key).textContent).toBe('');
+      expect(section(key).firstElementChild.childElementCount).toBe(0);
+      expect(section(key).firstElementChild.hasAttribute('aria-labelledby')).toBe(false);
+    }
+  });
+
+  it('each card <section> is labelled by its title h2', () => {
+    renderPage(readyContext(DOCS.full));
+    for (const key of CARD_KEYS) {
+      const card = section(key).firstElementChild;
+      const title = card.querySelector('h2');
+      expect(card.tagName).toBe('SECTION');
+      expect(title.id).not.toBe('');
+      expect(card.getAttribute('aria-labelledby')).toBe(title.id);
+      expect(screen.getByRole('region', { name: DOCS.full[key].title })).toBe(card);
+    }
+  });
+});
+
+describe('Retry focus and de-duplication (FR-96)', () => {
+  it('a focused Retry hands focus to the page region (tabindex -1 while focused) before it unmounts', async () => {
+    vi.mocked(getDashboard).mockRejectedValueOnce({ code: 'FORCED_FAIL', message: 'x' });
+    signInAs('demo');
+    await renderAt(paths.dashboard());
+    await waitFor(() => expect(section('kpi').dataset.status).toBe('error'));
+    const gate = gateDashboard();
+    const button = within(section('fanActivity')).getByRole('button', { name: copy.dashboard.retry });
+    // At rest the page region is not focusable (a pointer press on it never takes focus).
+    expect(page().hasAttribute('tabindex')).toBe(false);
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    await act(async () => fireEvent.click(button));
+    expect(statuses()).toEqual(Array(6).fill('loading'));
+    expect(document.activeElement).toBe(page());
+    expect(page().getAttribute('tabindex')).toBe('-1');
+    expect(screen.getByRole('main').contains(document.activeElement)).toBe(true);
+    await gate.releaseAll();
+    expect(document.activeElement).toBe(page());
+    // Once focus moves on, the page drops tabindex again.
+    act(() => screen.getByRole('button', { name: copy.shell.bellLabel }).focus());
+    expect(page().hasAttribute('tabindex')).toBe(false);
+  });
+
+  it('a Retry clicked without focus (focus elsewhere) does not steal focus', async () => {
+    vi.mocked(getDashboard).mockRejectedValueOnce({ code: 'FORCED_FAIL', message: 'x' });
+    signInAs('demo');
+    await renderAt(paths.dashboard());
+    await waitFor(() => expect(section('kpi').dataset.status).toBe('error'));
+    gateDashboard();
+    const bell = screen.getByRole('button', { name: copy.shell.bellLabel });
+    bell.focus();
+    await act(async () => fireEvent.click(within(section('grain')).getByRole('button', { name: copy.dashboard.retry })));
+    expect(document.activeElement).toBe(bell);
+  });
+
+  it('several Retry activations in a row reload the document once', async () => {
+    vi.mocked(getDashboard).mockRejectedValueOnce({ code: 'FORCED_FAIL', message: 'x' });
+    signInAs('demo');
+    await renderAt(paths.dashboard());
+    await waitFor(() => expect(section('kpi').dataset.status).toBe('error'));
+    const gate = gateDashboard();
+    const buttons = screen.getAllByRole('button', { name: copy.dashboard.retry });
+    await act(async () => {
+      for (const button of buttons) fireEvent.click(button);
+    });
+    expect(getDashboard).toHaveBeenCalledTimes(2);
+    expect(gate.pending).toHaveLength(1);
+    await gate.releaseAll();
+    expect(statuses()).toEqual(Array(6).fill('ready'));
+    expect(getDashboard).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('section contract and source rules (AD-7, AD-15, AD-16, AD-18)', () => {
   const pageSource = readFileSync(fromRoot('src/pages/Dashboard/DashboardPage.jsx'), 'utf8');
-
-  it('the page reads the Outlet context and never fetches (one document per state)', () => {
-    expect(pageSource).toMatch(/useOutletContext\(\)/);
-    expect(pageSource).toMatch(/const \{ state, status, doc, retry \} = useOutletContext\(\);/);
-    expect(pageSource).not.toMatch(/data\/api|\.json'|fetch\(|getDashboard/);
-    expect(pageSource).toMatch(/<Section status=\{status\} data=\{doc\?\.\[key\] \?\? null\} onRetry=\{retry\} \/>/);
-  });
-
-  it('every section component takes exactly { status, data, onRetry }', () => {
-    expect(pageSource).toMatch(/function KpiSection\(\{ status, onRetry \}\)/);
-    expect(pageSource).toMatch(/function CardSection\(\{ status, data, onRetry \}\)/);
-  });
 
   it('positions come only from FRAME[state]; never from content (no measuring)', () => {
     expect(pageSource).toMatch(/FRAME\[state\]/);

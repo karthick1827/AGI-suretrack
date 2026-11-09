@@ -14,7 +14,7 @@
 //     `{ state, status: 'loading' | 'ready' | 'error', doc, retry }`, so the
 //     Dashboard page (Story 2.2) reads it with useOutletContext() instead of
 //     fetching it a second time.
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { getDashboard } from '../data/api.js';
 import Header from '../features/shell/Header.jsx';
@@ -58,7 +58,17 @@ export default function SignedInLayout({ activeTab, onBellClick }) {
   const current = result.state === state && result.attempt === attempt ? result : null;
   const status = current?.status ?? 'loading';
   const doc = current?.doc ?? null;
-  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  // Retry is de-duplicated: while a load is in flight (or a retry was just
+  // requested) further calls are ignored, so the document loads once.
+  const loadingRef = useRef(true);
+  useEffect(() => {
+    loadingRef.current = status === 'loading';
+  }, [status]);
+  const retry = useCallback(() => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setAttempt((n) => n + 1);
+  }, []);
   const outletContext = useMemo(() => ({ state, status, doc, retry }), [state, status, doc, retry]);
 
   return (

@@ -11,6 +11,7 @@
   border: var(--border-width-hairline) solid var(--raw-d1d5db);
   border-radius: 12px;
   background: var(--primitives-color-base-white);
+  /* Kept as filter (FR-65 / design spec §4 say drop-shadow; the Header's box-shadow trial matched Figma worse). */
   filter: drop-shadow(var(--shadow-card));
 }
 

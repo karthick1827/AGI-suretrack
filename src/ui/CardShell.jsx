@@ -13,6 +13,7 @@
 //     'muted' (#4B5563: Fan activity, Grain, Liquid).
 //   - `link`: `{ to, label }` draws the "View All" link with the 12×16
 //     chevron (Equipment and Recent Alerts only).
+import { useId } from 'react';
 import { Link } from 'react-router';
 import chevronRightSvg from '../assets/icons/chevron-right.svg';
 import styles from './CardShell.module.css';
@@ -25,19 +26,26 @@ import styles from './CardShell.module.css';
  * } & import('react').HTMLAttributes<HTMLElement>} props
  */
 export default function CardShell({ header = null, children, className, ...rest }) {
+  const titleId = useId();
   return (
-    <section className={className ? `${styles.card} ${className}` : styles.card} {...rest}>
-      {header ? <CardHeader {...header} /> : null}
+    <section
+      className={className ? `${styles.card} ${className}` : styles.card}
+      aria-labelledby={header ? titleId : undefined}
+      {...rest}
+    >
+      {header ? <CardHeader {...header} titleId={titleId} /> : null}
       {children}
     </section>
   );
 }
 
-function CardHeader({ title, subtitle, headerSize = 'regular', subtitleTone = 'dark', link }) {
+function CardHeader({ title, subtitle, headerSize = 'regular', subtitleTone = 'dark', link, titleId }) {
   return (
     <div className={headerSize === 'compact' ? `${styles.header} ${styles.compact}` : styles.header}>
       <div className={styles.text}>
-        <h2 className={styles.title}>{title}</h2>
+        <h2 className={styles.title} id={titleId}>
+          {title}
+        </h2>
         <p className={subtitleTone === 'muted' ? `${styles.subtitle} ${styles.muted}` : styles.subtitle}>{subtitle}</p>
       </div>
       {link ? (
