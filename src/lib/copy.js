@@ -95,6 +95,8 @@ export const copy = deepFreeze({
     segmentTooltip: '{name} · {amountLabel} · {share}% of capacity',
     runtimeValue: '{hours}h',
     equipmentRowLabel: '{type}, {count}: {caption}',
+    // FR-74 Alert meta line: `<deviceId> | <location>` (space, U+007C, space).
+    alertMeta: '{deviceId} | {location}',
   },
 
   notifications: {
@@ -174,6 +176,11 @@ export function equipmentRowLabel({ type, count, caption }) {
     count,
     caption: typeof caption === 'string' ? caption.split(' · ').join(', ') : caption,
   });
+}
+
+/** FR-74 Alert meta line: `<deviceId> | <location>`, both verbatim. */
+export function alertMetaLine({ deviceId, location }) {
+  return fill(copy.dashboard.alertMeta, { deviceId, location });
 }
 
 /** FR-81 value label: `<hours>h`. A null/undefined value hits fill's missing-slot error. */

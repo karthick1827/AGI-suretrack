@@ -486,3 +486,34 @@ export const equipmentCardBaseline = (state) => {
   equipmentCardHeight(state);
   return `equipment-card-${state}.png`;
 };
+
+/* ------------------------------------------------------------------------ */
+/* Recent Alerts card (Story 2.5)                                            */
+/* ------------------------------------------------------------------------ */
+
+// The Recent Alerts card (page 693, 246, 649 × 444 Full / 240 Small and
+// All-good, FR-73) is compared inside its 1 px #D1D5DB border: the
+// 647 × (h − 2) box at page (694, 247), cropped out of the 1× Dashboard
+// renders after the alignment check (the crop's edge rows and columns are
+// white card interior; the pixels just outside them are the grey border).
+export const RECENT_ALERTS_REFERENCES = Object.freeze({
+  full: path.join(FIGMA_1X, 'dashboard-full-6215-58878.raw-1374x1054.png'),
+  small: path.join(FIGMA_1X, 'dashboard-small-6864-4514.raw-1374x862.png'),
+  allgood: path.join(FIGMA_1X, 'dashboard-allgood-6879-15603.raw-1374x858.png'),
+});
+export const RECENT_ALERTS_HEIGHT = Object.freeze({ full: 444, small: 240, allgood: 240 });
+const recentAlertsHeight = (state) => {
+  if (!Object.hasOwn(RECENT_ALERTS_HEIGHT, state)) {
+    throw new Error(`recent alerts card: unknown Dashboard state ${JSON.stringify(state)} (expected ${Object.keys(RECENT_ALERTS_HEIGHT).join(', ')})`);
+  }
+  return RECENT_ALERTS_HEIGHT[state];
+};
+export const recentAlertsClip = (state) =>
+  Object.freeze({ x: 694, y: 247, width: 647, height: recentAlertsHeight(state) - 2 });
+// Render (698, 249) = page (694, 247) + the render's 4 px left / 2 px top canvas border.
+export const recentAlertsInReference = (state) =>
+  Object.freeze({ left: 698, top: 249, width: 647, height: recentAlertsHeight(state) - 2 });
+export const recentAlertsBaseline = (state) => {
+  recentAlertsHeight(state);
+  return `recent-alerts-card-${state}.png`;
+};

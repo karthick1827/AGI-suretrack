@@ -1,0 +1,314 @@
+/*
+ * Recent Alerts card body (FR-73 to FR-77). Values verbatim from PRD FR-73
+ * to FR-77 and design spec Part B §6, §10, §12 to §14.
+ *
+ * Card 649 wide, border 1, padding 20; header 56 (CardShell), then gap 8 and
+ * the list "Alarms" (column, gap 12). Figma strokes take no layout: in each
+ * frame the card's 1 px border does not push its content, so the list box is
+ * the frame's 609 px content box (page x 713–1322) starting at card top
+ * + 20 + 56 + 8 = 84 (page y 330). In the browser the border does push the
+ * content box by 1 px, so the list reaches 1 px out on the left, right and
+ * bottom and starts 7 px (8 − 1) below the header, landing on the frame's box
+ * (as in EquipmentCard).
+ *
+ * Overflow: the list may shrink to the card body (min-height 0) and clips its
+ * rows, so extra rows (e.g. four items in the 240 px Small card) never paint
+ * outside the card; the 4 px clip margin keeps the FR-58 focus ring (2 px at
+ * offset 2) visible around every row. At rest (Full 4 rows = 3 × 90 + 70 =
+ * 340 px, exactly the content box; Small 1 row) nothing is clipped.
+ */
+.list {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  margin: 7px -1px -1px;
+  overflow: clip;
+  overflow-clip-margin: 4px;
+}
+
+/*
+ * Alert item ("Detail", FR-74): icon column 20, gap 16, detail column (flex
+ * 1). Rows of the grid: the top row (title + meta | severity + time), the
+ * 4 px gap, the 24 px Action link, then the 8 px padding-bottom that carries
+ * the separator.
+ *
+ * Frame vs PRD (±1 px): FR-74 gives the detail column `padding-bottom: 8px`
+ * plus a 1 px bottom border (79 px high), but in the Full and Small frames
+ * the separator is the LAST pixel row of the 78 px column (page y 407, 497,
+ * 587 with the next row 12 px below: a 90 px pitch). The Figma stroke is
+ * drawn inside, taking no layout, so here the separator is the bottom pixel
+ * of the 8 px track.
+ */
+.item {
+  display: grid;
+  flex: none;
+  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-rows: auto 4px 24px 8px;
+  column-gap: 16px;
+}
+
+/* The last row of a list of 2+ rows (Full row 4) has no separator; its empty
+   8 px padding track is dropped too (invisible: nothing is drawn there), so
+   the four Full rows fill the 340 px content box exactly. */
+.last {
+  grid-template-rows: auto 4px 24px;
+}
+
+/* The row (link or plain): spans the whole item; its icon, text block and
+   separator sit on the item's own tracks (subgrid). */
+.row {
+  display: grid;
+  grid-row: 1 / -1;
+  grid-column: 1 / -1;
+  grid-template-rows: subgrid;
+  grid-template-columns: subgrid;
+}
+
+/* Rows that are links: pointer only on <a>. */
+.link {
+  cursor: pointer;
+}
+
+/* Severity icon: wrapper padding-top 4 holding the 20×20 circle. */
+.iconCell {
+  grid-row: 1;
+  grid-column: 1;
+  padding-top: 4px;
+}
+
+/* 20×20 circle; the glyph is centred (a 15 px glyph in the Critical circle's
+   13.333 px padding box overflows it evenly, sitting at 2.5 px as in the
+   frames). */
+.circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+}
+
+/* Critical: #DC2626 circle, padding 3.333, 15×15 white glyph. */
+.critical {
+  padding: 3.333px;
+  background: var(--raw-dc2626);
+}
+
+/* Warning: #FFA526 circle, padding 3.077, 13.846×13.846 white glyph. */
+.warning {
+  padding: 3.077px;
+  background: var(--raw-ffa526);
+}
+
+.glyph {
+  flex: none;
+}
+
+.critical .glyph {
+  width: 15px;
+  height: 15px;
+}
+
+.warning .glyph {
+  width: 13.846px;
+  height: 13.846px;
+}
+
+/* Top row: space-between; left block 204 wide, right block at the right. */
+.top {
+  display: flex;
+  grid-row: 1;
+  grid-column: 2;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.left {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 204px;
+}
+
+/* Title: SF stack 590, 16/1.5, #111827, single line with ellipsis. */
+.title {
+  display: block;
+  min-height: 1.5em;
+  overflow: hidden;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-semibold);
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--raw-111827);
+}
+
+/* Meta `<deviceId> | <location>`: SF stack 400, 12/1.5, rgba(0,0,0,0.8);
+   one line (clipped with an ellipsis rather than running into the right
+   block). */
+.meta {
+  display: block;
+  min-height: 1.5em;
+  overflow: hidden;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--raw-rgba-0-0-0-0-8);
+}
+
+/* Right block: column, align-items flex-end, padding-top 4, no wrap. */
+.right {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-top: 4px;
+  white-space: nowrap;
+}
+
+/* Severity: SF stack 590, 12/1.5; the colour comes from the severity. */
+.severity {
+  display: block;
+  min-height: 1.5em;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-semibold);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.criticalText {
+  color: var(--raw-dc2626);
+}
+
+.warningText {
+  color: var(--raw-d97706);
+}
+
+/* Time: SF stack 400, 12/1.5, rgba(0,0,0,0.7), right-aligned. */
+.time {
+  display: block;
+  min-height: 1.5em;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: right;
+  color: var(--raw-rgba-0-0-0-0-7);
+}
+
+/* FR-76 separator: 1px rgba(30,42,44,0.15) at the bottom of the 8 px track,
+   across the detail column. */
+.separator {
+  grid-row: 4;
+  grid-column: 2;
+  border-bottom: var(--border-width-hairline) solid var(--raw-rgba-30-42-44-0-15);
+}
+
+/* Action link ("Button", FR-75): height 24, gap 6, padding-y 6, radius 6,
+   overflow clip; laid over the row's second column, below the top row. */
+.action {
+  display: flex;
+  grid-row: 3;
+  grid-column: 2;
+  justify-self: start;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 6px 0;
+  overflow: clip;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.actionLink {
+  cursor: pointer;
+}
+
+/* Action text: SF stack 510, 14/1.25, #005C2F. */
+.actionLabel {
+  flex: none;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-medium);
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+  color: var(--raw-005c2f);
+}
+
+/* Arrow Right 16×16 (#005C2F, stroke 1.33 baked into the SVG, AD-5). */
+.arrow {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+/*
+ * FR-77 Empty state (Figma 6882:4705 "div.empty"): #F4F5F6, radius 12,
+ * padding 32 18, column, centred, gap 10, the full content width (609 px
+ * with the same Figma-matching margins as the list); height 134 as measured
+ * in the All-good frame (page y 330–464).
+ */
+.empty {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 134px;
+  margin: 7px -1px 0;
+  padding: 32px 18px;
+  border-radius: 12px;
+  background: var(--raw-f4f5f6);
+}
+
+/* Title: Roboto 700, 16 / normal, #111827 (tokens.css has no 700 weight
+   token; adding one is an Ask First token change, as in EquipmentCard). */
+.emptyTitle {
+  font-family: var(--font-stack-roboto);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: normal;
+  text-align: center;
+  color: var(--raw-111827);
+}
+
+/* Body: Roboto 400, 14 / 20.3, #4B5563, centred, width 377 (wraps after
+   "tanks." as in the frame). */
+.emptyBody {
+  width: 377px;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--font-weight-regular);
+  font-size: 14px;
+  line-height: 20.3px;
+  text-align: center;
+  color: var(--raw-4b5563);
+}
+
+/* states */
+
+/* FR-58: #F0FFF8 row hover (also while the pointer is on the row's Action
+   link), inside the card's content box; no layout shift. */
+.link:hover,
+.item:has(> .actionLink:hover) > .link {
+  background: var(--raw-f0fff8);
+}
+
+/* FR-58: underline on Action link hover. */
+.actionLink:hover .actionLabel {
+  text-decoration: underline;
+}
+
+/* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */
+.link:focus-visible,
+.actionLink:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-006a36);
+  outline-offset: 2px;
+}

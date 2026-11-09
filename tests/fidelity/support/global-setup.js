@@ -24,9 +24,12 @@ import {
   PROFILE_MENU_IN_REFERENCE,
   PROFILE_MENU_MASK,
   PROFILE_MENU_REFERENCE,
+  RECENT_ALERTS_REFERENCES,
   equipmentCardBaseline,
   equipmentCardInReference,
   kpiStripBaseline,
+  recentAlertsBaseline,
+  recentAlertsInReference,
   writeCroppedBaseline,
   writeMaskedBaseline,
 } from './fidelity.js';
@@ -52,5 +55,9 @@ export default async function globalSetup() {
   // Story 2.4: the Equipment card (inside its border) from the same renders (no mask).
   for (const [state, source] of Object.entries(EQUIPMENT_CARD_REFERENCES)) {
     await writeCroppedBaseline(source, equipmentCardBaseline(state), equipmentCardInReference(state), []);
+  }
+  // Story 2.5: the Recent Alerts card (inside its border) from the same renders (no mask).
+  for (const [state, source] of Object.entries(RECENT_ALERTS_REFERENCES)) {
+    await writeCroppedBaseline(source, recentAlertsBaseline(state), recentAlertsInReference(state), []);
   }
 }

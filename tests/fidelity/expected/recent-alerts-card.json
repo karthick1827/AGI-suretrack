@@ -1,0 +1,122 @@
+{
+  "$comment": "Story 2.5 — Recent Alerts card 649 × 444 (Full) / 240 (Small, All-good) at page 693, 246 (FR-73). Boxes are CARD coordinates (px, ±1 px, relative to the card slot) transcribed from PRD FR-73 to FR-77 and design spec Part B §6, §10, §12 to §14, with the offsets read off the 1× Figma renders (figma-reference/1x). Figma strokes take no layout, so the list 'Alarms' is the frame's 609 px content box at x 20, y 84 (card top 20 + header 56 + gap 8), column, gap 12. Alert item: icon column 20 (circle 20 × 20 at item y + 4), gap 16, detail column at item x + 36 (card x 56), 573 wide. Detail column 78 high: top row 42 (title 24 + meta 18; right block pt 4, severity 18 + time 18, right-aligned at card x 629), gap 4, Action link 24 high at item y + 46, then the 8 px padding whose bottom pixel row is the FR-76 separator (item y + 77: card y 161, 251, 341 in the Full frame, so the pitch is 90 = 78 + 12). The last row of a list of 2+ rows has no separator and no padding (Full row 4: 70 high, so the list is 3 × 90 + 70 = 340). Critical glyph 15 × 15 centred in its circle (+2.5); Warning glyph 13.846 at the 3.077 padding. Action arrow 16 × 16 at the label's right + 6, item y + 50. Empty state (All-good): 609 × 134 at 20, 84; title Roboto 700 16 / normal centred; body 377 wide, 2 lines of 20.3 px, centred. Copy is transcribed from the PRD (FR-73 to FR-77), not from the state JSON, so the two cross-check.",
+  "card": { "x": 693, "y": 246, "w": 649 },
+  "height": { "full": 444, "small": 240, "allgood": 240 },
+  "list": { "x": 20, "y": 84, "w": 609 },
+  "row": {
+    "detailX": 56,
+    "detailW": 573,
+    "pitch": 90,
+    "h": 78,
+    "lastH": 70,
+    "icon": { "dx": 0, "dy": 4, "w": 20, "h": 20 },
+    "glyph": {
+      "Critical": { "dx": 2.5, "dy": 6.5, "w": 15, "h": 15 },
+      "Warning": { "dx": 3.077, "dy": 7.077, "w": 13.846, "h": 13.846 }
+    },
+    "title": { "dy": 0, "w": 204, "h": 24 },
+    "meta": { "dy": 24, "w": 204, "h": 18 },
+    "severity": { "dy": 4, "h": 18, "right": 629 },
+    "time": { "dy": 22, "h": 18, "right": 629 },
+    "action": { "dy": 46, "h": 24 },
+    "arrow": { "gap": 6, "dy": 50, "w": 16, "h": 16 },
+    "separator": { "dy": 77, "h": 1 }
+  },
+  "styles": {
+    "title": { "fontWeight": "590", "fontSize": "16px", "lineHeight": "24px", "color": "#111827", "whiteSpace": "nowrap", "textOverflow": "ellipsis" },
+    "meta": { "fontWeight": "400", "fontSize": "12px", "lineHeight": "18px", "color": "#000000cc" },
+    "severity": { "fontWeight": "590", "fontSize": "12px", "lineHeight": "18px" },
+    "severityColour": { "Critical": "#dc2626", "Warning": "#d97706" },
+    "circle": { "Critical": "#dc2626", "Warning": "#ffa526" },
+    "circleRadius": "10px",
+    "time": { "fontWeight": "400", "fontSize": "12px", "lineHeight": "18px", "color": "#000000b3", "textAlign": "right" },
+    "actionLabel": { "fontWeight": "510", "fontSize": "14px", "lineHeight": "17.5px", "color": "#005c2f" },
+    "action": { "height": "24px", "padding": ["6px", "0px", "6px", "0px"], "gap": "6px", "radius": "6px", "overflow": "clip" },
+    "separator": "1px solid #1e2a2c26",
+    "empty": { "backgroundColor": "#f4f5f6", "radius": "12px", "padding": ["32px", "18px", "32px", "18px"], "gap": "10px" },
+    "emptyTitle": { "fontFamily": "Roboto", "fontWeight": "700", "fontSize": "16px", "color": "#111827" },
+    "emptyBody": { "fontFamily": "Roboto", "fontWeight": "400", "fontSize": "14px", "lineHeight": "20.3px", "color": "#4b5563", "w": 377 }
+  },
+  "full": {
+    "copy": {
+      "title": "Recent Alerts",
+      "subtitle": "Most urgent first. Each item links to what to do next.",
+      "link": "View All"
+    },
+    "listH": 340,
+    "rows": [
+      {
+        "id": "a1",
+        "severity": "Critical",
+        "separator": true,
+        "copy": ["HotSpot Detected", "759 | Wheat Storage", "Critical", "30 mins ago", "View Hotspot"],
+        "href": "/equipment/759",
+        "actionHref": "/equipment/759/hotspot"
+      },
+      {
+        "id": "a2",
+        "severity": "Critical",
+        "separator": true,
+        "copy": ["Static Pressure", "757 | Oat Silo", "Critical", "2 hours ago", "Check Fans"],
+        "href": "/equipment/757",
+        "actionHref": "/equipment/757/fans"
+      },
+      {
+        "id": "a3",
+        "severity": "Warning",
+        "separator": true,
+        "copy": ["No Communication", "18086 | Pinto Storage", "Warning", "3 hours ago", "Check Connection"],
+        "href": "/equipment/18086",
+        "actionHref": "/equipment/18086/connection"
+      },
+      {
+        "id": "a4",
+        "severity": "Warning",
+        "separator": false,
+        "copy": ["Missing Fan Switched", "753 | Canola East", "Warning", "1 day ago", "Check Fan Switches"],
+        "href": "/equipment/753",
+        "actionHref": "/equipment/753/fan-switches"
+      }
+    ]
+  },
+  "small": {
+    "copy": {
+      "title": "Recent Alerts",
+      "subtitle": "Most urgent first. Each item links to what to do next.",
+      "link": "View All"
+    },
+    "listH": 78,
+    "rows": [
+      {
+        "id": "a1",
+        "severity": "Critical",
+        "separator": true,
+        "copy": ["HotSpot Detected", "759 | Wheat Storage", "Critical", "30 mins ago", "View Hotspot"],
+        "href": "/equipment/759",
+        "actionHref": "/equipment/759/hotspot"
+      }
+    ]
+  },
+  "allgood": {
+    "copy": {
+      "title": "Recent Alerts",
+      "subtitle": "Most urgent first. Each item links to what to do next.",
+      "link": "View All"
+    },
+    "rows": [],
+    "empty": {
+      "x": 20,
+      "y": 84,
+      "w": 609,
+      "h": 134,
+      "titleY": 116,
+      "titleH": 18.75,
+      "bodyX": 136,
+      "bodyY": 145,
+      "bodyH": 40.6,
+      "title": "No Alerts Right Now",
+      "body": "Everything is on track with your storage, dryers, and tanks. We’ll notify you as soon as anything needs attention.",
+      "lines": ["Everything is on track with your storage, dryers, and tanks. ", "We’ll notify you as soon as anything needs attention."]
+    }
+  }
+}

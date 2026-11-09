@@ -30,6 +30,8 @@ const SAMPLE = {
   count: '7',
   caption: '3 alerts, 1 offline, 3 healthy',
   message: '<message>', // PRD writes the slot as <message>
+  deviceId: '<deviceId>', // PRD FR-74 writes the meta format as `<deviceId> | <location>`
+  location: '<location>',
 };
 
 describe('copy.js — file encoding', () => {

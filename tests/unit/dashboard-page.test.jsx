@@ -249,12 +249,14 @@ describe('Dashboard states (FR-50, FR-93)', () => {
     expect([chevron.getAttribute('width'), chevron.getAttribute('height'), chevron.getAttribute('alt')]).toEqual(['12', '16', '']);
     // Story 2.3: the KPI strip (its fid on the strip, inside the slot) holds
     // the KPI readings. Story 2.4: the Equipment card adds its rows (covered
-    // in equipment-card.test.jsx); no other card contents yet (2.5–2.8).
+    // in equipment-card.test.jsx); Story 2.5: Recent Alerts adds its Alert
+    // rows (recent-alerts-card.test.jsx); no other card contents yet (2.6–2.8).
     expect(section('kpi').querySelector(`[data-fid="${FID.kpi.strip}"]`)).toBe(fid(FID.kpi.strip));
     expect(section('kpi').dataset.fid).toBeUndefined();
     expect(fid(FID.kpi.strip).textContent).toContain(DOCS.full.kpi.attention.label);
     expect(section('equipmentCard').querySelectorAll('[data-equipment-row]')).toHaveLength(DOCS.full.equipmentCard.rows.length);
-    for (const key of CARD_KEYS.filter((k) => k !== 'equipmentCard')) {
+    expect(section('recentAlerts').querySelectorAll('[data-alert-row]')).toHaveLength(DOCS.full.recentAlerts.items.length);
+    for (const key of CARD_KEYS.filter((k) => k !== 'equipmentCard' && k !== 'recentAlerts')) {
       expect(section(key).textContent).toBe(`${DOCS.full[key].title}${DOCS.full[key].subtitle}${DOCS.full[key].link ?? ''}`);
     }
     expect(screen.queryByText(copy.dashboard.sectionError)).toBeNull();
@@ -458,7 +460,7 @@ describe('robustness (AD-18)', () => {
     };
     renderPage(readyContext(doc));
     expect(within(section('equipmentCard')).queryByRole('link', { name: DOCS.full.equipmentCard.link })).toBeNull();
-    expect(within(section('recentAlerts')).queryByRole('link')).toBeNull();
+    expect(within(section('recentAlerts')).queryByRole('link', { name: DOCS.full.recentAlerts.link })).toBeNull();
     for (const key of ['fanActivity', 'grain']) {
       expect(section(key).querySelector('h2')).toBeNull();
       expect(section(key).textContent).toBe('');
