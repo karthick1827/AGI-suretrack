@@ -7,6 +7,8 @@ title: 'Story 2.7 — Grain On Hand card'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: '92a60c2230682451dc3ff0cb95210569744592f2'
+implementation_status: in-progress
 story_key: 2-7-grain-on-hand-card
 jira: SCRUM-39
 review_loop_iteration: 0

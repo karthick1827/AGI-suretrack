@@ -71,7 +71,7 @@ development_status:
   2-4-equipment-card-with-health-bars: done
   2-5-recent-alerts-card: done
   2-6-fan-activity-card-with-runtime-chart: done
-  2-7-grain-on-hand-card: backlog
+  2-7-grain-on-hand-card: in-progress
   2-8-liquid-on-hand-card: backlog
   epic-2-retrospective: optional
   epic-3: backlog
