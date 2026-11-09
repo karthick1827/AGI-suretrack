@@ -434,7 +434,8 @@ describe('robustness (AD-18)', () => {
     const retry = vi.fn();
     const { unmount } = renderPage(readyContext(DOCS.full, { retry }));
     expect(section('kpi').dataset.status).toBe('ready');
-    expect(fid(FID.kpi.strip).querySelectorAll('[data-kpi-tile]')).toHaveLength(10);
+    // Five tiles plus one block per breakdown type, from the document.
+    expect(fid(FID.kpi.strip).querySelectorAll('[data-kpi-tile]')).toHaveLength(5 + DOCS.full.kpi.equipment.breakdown.length);
     unmount();
     renderPage({ state: 'full', status: 'error', doc: null, retry });
     fireEvent.click(within(section('kpi')).getByRole('button', { name: copy.dashboard.retry }));

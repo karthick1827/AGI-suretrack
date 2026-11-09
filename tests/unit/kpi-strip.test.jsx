@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import App from '../../src/app/App.jsx';
 import { getConfig, getDashboard, getUsers } from '../../src/data/api.js';
 import KpiStrip from '../../src/features/dashboard/kpi/KpiStrip.jsx';
+import kpiStyles from '../../src/features/dashboard/kpi/KpiStrip.module.css';
 import kpiAlert from '../../src/assets/icons/kpi_alert.svg';
 import kpiTick from '../../src/assets/icons/kpi_tick.svg';
 import kpiEquip from '../../src/assets/icons/kpi_equip.svg';
@@ -92,7 +93,11 @@ const reading = (key) => [
 ];
 const readings = () =>
   Object.fromEntries([...strip().querySelectorAll('[data-kpi-tile]')].map((el) => [el.dataset.kpiTile, reading(el.dataset.kpiTile)]));
-const hasClass = (el, name) => [...el.classList].some((c) => c === name || c.startsWith(`_${name}_`) || c.includes(name));
+/** Exact CSS-module class token check (never a substring match). */
+const hasClass = (el, name) => {
+  if (typeof kpiStyles[name] !== 'string') throw new Error(`no CSS-module class ${name}`);
+  return el.classList.contains(kpiStyles[name]);
+};
 const iconSrc = (key) => tile(key).querySelector('img').getAttribute('src');
 
 /* ------------------------------------------------------------------------ */
@@ -155,7 +160,7 @@ describe('KPI readings per Dashboard state (FR-59 to FR-63, FR-94)', () => {
     expect(strip().dataset.variant).toBe('allgood');
     const tick = tile('attention').querySelector('img');
     expect(tick.dataset.fid).toBe(FID.kpi.iconAllGood);
-    expect([tick.getAttribute('width'), tick.getAttribute('height')]).toEqual(['20', '20']);
+    expect(hasClass(tick, 'iconSmall')).toBe(true);
     expect(iconSrc('attention')).toBe(kpiTick);
     expect(hasClass(tick.parentElement, 'toneGood')).toBe(true);
     expect(hasClass(tile('attention').querySelector('[data-kpi-label]'), 'critical')).toBe(false);
@@ -168,22 +173,24 @@ describe('KPI readings per Dashboard state (FR-59 to FR-63, FR-94)', () => {
     expect([...group.querySelectorAll('[data-kpi-tile]')].map((el) => el.dataset.kpiTile)).toEqual(['online', 'offline', 'fans']);
   });
 
-  it.each(['full', 'small', 'allgood'])('%s: the six exported KPI SVGs as <img alt=""> at their PRD sizes, with icon fids', async (state) => {
+  it.each(['full', 'small', 'allgood'])('%s: the six exported KPI SVGs as <img alt=""> with their size classes and icon fids', async (state) => {
     await openDashboard(state);
     const allGood = state === 'allgood';
     const icons = {
-      attention: [allGood ? kpiTick : kpiAlert, allGood ? FID.kpi.iconAllGood : FID.kpi.iconAttention, allGood ? '20' : '22'],
-      equipment: [kpiEquip, FID.kpi.iconEquipment, '22'],
-      online: [kpiOnline, FID.kpi.iconOnline, '22'],
-      offline: [kpiOffline, FID.kpi.iconOffline, '22'],
-      fans: [kpiFans, FID.kpi.iconFans, '22'],
+      attention: [allGood ? kpiTick : kpiAlert, allGood ? FID.kpi.iconAllGood : FID.kpi.iconAttention, allGood ? 'iconSmall' : 'icon'],
+      equipment: [kpiEquip, FID.kpi.iconEquipment, 'icon'],
+      online: [kpiOnline, FID.kpi.iconOnline, 'icon'],
+      offline: [kpiOffline, FID.kpi.iconOffline, 'icon'],
+      fans: [kpiFans, FID.kpi.iconFans, 'icon'],
     };
     expect(new Set(Object.values(icons).map(([src]) => src)).size).toBe(5);
-    for (const [key, [src, fid, size]] of Object.entries(icons)) {
+    for (const [key, [src, fid, sizeClass]] of Object.entries(icons)) {
       const img = tile(key).querySelector('img');
       expect(img.getAttribute('src')).toBe(src);
       expect(img.dataset.fid).toBe(fid);
-      expect([img.getAttribute('width'), img.getAttribute('height'), img.getAttribute('alt')]).toEqual([size, size, '']);
+      // Size (22×22, All-good tick 20×20) comes from KpiStrip.module.css, not JSX.
+      expect(hasClass(img, sizeClass)).toBe(true);
+      expect(img.getAttribute('alt')).toBe('');
     }
     expect(strip().querySelectorAll('img')).toHaveLength(5);
   });
@@ -225,9 +232,29 @@ describe('KPI links (FR-64, AD-10)', () => {
       expect(a.querySelector('a')).toBeNull();
     }
     expect(strip().querySelectorAll('[tabindex]')).toHaveLength(0);
-    // The Equipment tile's link is its total block; the sub-counts are siblings.
+    // The Equipment tile's link is its total block; the sub-counts are
+    // siblings; the tile wrapper is not a link and has no pointer class.
     expect(tile('equipment').tagName).toBe('DIV');
+    expect(hasClass(tile('equipment'), 'link')).toBe(false);
+    for (const a of links) expect(hasClass(a, 'link')).toBe(true);
     expect(tile('equipment').querySelector('[data-kpi-link="equipment"]').getAttribute('href')).toBe(paths.equipment());
+  });
+
+  it('each link is named by its value and label joined by one space (no new copy)', async () => {
+    await openDashboard('full');
+    const k = DOCS.full.kpi;
+    const names = [
+      `${k.attention.value} ${k.attention.label}`,
+      `${k.equipment.value} ${k.equipment.label}`,
+      ...k.equipment.breakdown.map((item) => `${item.value} ${item.label}`),
+      `${k.online.value} ${k.online.label}`,
+      `${k.offline.value} ${k.offline.label}`,
+      `${k.fans.value} ${k.fans.label}`,
+    ];
+    expect(names[0]).toBe('7 Need attention · 2 critical');
+    const kpiSlot = within(document.querySelector('[data-section="kpi"]'));
+    for (const name of names) expect(kpiSlot.getByRole('link', { name })).toBeTruthy();
+    expect(kpiSlot.getAllByRole('link')).toHaveLength(names.length);
   });
 
   it('Small and All-good sub-counts use the breakdown typeKey (Bin → bins, Dryer → dryers)', async () => {
@@ -254,9 +281,8 @@ describe('KPI links (FR-64, AD-10)', () => {
     await waitFor(() => expect(screen.getByText(copy.placeholder.comingSoon)).toBeTruthy());
   });
 
-  it('Enter on a focused tile activates the link (a real <a href>, so the browser follows it)', async () => {
-    // jsdom does not synthesise a click from Enter; Chromium does for <a href>
-    // (covered by the Fidelity spec). Here: focusable, and click navigates.
+  it('a tile is a focusable <a>, and clicking it navigates (Enter is covered by the Fidelity spec)', async () => {
+    // jsdom does not synthesise a click from Enter; Chromium does for <a href>.
     function Where() {
       return <span data-testid="where">{useLocation().pathname + useLocation().search}</span>;
     }
@@ -375,15 +401,83 @@ describe('verbatim readings (AD-7)', () => {
   });
 
   it('the component source formats nothing: no toLocaleString, Intl, toFixed, Number(), sums or plural rules', () => {
-    expect(KPI_SOURCE).not.toMatch(/toLocaleString|Intl\.|toFixed|toPrecision|Number\(|parseInt|parseFloat|\.reduce\(|PluralRules|padStart/);
+    // Number() appears only to read the subCountWeight style flag.
+    expect(KPI_SOURCE.replace('Number(equipment.subCountWeight)', '')).not.toMatch(/toLocaleString|Intl\.|toFixed|toPrecision|Number\(|parseInt|parseFloat|\.reduce\(|PluralRules|padStart/);
     expect(KPI_SOURCE).not.toMatch(/\b(?:attention\.critical|fans\.running|fans\.total)\b/);
   });
 
-  it('a missing slice field renders empty, never throws; an unknown typeKey links to /equipment', () => {
-    renderStrip({ equipment: { breakdown: [{ value: 3, label: 'Silos', typeKey: 'silos' }] } }, 'nope');
+  it('a missing slice field renders empty; an unknown variant falls back to full', () => {
+    renderStrip({}, 'nope');
     expect(strip().dataset.variant).toBe('full');
     expect(reading('attention')).toEqual(['', '']);
-    expect(tile('equipment:silos').getAttribute('href')).toBe(paths.equipment());
+    expect(tile('attention').hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('object, array and boolean values or labels render nothing (no crash); strings and numbers render', () => {
+    renderStrip({
+      attention: { value: { n: 7 }, label: true, allGood: false },
+      equipment: { value: [20], label: 'Equipment', breakdown: [{ value: false, label: { x: 1 }, typeKey: 'bins' }] },
+      online: { value: 16, label: ['Online'] },
+      offline: { value: null, label: 'Offline' },
+      fans: { value: '7 of 24', label: 'Fans running now' },
+    });
+    expect(readings()).toEqual({
+      attention: ['', ''],
+      equipment: ['', 'Equipment'],
+      'equipment:bins': ['', ''],
+      online: ['16', ''],
+      offline: ['', 'Offline'],
+      fans: ['7 of 24', 'Fans running now'],
+    });
+    expect(tile('online').getAttribute('aria-label')).toBe('16');
+    expect(tile('offline').getAttribute('aria-label')).toBe('Offline');
+  });
+
+  it('flags are read strictly: allGood only when === true; Regular sub-counts only when Number(subCountWeight) === 400', () => {
+    const kpi = (allGood, subCountWeight) => ({
+      attention: { value: 0, label: 'Need attention · all good', allGood },
+      equipment: { value: 1, label: 'Equipment', subCountWeight, breakdown: [{ value: 1, label: 'Bin', typeKey: 'bins' }] },
+    });
+    const subValue = () => tile('equipment:bins').querySelector('[data-kpi-value]');
+    for (const [allGood, weight, tick, regular] of [
+      [true, 400, true, true],
+      [true, '400', true, true],
+      ['true', 700, false, false],
+      [1, '700', false, false],
+      [false, undefined, false, false],
+    ]) {
+      const { unmount } = renderStrip(kpi(allGood, weight));
+      expect(tile('attention').querySelector('img').dataset.fid).toBe(tick ? FID.kpi.iconAllGood : FID.kpi.iconAttention);
+      expect(hasClass(tile('attention').querySelector('[data-kpi-label]'), 'critical')).toBe(!tick);
+      expect(hasClass(subValue(), 'regular')).toBe(regular);
+      unmount();
+    }
+  });
+
+  it('breakdown: skips null items and items without a string typeKey, keeps the first of a duplicate typeKey, and an unknown typeKey is plain text', () => {
+    renderStrip({
+      equipment: {
+        value: 9,
+        label: 'Equipment',
+        breakdown: [
+          null,
+          'Bins',
+          { value: 1, label: 'No key' },
+          { value: 2, label: 'Numeric key', typeKey: 7 },
+          { value: 3, label: 'Bins', typeKey: 'bins' },
+          { value: 4, label: 'Bins again', typeKey: 'bins' },
+          { value: 5, label: 'Silos', typeKey: 'silos' },
+        ],
+      },
+    });
+    const subs = [...strip().querySelectorAll('[data-kpi-tile^="equipment:"]')];
+    expect(subs.map((el) => el.dataset.kpiTile)).toEqual(['equipment:bins', 'equipment:silos']);
+    expect(reading('equipment:bins')).toEqual(['3', 'Bins']);
+    expect(tile('equipment:bins').tagName).toBe('A');
+    expect(tile('equipment:silos').tagName).toBe('SPAN');
+    expect(tile('equipment:silos').hasAttribute('href')).toBe(false);
+    expect(reading('equipment:silos')).toEqual(['5', 'Silos']);
+    expect(strip().querySelectorAll('a')).toHaveLength(6);
   });
 });
 
@@ -425,9 +519,16 @@ describe('KpiStrip source and CSS (AD-2, AD-4, AD-5, AD-10, AD-13, AD-15, AD-16)
   });
 
   it('tiles: padding 12/20, gap 14, #E6E8EB divider on all but the first; per-state widths', () => {
-    for (const decl of ['display: flex;', 'align-items: center;', 'gap: 14px;', 'padding: 12px 20px;', 'cursor: pointer;']) {
+    for (const decl of ['display: flex;', 'align-items: center;', 'gap: 14px;', 'padding: 12px 20px;']) {
       expect(rule('.tile')).toContain(decl);
     }
+    // Pointer only on the <a> elements (the .link class), never on the Equipment wrapper.
+    expect(rule('.tile')).not.toContain('cursor');
+    expect(rule('.link')).toContain('cursor: pointer;');
+    for (const sel of ['.equipment', '.sub', '.equipmentTotal']) expect(rule(sel)).not.toMatch(/cursor|position|z-index/);
+    expect(KPI_CSS).not.toMatch(/::after|::before/);
+    expect(rule('.icon')).toMatch(/width: 22px;\s+height: 22px;/);
+    expect(rule('.iconSmall')).toMatch(/width: 20px;\s+height: 20px;/);
     expect(KPI_CSS).toMatch(/\.equipment,\n\.online,\n\.offline,\n\.fans \{\n {2}border-left: 1px solid var\(--raw-e6e8eb\);/);
     expect(rule('.attention')).toContain('width: 264px;');
     expect(rule('.full .equipment')).toContain('width: 500px;');

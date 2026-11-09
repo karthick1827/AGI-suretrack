@@ -3,7 +3,7 @@
 // of the 1× Figma render (≤ 0.5 %), every tile, icon and text box within
 // ±1 px of the PRD table (expected/kpi-strip.json), exact computed styles and
 // exact copy. macOS Chromium is authoritative; Windows runs are advisory.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { FID } from '../../src/lib/fid.js';
@@ -118,6 +118,9 @@ test.describe('KPI strip 6337:55041', () => {
     test(`${state}: strip screenshot matches the cropped Figma render (≤ 0.5 %)`, async ({ page }, testInfo) => {
       await openDashboard(page, state);
       const baseline = kpiStripBaseline(state);
+      // The comparison file is the strip cropped from the committed 1× Figma
+      // render by global-setup (alignment-checked); never an app screenshot.
+      expect(existsSync(path.join(MASKED_BASELINE_DIR, baseline))).toBe(true);
       const actual = await page.screenshot({ clip: KPI_STRIP_CLIP, animations: 'disabled', caret: 'hide' });
       const ratio = await diffRatio(actual, readFileSync(path.join(MASKED_BASELINE_DIR, baseline)));
       const note = `pixel-diff ratio ≤ ${(ratio * 100).toFixed(3)} % (YIQ threshold 0.1, no AA exclusion)`;
@@ -179,11 +182,12 @@ test.describe('KPI strip 6337:55041', () => {
               padding: `${c.paddingTop} ${c.paddingRight}`,
               gap: t.dataset.kpiTile === 'equipment' ? null : c.columnGap,
               divider: c.borderLeftStyle === 'none' ? 'none' : `${c.borderLeftWidth} ${c.borderLeftStyle} ${c.borderLeftColor}`,
-              cursor: t.dataset.kpiTile === 'equipment' ? null : c.cursor,
+              cursor: c.cursor,
               outline: c.outlineStyle,
             };
           }),
           equipmentGap: cs(tile('equipment')).columnGap,
+          linkCursors: [...el.querySelectorAll('a')].map((a) => cs(a).cursor),
           values: [...el.querySelectorAll('[data-kpi-tile]')]
             .filter((t) => !t.dataset.kpiTile.includes(':'))
             .map((t) => type(t.querySelector('[data-kpi-value]'))),
@@ -211,11 +215,13 @@ test.describe('KPI strip 6337:55041', () => {
           padding: st.tile.padding,
           gap: i === 1 ? null : st.tile.gap,
           divider: i === 0 ? 'none' : `${w} ${style} ${cssColour(colour)}`,
-          cursor: i === 1 ? null : 'pointer',
+          // The Equipment tile wrapper is not a link: pointer only on <a>.
+          cursor: i === 1 ? 'auto' : 'pointer',
           outline: 'none',
         })),
       );
       expect(got.equipmentGap).toBe('20px');
+      expect(new Set(got.linkCursors)).toEqual(new Set(['pointer']));
       for (const value of got.values) expect(value).toEqual(typeOf(st.value));
       expect(got.subValues.length).toBe(Object.keys(expected[state].tiles).filter((k) => k.includes(':')).length);
       for (const value of got.subValues) expect(value).toEqual(typeOf({ ...st.value, fontWeight: expected[state].subCountWeight }));
@@ -243,38 +249,90 @@ test.describe('KPI strip 6337:55041', () => {
     });
   }
 
-  test('links: Tab order left to right; Enter on a tile opens its placeholder (FR-64)', async ({ page }) => {
-    await openDashboard(page, 'full');
-    const hrefs = await strip(page).evaluate((el) => [...el.querySelectorAll('a')].map((a) => a.getAttribute('href')));
-    expect(hrefs).toEqual([
-      paths.alerts(),
-      paths.equipment(),
-      paths.equipment({ type: 'bins' }),
-      paths.equipment({ type: 'piles' }),
-      paths.equipment({ type: 'flats' }),
-      paths.equipment({ type: 'tanks' }),
-      paths.equipment({ type: 'dryers' }),
-      paths.equipment({ status: 'online' }),
-      paths.equipment({ status: 'offline' }),
-      paths.equipment(),
-    ]);
-    // Focus the first KPI link from the element just before the strip in Tab order.
-    await strip(page).locator('a').first().focus();
-    const order = [];
-    for (let i = 0; i < hrefs.length; i += 1) {
-      order.push(await page.evaluate(() => document.activeElement.getAttribute('href')));
-      // Keyboard focus shows the FR-58 ring.
-      const outline = await page.evaluate(() => {
-        const cs = getComputedStyle(document.activeElement);
-        return `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor} ${cs.outlineOffset}`;
-      });
-      if (i > 0) expect(outline).toBe(`solid 2px ${cssColour('#006a36')} 2px`);
-      await page.keyboard.press('Tab');
-    }
-    expect(order).toEqual(hrefs);
+  // FR-64 targets per KPI link, keyed by data-kpi-tile (the Equipment total is
+  // the `equipment` tile's link). Fans → /equipment is the FR-64 [ASSUMPTION].
+  const FULL_TARGETS = {
+    attention: paths.alerts(),
+    equipment: paths.equipment(),
+    'equipment:bins': paths.equipment({ type: 'bins' }),
+    'equipment:piles': paths.equipment({ type: 'piles' }),
+    'equipment:flats': paths.equipment({ type: 'flats' }),
+    'equipment:tanks': paths.equipment({ type: 'tanks' }),
+    'equipment:dryers': paths.equipment({ type: 'dryers' }),
+    online: paths.equipment({ status: 'online' }),
+    offline: paths.equipment({ status: 'offline' }),
+    fans: paths.equipment(),
+  };
+  const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const urlEndingWith = (target) => new RegExp(`${escapeRegExp(target)}$`);
+  /** The pointer target for a KPI link: the tile, or the Equipment total block. */
+  const linkLocator = (page, key) =>
+    key === 'equipment' ? strip(page).locator('[data-kpi-link="equipment"]') : strip(page).locator(`[data-kpi-tile="${key}"]`);
 
-    await strip(page).locator('a').nth(7).focus();
+  async function clickCentre(page, key) {
+    const box = await linkLocator(page, key).boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  }
+
+  test('pointer: a real click at the centre of every Full tile and sub-count opens its FR-64 target', async ({ page }) => {
+    for (const [key, target] of Object.entries(FULL_TARGETS)) {
+      await openDashboard(page, 'full');
+      await clickCentre(page, key);
+      await expect(page, `${key} → ${target}`).toHaveURL(urlEndingWith(target));
+    }
+  });
+
+  test('pointer: Small sub-counts Bin and Dryer open their type pages', async ({ page }) => {
+    for (const [key, target] of [
+      ['equipment:bins', paths.equipment({ type: 'bins' })],
+      ['equipment:dryers', paths.equipment({ type: 'dryers' })],
+    ]) {
+      await openDashboard(page, 'small');
+      await clickCentre(page, key);
+      await expect(page, `${key} → ${target}`).toHaveURL(urlEndingWith(target));
+    }
+  });
+
+  test('keyboard: Tab from the element before the strip visits every KPI link left to right with the FR-58 ring; Enter opens it', async ({ page }) => {
+    await openDashboard(page, 'full');
+    // Focus the last focusable element before the strip, then Tab into it.
+    await strip(page).evaluate((el) => {
+      const focusable = [...document.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, [tabindex]')].filter(
+        (node) => node.tabIndex >= 0 && !el.contains(node) && node.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      focusable.at(-1).focus();
+    });
+    const ring = `solid 2px ${cssColour('#006a36')} 2px`;
+    const order = [];
+    for (let i = 0; i < Object.keys(FULL_TARGETS).length; i += 1) {
+      await page.keyboard.press('Tab');
+      const got = await page.evaluate(() => {
+        const el = document.activeElement;
+        const cs = getComputedStyle(el);
+        return {
+          key: el.closest('[data-kpi-tile]')?.dataset.kpiTile ?? null,
+          tag: el.tagName,
+          ring: `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor} ${cs.outlineOffset}`,
+        };
+      });
+      order.push(got.key);
+      expect(got.tag, `${got.key}`).toBe('A');
+      expect(got.ring, `${got.key} focus ring`).toBe(ring);
+    }
+    expect(order).toEqual(Object.keys(FULL_TARGETS));
+    // The next Tab leaves the strip.
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate((fid) => Boolean(document.activeElement.closest(`[data-fid="${fid}"]`)), FID.kpi.strip)).toBe(false);
+
+    await strip(page).locator('[data-kpi-tile="online"]').focus();
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(new RegExp(`${paths.equipment({ status: 'online' }).replace('?', '\\?')}$`));
+    await expect(page).toHaveURL(urlEndingWith(FULL_TARGETS.online));
+  });
+
+  test('accessible names: value and label joined by one space (no new copy)', async ({ page }) => {
+    await openDashboard(page, 'full');
+    for (const name of ['7 Need attention · 2 critical', '20 Equipment', '7 Bins', '6 Tanks', '16 Online', '4 Offline', '7 of 24 Fans running now']) {
+      await expect(page.getByRole('link', { name, exact: true })).toHaveCount(1);
+    }
   });
 });

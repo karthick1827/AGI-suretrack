@@ -67,6 +67,22 @@ function boxProblems(got, want) {
   return problems;
 }
 
+/** The KPI slot's shell (its only child) while loading or on error: FR-59 white, radius 12, KPI shadow, 1318×90. */
+async function kpiShell(page) {
+  return page.locator('[data-section="kpi"] > *').evaluate((el) => {
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    return { backgroundColor: cs.backgroundColor, radius: cs.borderTopLeftRadius, boxShadow: cs.boxShadow, w: r.width, h: r.height };
+  });
+}
+const KPI_SHELL = () => ({
+  backgroundColor: cssColour(expected.kpiShell.backgroundColor),
+  radius: expected.kpiShell.radius,
+  boxShadow: expected.kpiShell.boxShadow,
+  w: 1318,
+  h: 90,
+});
+
 test.describe('Dashboard layout 6215:58878 / 6864:4514 / 6879:15603', () => {
   for (const state of STATES) {
     test(`${state}: every section box ±1 px and the exact frame height (${expected[state].height})`, async ({ page }) => {
@@ -209,6 +225,7 @@ test.describe('Dashboard layout 6215:58878 / 6864:4514 / 6879:15603', () => {
     await waitForStatus(page, 'error');
     expect(boxProblems(await measure(page), expected.small)).toEqual([]);
     await expect(page.getByText(copy.dashboard.sectionError)).toHaveCount(6);
+    expect(await kpiShell(page)).toEqual(KPI_SHELL());
     await expect(page.locator(`[data-fid="${FID.shell.badge}"]`)).toHaveCount(0);
 
     fail = false;
@@ -229,6 +246,7 @@ test.describe('Dashboard layout 6215:58878 / 6864:4514 / 6879:15603', () => {
     await waitForStatus(page, 'loading');
     const before = await measure(page);
     expect(boxProblems(before, expected.allgood)).toEqual([]);
+    expect(await kpiShell(page)).toEqual(KPI_SHELL());
     const block = await page.locator('[data-section="grain"] [aria-hidden="true"]').evaluate((el) => {
       const cs = getComputedStyle(el);
       const r = el.getBoundingClientRect();

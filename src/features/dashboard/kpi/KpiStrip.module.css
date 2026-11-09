@@ -48,6 +48,10 @@
   align-items: center;
   gap: 14px;
   padding: 12px 20px;
+}
+
+/* Every KPI <a> (tiles, Equipment total, sub-counts): pointer only on links. */
+.link {
   text-decoration: none;
   cursor: pointer;
 }
@@ -68,7 +72,6 @@
 /* Equipment (FR-62): blocks with gap 20; Full is fixed 500, Small and
    All-good hug their fixed-width blocks (308 / 248). */
 .equipment {
-  position: relative;
   flex: none;
   gap: 20px;
 }
@@ -144,6 +147,17 @@
   background: var(--raw-eff6ff);
 }
 
+/* Icons centred in the tile: 22×22; the All-good tick 20×20 (FR-60). */
+.icon {
+  width: 22px;
+  height: 22px;
+}
+
+.iconSmall {
+  width: 20px;
+  height: 20px;
+}
+
 /* Text block: column, gap 2. */
 .text {
   display: flex;
@@ -185,33 +199,21 @@
   color: var(--raw-c62828);
 }
 
-/* The 147 px block: icon tile + total over `Equipment`, gap 14. Its link is
-   stretched over the whole tile, under the sub-count links. */
+/* The 147 px block: icon tile + total over `Equipment`, gap 14; the
+   Equipment link covers this block only. */
 .equipmentTotal {
   display: flex;
   flex: none;
   align-items: center;
   gap: 14px;
   width: 147px;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.equipmentTotal::after {
-  content: '';
-  position: absolute;
-  inset: 0;
 }
 
 /* Sub-count block: 40 wide (Tanks 50), number over label. */
 .sub {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex: none;
   width: 40px;
-  text-decoration: none;
-  cursor: pointer;
 }
 
 .subWide {
@@ -221,9 +223,7 @@
 /* states */
 
 /* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */
-.tile:focus-visible,
-.equipmentTotal:focus-visible,
-.sub:focus-visible {
+.link:focus-visible {
   outline: var(--border-width-md) solid var(--raw-006a36);
   outline-offset: 2px;
 }
