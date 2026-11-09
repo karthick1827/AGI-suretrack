@@ -196,7 +196,9 @@ test.describe('Signed-in shell 6215:58878', () => {
         return `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor} ${cs.outlineOffset} ${cs.cursor}`;
       });
     for (const control of controls) expect(await ring(control)).toMatch(/^none .* pointer$/);
-    await page.locator('body').click({ position: { x: 600, y: 500 } });
+    // Start the Tab sequence from a blank spot of the Header (the page below it
+    // now holds the Dashboard sections, Story 2.2).
+    await page.locator('body').click({ position: { x: 400, y: 32 } });
     for (const control of controls) {
       await page.keyboard.press('Tab');
       await expect(control).toBeFocused();

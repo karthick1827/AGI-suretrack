@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { paths, routePatterns, tabForPath } from '../lib/paths.js';
 import { getSession, getSessionState, purgeInvalidSession, subscribe } from '../lib/session.js';
+import DashboardPage from '../pages/Dashboard/DashboardPage.jsx';
 import LoginPage from '../pages/Login/LoginPage.jsx';
 import Placeholder from '../pages/Placeholder/Placeholder.jsx';
 import SignedInLayout from '../pages/SignedInLayout.jsx';
@@ -12,8 +13,8 @@ import RequireSession from './RequireSession.jsx';
 // `/dashboard` (FR-33). Every other app path is guarded by RequireSession
 // (FR-11) and renders inside the signed-in shell (SignedInLayout: Header and
 // page-title strip, AD-17), with the Nav tab derived from the route.
-// `/dashboard` shows an empty content area until Story 2.2; every other app
-// path shows the Placeholder (FR-57). `/` and unknown paths go to
+// `/dashboard` renders the Dashboard page (Story 2.2); every other app path
+// shows the Placeholder (FR-57). `/` and unknown paths go to
 // `/dashboard`, so a signed-out visitor still ends up on `/login`. OverlayProvider (AD-12) is mounted once
 // here, inside the router, and portals every overlay into #overlay-root; it
 // gets the pathname as `routeKey`, so a page change closes the open overlay.
@@ -140,8 +141,7 @@ export default function App() {
         <Routes>
           <Route path={routePatterns.login} element={<LoginRoute />} />
           <Route element={<SignedInRoute />}>
-            {/* Story 2.2 fills the Dashboard content area. */}
-            <Route path={routePatterns.dashboard} element={null} />
+            <Route path={routePatterns.dashboard} element={<DashboardPage />} />
             {PLACEHOLDER_PATTERNS.map((pattern) => (
               <Route key={pattern} path={pattern} element={<Placeholder />} />
             ))}

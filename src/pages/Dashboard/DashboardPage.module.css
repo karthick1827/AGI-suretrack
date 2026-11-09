@@ -1,0 +1,36 @@
+/*
+ * Dashboard page (FR-50, AD-4, AD-18). The page box starts below the title
+ * strip (page y 132) and is as tall as the rest of the Figma frame; the
+ * height and every slot box come from FRAME[state] (inline style), never
+ * from content.
+ */
+.page {
+  position: relative;
+  width: 1366px;
+}
+
+.slot {
+  position: absolute;
+  display: flex;
+}
+
+/* A card shell fills its slot (border-box: the 1px border is inside). */
+.fill {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * KPI strip shell (FR-59): #FFFFFF, visible radius 12, box-shadow
+ * 0 2px 4px rgba(39,39,39,0.15), outer padding-y 6. Its tiles come in
+ * Story 2.3; the loading and error blocks fill its content box.
+ */
+.kpiShell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 6px 0;
+  border-radius: 12px;
+  background: var(--primitives-color-base-white);
+  box-shadow: var(--shadow-kpi);
+}

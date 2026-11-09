@@ -1,0 +1,60 @@
+{
+  "$comment": "Story 2.2 — Dashboard section boxes per state (page coords, px, ±1 px), exact document height and the card-shell / KPI-shell computed styles. Transcribed from PRD FR-50, FR-59, FR-65, the card positions in PRD §4.6–§4.10 and design spec Part B §2.1, §4, §10 — not from src/lib/dashboardLayout.js, so the two cross-check.",
+  "full": {
+    "frame": "6215:58878",
+    "height": 1052,
+    "sections": {
+      "kpi": { "x": 24, "y": 136, "w": 1318, "h": 90 },
+      "equipmentCard": { "x": 24, "y": 246, "w": 649, "h": 444 },
+      "recentAlerts": { "x": 693, "y": 246, "w": 649, "h": 444 },
+      "fanActivity": { "x": 24, "y": 710, "w": 426, "h": 326 },
+      "grain": { "x": 470, "y": 710, "w": 426, "h": 326 },
+      "liquid": { "x": 916, "y": 710, "w": 426, "h": 326 }
+    }
+  },
+  "small": {
+    "frame": "6864:4514",
+    "height": 860,
+    "sections": {
+      "kpi": { "x": 24, "y": 136, "w": 1318, "h": 90 },
+      "equipmentCard": { "x": 24, "y": 246, "w": 649, "h": 240 },
+      "recentAlerts": { "x": 693, "y": 246, "w": 649, "h": 240 },
+      "fanActivity": { "x": 24, "y": 506, "w": 426, "h": 326 },
+      "grain": { "x": 470, "y": 506, "w": 426, "h": 326 },
+      "liquid": { "x": 916, "y": 506, "w": 426, "h": 326 }
+    }
+  },
+  "allgood": {
+    "frame": "6879:15603",
+    "height": 856,
+    "sections": {
+      "kpi": { "x": 24, "y": 136, "w": 1318, "h": 90 },
+      "equipmentCard": { "x": 24, "y": 246, "w": 649, "h": 240 },
+      "recentAlerts": { "x": 693, "y": 246, "w": 649, "h": 240 },
+      "fanActivity": { "x": 24, "y": 506, "w": 426, "h": 326 },
+      "grain": { "x": 470, "y": 506, "w": 426, "h": 326 },
+      "liquid": { "x": 916, "y": 506, "w": 426, "h": 326 }
+    }
+  },
+  "cardShell": {
+    "backgroundColor": "#ffffff",
+    "borderColor": "#d1d5db",
+    "borderWidth": "1px",
+    "borderStyle": "solid",
+    "radius": "12px",
+    "padding": "20px",
+    "filter": "drop-shadow(rgba(39, 39, 39, 0.1) 0px 2px 2px)"
+  },
+  "kpiShell": {
+    "backgroundColor": "#ffffff",
+    "radius": "12px",
+    "boxShadow": "rgba(39, 39, 39, 0.15) 0px 2px 4px 0px"
+  },
+  "cardHeader": {
+    "regular": { "h": 56, "paddingBottom": "12px" },
+    "compact": { "h": 33, "paddingBottom": "12px" },
+    "title": { "color": "#1f2937", "fontWeight": "590", "fontSize": "20px", "lineHeight": "25px" },
+    "subtitleDark": { "color": "#000000cc", "fontWeight": "400", "fontSize": "12px", "lineHeight": "18px" },
+    "subtitleMuted": { "color": "#4b5563", "fontWeight": "400", "fontSize": "12px", "lineHeight": "18px" }
+  }
+}

@@ -1,0 +1,103 @@
+/*
+ * Card shell (FR-65, design spec Part B §4): #FFFFFF, 1px solid #D1D5DB,
+ * radius 12, padding 20, drop-shadow(0 2px 2px rgba(39,39,39,0.1)).
+ * The caller sets the size (FRAME[state], AD-18); the column lets a loading
+ * or error block fill the content box (FR-95, FR-96).
+ */
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: var(--border-width-hairline) solid var(--raw-d1d5db);
+  border-radius: 12px;
+  background: var(--primitives-color-base-white);
+  filter: drop-shadow(var(--shadow-card));
+}
+
+/* Card header ("Margin"): Equipment, Recent Alerts, Fan activity 56 high, pb 12. */
+.header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 56px;
+  padding-bottom: 12px;
+}
+
+/* Grain and Liquid: 33 nominal, pb 12; the 46 px of text overflows (visible). */
+.compact {
+  height: 33px;
+}
+
+/* Header text column, gap 3. */
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* SF stack 590, 20 px, line-height 1.25, #1F2937. */
+.title {
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-semibold);
+  font-size: 20px;
+  line-height: 1.25;
+  white-space: nowrap;
+  color: var(--raw-1f2937);
+}
+
+/* SF stack 400, 12 px, line-height 1.5; rgba(0,0,0,0.8) on Equipment and Recent Alerts. */
+.subtitle {
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--raw-rgba-0-0-0-0-8);
+}
+
+/* #4B5563 on Fan activity, Grain On Hand and Liquid On Hand. */
+.muted {
+  color: var(--raw-4b5563);
+}
+
+/* "View All": min-height 44, padding 13.5 2, inner gap 6. */
+.link {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 13.5px 2px;
+  cursor: pointer;
+}
+
+/* SF stack 510, 14/1.25, #005C2F. */
+.linkLabel {
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-medium);
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+  color: var(--raw-005c2f);
+}
+
+/* Right chevron in a 12×16 box, #006A36 baked into the SVG (AD-5). */
+.chevron {
+  width: 12px;
+  height: 16px;
+}
+
+/* states */
+
+/* FR-58: underline on link hover, no layout shift. */
+.link:hover .linkLabel {
+  text-decoration: underline;
+}
+
+/* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */
+.link:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-006a36);
+  outline-offset: 2px;
+}

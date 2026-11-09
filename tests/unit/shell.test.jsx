@@ -102,7 +102,7 @@ async function openMenu() {
 }
 
 describe('signed in: /dashboard (FR-50–FR-55)', () => {
-  it('renders the Header and the title strip, Dashboard tab active, badge 2, empty content area', async () => {
+  it('renders the Header and the title strip, Dashboard tab active, badge 2, then the Dashboard page', async () => {
     signInAs('demo');
     await renderAt(paths.dashboard());
     expect(header().getAttribute('data-fid')).toBe(FID.shell.header);
@@ -123,9 +123,9 @@ describe('signed in: /dashboard (FR-50–FR-55)', () => {
     await waitFor(() => expect(badgeText()).toBe('2'));
     expect(screen.getByRole('button', { name: s.bellLabel })).toBeTruthy();
     expect(avatar().getAttribute('aria-expanded')).toBe('false');
-    // Empty content area until Story 2.2: no placeholder, no cards.
+    // The content area holds the Dashboard page (Story 2.2), never the placeholder.
     expect(screen.queryByText(copy.placeholder.comingSoon)).toBeNull();
-    expect(screen.getByRole('main').childElementCount).toBe(0);
+    expect(screen.getByRole('main').querySelectorAll('[data-section]')).toHaveLength(6);
     // Hidden Figma layers are never rendered (FR-51).
     expect(document.body.textContent).not.toMatch(/Farm Test/);
   });

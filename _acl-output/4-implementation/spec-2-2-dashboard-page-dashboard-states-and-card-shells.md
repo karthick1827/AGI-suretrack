@@ -8,7 +8,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-10'
 baseline_commit: '37bf9fb493675ef8b8738404d9ed100fe453981d'
-implementation_status: in-progress
+implementation_status: in-review
 story_key: 2-2-dashboard-page-dashboard-states-and-card-shells
 jira: NEW
 review_loop_iteration: 0
@@ -70,13 +70,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/lib/dashboardLayout.js`: `FRAME.full/small/allgood`, each section's `{ x, y, w, h }` and `pageBottomSpacePx`, plus unit tests that pin every value to the PRD.
-- [ ] `src/ui/CardShell.jsx` and `.module.css`: the FR-65 shell and card header slot.
-- [ ] `src/ui/SectionState.jsx` and `.module.css`: the loading placeholder and the error with Retry.
-- [ ] `src/pages/Dashboard/DashboardPage.jsx` and `.module.css`: six absolutely placed section slots from `FRAME[state]`, each taking `{ status, data, onRetry }`.
-- [ ] `src/app/App.jsx`: wire `/dashboard` to `DashboardPage`.
-- [ ] `tests/unit/dashboard-page.test.jsx`: every I/O-matrix row except Fidelity.
-- [ ] `tests/fidelity/dashboard-layout.spec.js` and `expected/dashboard-layout.json`: per-state section boxes (±1 px), exact page height and card-shell style audit.
+- [x] `src/lib/dashboardLayout.js`: `FRAME.full/small/allgood`, each section's `{ x, y, w, h }` and `pageBottomSpacePx`, plus unit tests that pin every value to the PRD.
+- [x] `src/ui/CardShell.jsx` and `.module.css`: the FR-65 shell and card header slot.
+- [x] `src/ui/SectionState.jsx` and `.module.css`: the loading placeholder and the error with Retry.
+- [x] `src/pages/Dashboard/DashboardPage.jsx` and `.module.css`: six absolutely placed section slots from `FRAME[state]`, each taking `{ status, data, onRetry }`.
+- [x] `src/app/App.jsx`: wire `/dashboard` to `DashboardPage`.
+- [x] `tests/unit/dashboard-page.test.jsx`: every I/O-matrix row except Fidelity.
+- [x] `tests/fidelity/dashboard-layout.spec.js` and `expected/dashboard-layout.json`: per-state section boxes (±1 px), exact page height and card-shell style audit.
 
 **Acceptance Criteria:**
 - Given `npm run lint && npm run build && npm test && npm run test:fidelity`, when run, then everything passes except the already-recorded Windows screenshot advisories, and all earlier Fidelity checks are unchanged.

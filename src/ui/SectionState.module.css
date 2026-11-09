@@ -1,0 +1,53 @@
+/*
+ * FR-95 / FR-96 [ASSUMPTION] loading and error blocks. Both fill the content
+ * box of their shell (a flex column) without changing its size (AD-18).
+ */
+
+/* FR-95: #F4F5F6 block, radius 8, filling the content box; no animation. */
+.placeholder {
+  flex: 1 1 auto;
+  border-radius: 8px;
+  background: var(--raw-f4f5f6);
+}
+
+/* FR-96: text and Retry, centred in the shell. */
+.error {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Roboto 400 14/20.3 #4B5563. */
+.message {
+  font-family: var(--font-stack-roboto);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20.3px;
+  text-align: center;
+  color: var(--raw-4b5563);
+}
+
+/* Retry styled as an Action link: SF stack 510 14/1.25 #005C2F. */
+.retry {
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-medium);
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--raw-005c2f);
+  cursor: pointer;
+}
+
+/* states */
+
+/* FR-58: underline on link hover, no layout shift. */
+.retry:hover {
+  text-decoration: underline;
+}
+
+/* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */
+.retry:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-006a36);
+  outline-offset: 2px;
+}
