@@ -7,6 +7,8 @@ title: 'Story 2.5 — Recent Alerts card'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: 'aad8f5ffc9e65a6c89c8a4fd213bfbaa0b888aa1'
+implementation_status: in-progress
 story_key: 2-5-recent-alerts-card
 jira: SCRUM-38
 review_loop_iteration: 0
