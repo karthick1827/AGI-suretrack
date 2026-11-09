@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T10:09:05.598Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 2.6 — Fan activity card with Runtime chart'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
