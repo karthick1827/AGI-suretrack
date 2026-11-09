@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T05:52:11.735Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 2.3 — KPI strip'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
