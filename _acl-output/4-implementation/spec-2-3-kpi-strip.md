@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T06:25:06.171Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 spec_approved_by: Manager (via Markdown Studio)
 spec_approved_at: 2026-11-09T05:52:11.735Z
 title: 'Story 2.3 — KPI strip'
@@ -7,7 +10,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: '4b8353cb1057872b5fb49a46f92fbe0622aec9d5'
-implementation_status: review
+implementation_status: done
 story_key: 2-3-kpi-strip
 jira: SCRUM-37
 review_loop_iteration: 0

@@ -660,6 +660,7 @@ The strip shell (radius 16, its shadow rectangle radius 12) and the dividers mat
 **Given** each state
 **When** the KPI strip region is compared with its Reference render
 **Then** it passes the Fidelity check
+- [x] Story 2.3 completed — Manager approved 2026-11-09 (spec-2-3); feature/2-3-kpi-strip
 
 ### Story 2.4: Equipment card with Health bars (SCRUM-37)
 
