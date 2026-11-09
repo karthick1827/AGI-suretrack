@@ -51,54 +51,88 @@ export const RUNTIME_COLUMN_PX = RUNTIME_CHART_PX / RUNTIME_SLOTS;
 export const RUNTIME_BAR_WIDTH_PX = 24;
 /** Fallback formula scale (FR-80): the largest `hours` gives a 79 px bar. */
 export const RUNTIME_SCALE_PX = 79;
+/** Column geometry (FR-80, FR-81): 103 px columns on the chart's bottom edge. */
+export const RUNTIME_COLUMN_HEIGHT_PX = 103;
+/** The day label box under each bar: padding-top 5 + 14 px of Roboto 12. */
+export const RUNTIME_DAY_LABEL_PX = 19;
+/** The value label sits 18 px above the bar top (FR-81 `top: -18px`). */
+export const RUNTIME_VALUE_LABEL_OFFSET_PX = 18;
+/** The shorter chart (Full: 119 px; Small and All-good 120). */
+export const RUNTIME_CHART_MIN_HEIGHT_PX = 119;
+/** A bar's room in its column above the day label: 103 − 19 = 84 px. */
+export const RUNTIME_BAR_SPACE_PX = RUNTIME_COLUMN_HEIGHT_PX - RUNTIME_DAY_LABEL_PX;
 /**
- * The room a bar has in its 103 px column above the day label (padding 5 +
- * 14 px of Roboto 12): 84 px. A `barPx` beyond it is drawn at 84, so a bar
- * never leaves its column (no state document comes near: the tallest is 79).
+ * The tallest bar whose value label still starts inside the chart in every
+ * state: the column space plus the headroom above the column in the shorter
+ * chart (119 − 103 = 16), less the label offset (18): 84 + 16 − 18 = 82 px.
  */
-export const RUNTIME_BAR_SPACE_PX = 84;
+export const RUNTIME_MAX_BAR_PX =
+  RUNTIME_BAR_SPACE_PX + (RUNTIME_CHART_MIN_HEIGHT_PX - RUNTIME_COLUMN_HEIGHT_PX) - RUNTIME_VALUE_LABEL_OFFSET_PX;
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const finite = (value) => typeof value === 'number' && Number.isFinite(value);
-/** An explicit `barPx` usable as a height: a finite number ≥ 0. */
-const usableBarPx = (value) => finite(value) && value >= 0;
+/** Usable hours: a finite number ≥ 0. */
+const usableHours = (value) => finite(value) && value >= 0;
+/** An explicit `barPx` usable as a height: an integer from 0 to RUNTIME_MAX_BAR_PX (82). */
+const usableBarPx = (value) => Number.isInteger(value) && value >= 0 && value <= RUNTIME_MAX_BAR_PX;
 
 /**
- * FR-80 Runtime bars, oldest to newest. A chart entry is usable when it is an
- * object with a finite `hours` or a usable `barPx`; anything else is skipped.
- * Only the last 7 usable entries are drawn (the chart is "the last 7 days",
+ * FR-80 Runtime bars, oldest to newest.
+ *
+ * Drawn entries: objects whose `hours` is not a negative number (an entry
+ * with negative hours is dropped, so no "-5h" can be drawn) and that have
+ * usable hours (finite, ≥ 0) or a usable `barPx`. Anything else is skipped.
+ * Only the last 7 drawn entries are kept (the chart is "the last 7 days",
  * ending with today); fewer give fewer bars, in slots from the left.
  *
+ * One scale per chart:
+ *   - `barPx` (AD-8, AD-14: exact, 0 px tolerance) only when EVERY drawn
+ *     entry has a usable `barPx`: an integer from 0 to 82 px, the tallest bar
+ *     whose value label stays inside the chart (RUNTIME_MAX_BAR_PX, from the
+ *     column geometry). A fractional, negative, too-large or non-numeric
+ *     `barPx` is not usable; it is never capped or rounded.
+ *   - Otherwise the formula for ALL drawn bars: `round(hours / max(hours) ×
+ *     79)`, max over the drawn bars only (an entry outside the 7-day window
+ *     never scales the chart). A max of 0, or an entry without usable hours,
+ *     gives 0.
+ *
+ * Returned per bar:
  *   - `x`: the bar's left edge in the chart, centred in slot i:
  *     (55.14 − 24) / 2 + i × 55.14 → 15.57, 70.71, 125.86, 181.00, 236.14,
  *     291.29, 346.43.
- *   - `height`: `barPx` exactly when it is given (AD-8, AD-14: 0 px
- *     tolerance; capped at the 84 px column space); otherwise the fallback
- *     `round(hours / max(hours) × 79)` over the drawn bars' finite hours. A
- *     max of 0 or below, or a non-finite or negative `hours`, gives 0.
- *   - `day`, `hours`, `isToday`: passed through as given (`isToday` is true
- *     only for the boolean true); the card decides what may be shown.
+ *   - `height`: as above; always a finite integer ≥ 0.
+ *   - `hours`: the usable hours, else null.
+ *   - `day`: passed through as given; the card decides what may be shown.
+ *   - `isToday`: true only for the LAST drawn entry with `isToday === true`;
+ *     `isToday` on any other entry is ignored.
  *
  * Never throws and never returns NaN.
  *
  * @param {unknown} chart  `fanActivity.chart`
- * @returns {{ day: unknown, hours: unknown, isToday: boolean, x: number, height: number }[]}
+ * @returns {{ day: unknown, hours: number | null, isToday: boolean, x: number, height: number }[]}
  */
 export function runtimeBars(chart) {
   if (!Array.isArray(chart)) return [];
   const entries = chart
-    .filter((entry) => isPlainObject(entry) && (finite(entry.hours) || usableBarPx(entry.barPx)))
+    .filter(
+      (entry) =>
+        isPlainObject(entry) &&
+        !(finite(entry.hours) && entry.hours < 0) &&
+        (usableHours(entry.hours) || usableBarPx(entry.barPx)),
+    )
     .slice(-RUNTIME_SLOTS);
-  const max = entries.reduce((top, entry) => (finite(entry.hours) && entry.hours > top ? entry.hours : top), 0);
+  const exact = entries.every((entry) => usableBarPx(entry.barPx));
+  const max = entries.reduce((top, entry) => (usableHours(entry.hours) && entry.hours > top ? entry.hours : top), 0);
   const inset = (RUNTIME_COLUMN_PX - RUNTIME_BAR_WIDTH_PX) / 2;
+  const last = entries.length - 1;
   return entries.map((entry, i) => {
     let height = 0;
-    if (usableBarPx(entry.barPx)) height = Math.min(entry.barPx, RUNTIME_BAR_SPACE_PX);
-    else if (finite(entry.hours) && entry.hours > 0 && max > 0) height = Math.round((entry.hours / max) * RUNTIME_SCALE_PX);
+    if (exact) height = entry.barPx;
+    else if (usableHours(entry.hours) && max > 0) height = Math.round((entry.hours / max) * RUNTIME_SCALE_PX);
     return {
       day: entry.day,
-      hours: entry.hours,
-      isToday: entry.isToday === true,
+      hours: usableHours(entry.hours) ? entry.hours : null,
+      isToday: i === last && entry.isToday === true,
       x: inset + i * RUNTIME_COLUMN_PX,
       height,
     };

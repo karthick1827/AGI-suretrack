@@ -210,20 +210,46 @@ describe('Runtime chart accessibility (FR-80)', () => {
     expect(within(slot()).queryAllByRole('img')).toEqual([img]);
   });
 
-  it('without a usable chartLabel the chart is not an unnamed image: its labels stay exposed as text', () => {
-    for (const chartLabel of [undefined, '', '   ', 7, { x: 1 }]) {
+  /** The chart is a list of its columns, each day read with its hours; no image role, no name. */
+  const expectColumnList = (count) => {
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(chart().hasAttribute('aria-label')).toBe(false);
+    const list = within(chart()).getByRole('list');
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toEqual(columns());
+    expect(items).toHaveLength(count);
+    for (const item of items) {
+      expect(isInaccessible(item)).toBe(false);
+      // Each item holds its hours label and its day label together.
+      expect(item.textContent).toBe(columnText(item).map((text) => text ?? '').join(''));
+    }
+  };
+
+  it('without a usable chartLabel the chart is not an unnamed image: its columns are a list, each day with its hours', () => {
+    for (const chartLabel of [undefined, null, '', '   ', Number.NaN, { x: 1 }, ['label']]) {
       renderCard({ ...DOCS.full.fanActivity, chartLabel });
-      expect(screen.queryByRole('img')).toBeNull();
-      expect(chart().hasAttribute('aria-label')).toBe(false);
-      expect(isInaccessible(screen.getByText('86h'))).toBe(false);
-      expect(isInaccessible(screen.getByText('Today'))).toBe(false);
+      expectColumnList(7);
+      expect(columns().map((item) => item.textContent)).toEqual(DAYS.map((day, i) => `${VALUE_LABELS[i]}${day}`));
       cleanup();
     }
   });
 
-  it('a usable chartLabel is used verbatim (no trimming)', () => {
+  it('with fewer than 7 drawn bars the chartLabel would not describe the chart: no image, a list', () => {
+    renderCard({ ...DOCS.full.fanActivity, chart: DOCS.full.fanActivity.chart.slice(0, 5) });
+    expectColumnList(5);
+    cleanup();
+    // More than 7 entries draw the last 7: then the name applies again.
+    renderCard({ ...DOCS.full.fanActivity, chart: [entry({ day: 'Tue' }), ...DOCS.full.fanActivity.chart] });
+    expect(screen.getByRole('img', { name: CHART_LABEL })).toBe(chart());
+    expect(within(chart()).queryByRole('list')).toBeNull();
+  });
+
+  it('a usable chartLabel is used verbatim (no trimming); a finite number is its String()', () => {
     renderCard({ ...DOCS.full.fanActivity, chartLabel: ' Runtime  ' });
     expect(chart().getAttribute('aria-label')).toBe(' Runtime  ');
+    cleanup();
+    renderCard({ ...DOCS.full.fanActivity, chartLabel: 7 });
+    expect(screen.getByRole('img', { name: '7' })).toBe(chart());
   });
 });
 
@@ -291,6 +317,8 @@ describe('Fan activity loading and error (FR-95, FR-96, AD-18)', () => {
     ['empty tiles and chart', { ...DOCS.full.fanActivity, tiles: [], chart: [] }],
     ['tiles and chart not arrays', { ...DOCS.full.fanActivity, tiles: { 0: { value: '7' } }, chart: 'Wed 62' }],
     ['only unusable tiles and chart entries', { ...DOCS.full.fanActivity, tiles: [null, '7', { value: {}, label: '  ' }], chart: [null, { day: 'Wed' }, { hours: '62' }] }],
+    ['only invisible chart entries (no day or hours label) and no tiles', { ...DOCS.full.fanActivity, tiles: [{ value: ' ', label: '\t' }], chart: [{ barPx: 50 }, { barPx: 60, day: '  ' }, { barPx: 70, day: {} }] }],
+    ['only negative-hours chart entries', { ...DOCS.full.fanActivity, tiles: [], chart: [{ day: 'Wed', hours: -5 }, { day: 'Thu', hours: -1, barPx: 10 }] }],
     ['a string slice', 'fanActivity'],
   ])('ready with %s → the section shows the Story 2.2 error state, not a blank card', async (_name, slice) => {
     vi.mocked(getDashboard).mockResolvedValue({ ...DOCS.full, fanActivity: slice });
@@ -309,7 +337,11 @@ describe('Fan activity loading and error (FR-95, FR-96, AD-18)', () => {
     expect(hasFanContent({ tiles: [{ value: '7' }] })).toBe(true);
     expect(hasFanContent({ tiles: [{ label: 'Running Now' }] })).toBe(true);
     expect(hasFanContent({ chart: [{ hours: 0 }] })).toBe(true);
-    expect(hasFanContent({ chart: [{ barPx: 12 }] })).toBe(true);
+    expect(hasFanContent({ chart: [{ barPx: 12, day: 'Wed' }] })).toBe(true);
+    // Bars with no visible day or hours label are not content.
+    for (const invisible of [{ chart: [{ barPx: 12 }] }, { chart: [{ barPx: 12, day: '  ' }, { barPx: 5, day: null }] }]) {
+      expect(hasFanContent(invisible), JSON.stringify(invisible)).toBe(false);
+    }
     for (const bad of [
       null,
       undefined,
@@ -351,6 +383,41 @@ describe('Fan activity loading and error (FR-95, FR-96, AD-18)', () => {
 /* ------------------------------------------------------------------------ */
 
 describe('bad data and verbatim readings (AD-7, AD-8)', () => {
+  it('negative hours: the entry is dropped, so no "-5h" label can render and no height is negative', () => {
+    renderCard({ chart: [{ day: 'Wed', hours: 10 }, { day: 'Thu', hours: -5 }, { day: 'Fri', hours: 5 }] });
+    expect(columns().map(columnText)).toEqual([
+      ['10h', 'Wed'],
+      ['5h', 'Fri'],
+    ]);
+    expect(barHeights()).toEqual(['79px', '40px']);
+    expect(document.body.textContent).not.toMatch(/-\d/);
+  });
+
+  it('whitespace-only tile values or labels render as empty parts; a tile with neither visible is not drawn', () => {
+    renderCard({
+      tiles: [
+        { value: '   ', label: 'Running Now' },
+        { value: '86 h', label: '\t' },
+        { value: ' ', label: '  ' },
+        { value: 0, label: 'Zero' },
+      ],
+    });
+    expect(tiles().map(tileText)).toEqual([
+      ['', 'Running Now'],
+      ['86 h', ''],
+      ['0', 'Zero'],
+    ]);
+    for (const tile of tiles()) expect(tile.textContent.trim()).not.toBe('');
+  });
+
+  it('whitespace-only day labels render nothing', () => {
+    renderCard({ chart: [entry({ day: '   ' }), entry({ day: 'Thu' })] });
+    expect(columns().map(columnText)).toEqual([
+      ['62h', ''],
+      ['62h', 'Thu'],
+    ]);
+  });
+
   it('fewer than 7 chart entries → that many bars, in slots from the left, no crash', () => {
     renderCard({ chart: DOCS.full.fanActivity.chart.slice(0, 3) });
     expect(barHeights()).toEqual(['54px', '61px', '66px']);
@@ -457,10 +524,23 @@ describe('bad data and verbatim readings (AD-7, AD-8)', () => {
     for (const text of texts) expect(allowed.has(text), JSON.stringify(text)).toBe(true);
   });
 
-  it('isToday styles only an entry whose isToday is the boolean true', () => {
+  it('isToday styles only the last bar, and only when its isToday is the boolean true', () => {
+    const todayOf = () => [
+      columns().map((column) => part(column, 'bar').classList.contains(cardStyles.todayBar)),
+      columns().map((column) => part(column, 'day').classList.contains(cardStyles.todayDay)),
+    ];
     renderCard({ chart: [entry({ isToday: 'true' }), entry({ isToday: 1 }), entry({ isToday: true })] });
-    expect(columns().map((column) => part(column, 'bar').classList.contains(cardStyles.todayBar))).toEqual([false, false, true]);
-    expect(columns().map((column) => part(column, 'day').classList.contains(cardStyles.todayDay))).toEqual([false, false, true]);
+    expect(todayOf()).toEqual([
+      [false, false, true],
+      [false, false, true],
+    ]);
+    cleanup();
+    // isToday on any other entry is ignored.
+    renderCard({ chart: [entry({ isToday: true }), entry({ isToday: true }), entry({ isToday: false })] });
+    expect(todayOf()).toEqual([
+      [false, false, false],
+      [false, false, false],
+    ]);
   });
 
   it.each([
@@ -475,7 +555,10 @@ describe('bad data and verbatim readings (AD-7, AD-8)', () => {
     expect(columns()).toHaveLength(0);
   });
 
-  it('variant sets the chart class (Full 119, Small and All-good 120); an unknown variant falls back to Full', () => {
+  // The chart height per variant (Full 119, Small and All-good 120) is CSS:
+  // Vitest's CSS-module proxy returns a class name for ANY key, so the heights
+  // are asserted on the built app by the Fidelity spec (chart.h per state).
+  it('variant selects the layout (data-fan-body); an unknown variant falls back to Full', () => {
     for (const [variant, layout] of [
       ['full', 'full'],
       ['small', 'small'],
@@ -487,7 +570,6 @@ describe('bad data and verbatim readings (AD-7, AD-8)', () => {
     ]) {
       const { unmount } = renderCard(DOCS.full.fanActivity, variant);
       expect(body().dataset.fanBody, String(variant)).toBe(layout);
-      expect(body().classList.contains(cardStyles[layout])).toBe(true);
       unmount();
     }
   });

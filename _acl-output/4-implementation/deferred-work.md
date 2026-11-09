@@ -71,3 +71,6 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-2-5-recent-alerts-card.md`
   summary: Design to review the Warning severity text colour #D97706 on white at 12 px (about 3.2:1, below WCAG AA 4.5:1 for small text).
   evidence: Colour is verbatim from Figma/PRD FR-74; changing it is a token/design change.
+- source_spec: `_acl-output/4-implementation/spec-2-6-fan-activity-card-with-runtime-chart.md`
+  summary: Audit unit tests from Stories 2.3–2.5 that assert `classList.contains(styles[x])`; Vitest's CSS-module proxy returns a class name for any key, so a missing CSS class still passes. Prefer data attributes or fidelity computed-style checks.
+  evidence: Found in Story 2.6 review (`.full` class did not exist but its unit test passed).

@@ -12,24 +12,29 @@
 // translation keeps the fractional x unsnapped, see the CSS) and each bar is
 // exactly its `height` (`barPx`, 0 px tolerance, AD-14). The value label is
 // `String(hours) + "h"` (copy.js runtimeValueLabel, PRD addendum §B), the one
-// display string derived from a chart number; it is drawn only for a finite
-// `hours`. The day label is the `day` reading verbatim; `isToday` styles the
+// display string derived from a chart number; it is drawn only for usable
+// hours (finite, ≥ 0). The day label is the `day` reading verbatim when it has
+// visible text; `isToday` (only ever the last bar, see runtimeBars) styles the
 // bar and the label.
 //
-// Accessibility: the chart is one image named by `fanActivity.chartLabel`
-// (role="img" + aria-label), as the Figma frame itself is ("Img - Fan runtime
-// hours for the last 7 days, from 62 to 90 hours"). Its 14 drawn labels are
-// hidden from assistive technology (aria-hidden), so the chart is announced
-// once, by the name the design wrote for it, rather than as 14 loose
-// fragments ("62h", "Wed", …) with no relation between them. Without a usable
-// chartLabel the chart is not an image: its labels stay exposed as text.
+// Accessibility: with exactly 7 bars and a usable `fanActivity.chartLabel`,
+// the chart is one image named by it (role="img" + aria-label), as the Figma
+// frame itself is ("Img - Fan runtime hours for the last 7 days, from 62 to
+// 90 hours"). Its 14 drawn labels are hidden from assistive technology
+// (aria-hidden), so the chart is announced once, by the name the design wrote
+// for it, rather than as 14 loose fragments. In any other case the name would
+// not describe what is drawn (or there is none), so the chart is not an
+// image: its columns are a list (role="list" / "listitem"), each day read
+// together with its hours. No new copy is needed either way.
 //
-// Only strings and finite numbers render; anything else renders nothing. Keys
+// Only strings and finite numbers with visible text render (fanActivity.js
+// visibleText); anything else renders nothing. Keys
 // are slot positions: the tiles are the frame's three fixed slots and the
 // bars its seven day slots (oldest → today), so a re-render with new readings
 // updates each slot in place.
 import { runtimeValueLabel } from '../../../lib/copy.js';
-import { chartLabel, fanBars, fanCaption, fanTiles, shownText } from './fanActivity.js';
+import { RUNTIME_SLOTS } from '../../../lib/geometry.js';
+import { chartLabel, fanBars, fanCaption, fanTiles, visibleText } from './fanActivity.js';
 import styles from './FanActivityCard.module.css';
 
 const DEFAULT_VARIANT = 'full';
@@ -38,14 +43,15 @@ const VARIANTS = Object.freeze(['full', 'small', 'allgood']);
 
 const cx = (...names) => names.filter(Boolean).join(' ');
 
-/** FR-81 value label for a finite `hours`, else null. */
-const hoursLabel = (hours) => (typeof hours === 'number' && Number.isFinite(hours) ? runtimeValueLabel(hours) : null);
+/** FR-81 value label for usable hours (runtimeBars gives a finite number ≥ 0 or null), else null. */
+const hoursLabel = (hours) => (typeof hours === 'number' && Number.isFinite(hours) && hours >= 0 ? runtimeValueLabel(hours) : null);
 
 function StatTiles({ tiles }) {
   return (
     <div className={styles.tileRow} data-fan-tiles="">
       {tiles.length > 0 ? (
-        <ul className={styles.tiles}>
+        // role="list": WebKit drops list semantics under `list-style: none`.
+        <ul className={styles.tiles} role="list">
           {tiles.map((tile, slot) => (
             <li key={slot} className={styles.tile} data-fan-tile={slot}>
               <span className={styles.valueBox}>
@@ -67,7 +73,7 @@ function StatTiles({ tiles }) {
 }
 
 function RuntimeChart({ bars, name }) {
-  const image = bars.length > 0 && name !== null;
+  const image = bars.length === RUNTIME_SLOTS && name !== null;
   return (
     <div
       className={styles.chart}
@@ -75,11 +81,17 @@ function RuntimeChart({ bars, name }) {
       aria-label={image ? name : undefined}
       data-fan-chart=""
     >
-      <div className={styles.plot} aria-hidden={image ? 'true' : undefined}>
+      <div className={styles.plot} role={image ? undefined : 'list'} aria-hidden={image ? 'true' : undefined}>
         {bars.map((bar, slot) => {
           const value = hoursLabel(bar.hours);
           return (
-            <div key={slot} className={styles.column} style={{ transform: `translateX(${bar.x}px)` }} data-fan-column={slot}>
+            <div
+              key={slot}
+              className={styles.column}
+              role={image ? undefined : 'listitem'}
+              style={{ transform: `translateX(${bar.x}px)` }}
+              data-fan-column={slot}
+            >
               <span
                 className={cx(styles.bar, bar.isToday && styles.todayBar)}
                 style={{ height: bar.height }}
@@ -92,7 +104,7 @@ function RuntimeChart({ bars, name }) {
                 )}
               </span>
               <span className={cx(styles.day, bar.isToday && styles.todayDay)} data-fan-part="day">
-                {shownText(bar.day)}
+                {visibleText(bar.day)}
               </span>
             </div>
           );

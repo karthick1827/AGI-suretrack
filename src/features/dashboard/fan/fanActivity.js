@@ -8,16 +8,14 @@ export const MAX_FAN_TILES = 3;
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-/** A reading renders only if it is a string or a finite number (verbatim, never formatted); else null. */
-export const shownText = (value) => {
+/**
+ * The one "visible text" rule (tiles, day labels, chartLabel, caption): a
+ * string with non-whitespace text, or a finite number (as its String()),
+ * returned verbatim (never trimmed or formatted); anything else is null.
+ */
+export const visibleText = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  return typeof value === 'string' ? value : null;
-};
-
-/** A shown reading with visible text, else null. */
-const visibleText = (value) => {
-  const text = shownText(value);
-  return text !== null && text.trim() !== '' ? text : null;
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
 };
 
 /**
@@ -31,7 +29,7 @@ export function fanTiles(data) {
   return data.tiles
     .filter((tile) => isObject(tile) && (visibleText(tile.value) !== null || visibleText(tile.label) !== null))
     .slice(0, MAX_FAN_TILES)
-    .map((tile) => ({ value: shownText(tile.value), label: shownText(tile.label) }));
+    .map((tile) => ({ value: visibleText(tile.value), label: visibleText(tile.label) }));
 }
 
 /** FR-80 Runtime bars from `fanActivity.chart` (geometry.runtimeBars, AD-8). */
@@ -41,7 +39,7 @@ export function fanBars(data) {
 
 /** FR-80: the chart's accessible name (`fanActivity.chartLabel`), or null when it has no visible text. */
 export function chartLabel(data) {
-  return isObject(data) && typeof data.chartLabel === 'string' && data.chartLabel.trim() !== '' ? data.chartLabel : null;
+  return isObject(data) ? visibleText(data.chartLabel) : null;
 }
 
 /** FR-82: the caption (verbatim), or null when it has no visible text. */
@@ -49,11 +47,15 @@ export function fanCaption(data) {
   return isObject(data) ? visibleText(data.caption) : null;
 }
 
+/** Whether a drawn bar shows something readable: a visible day label or an hours label. */
+export const barIsVisible = (bar) => visibleText(bar.day) !== null || bar.hours !== null;
+
 /**
  * Whether a ready `fanActivity` slice has something the card can draw: at
- * least one Stat tile or one Runtime bar. Anything else (no tiles and no
- * usable chart entries, whatever the caption) is a section load error.
+ * least one Stat tile, or one Runtime bar with a visible day or hours label.
+ * Anything else (no tiles and only invisible chart entries, whatever the
+ * caption) is a section load error.
  */
 export function hasFanContent(data) {
-  return fanTiles(data).length > 0 || fanBars(data).length > 0;
+  return fanTiles(data).length > 0 || fanBars(data).some(barIsVisible);
 }

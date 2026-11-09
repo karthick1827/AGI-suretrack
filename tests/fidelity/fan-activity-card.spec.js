@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import sharp from 'sharp';
+import { RUNTIME_BAR_SPACE_PX, RUNTIME_COLUMN_HEIGHT_PX, RUNTIME_DAY_LABEL_PX, RUNTIME_MAX_BAR_PX } from '../../src/lib/geometry.js';
 import { paths } from '../../src/lib/paths.js';
 import { SESSION_KEY, createSessionRecord } from '../../src/lib/session.js';
 import {
@@ -42,7 +43,16 @@ async function openDashboard(page, state) {
   await expect(page.locator(`${SLOT}[data-status="ready"]`)).toHaveCount(1);
   await page.locator(`${SLOT} [data-fan-body]`).waitFor();
   await waitForFonts(page);
-  await page.waitForFunction(() => [...document.images].every((img) => img.complete && img.naturalWidth > 0));
+  // Only the card's own images (it draws none today); fail fast with a clear message.
+  try {
+    await page.waitForFunction(
+      (selector) => [...document.querySelectorAll(`${selector} img`)].every((img) => img.complete && img.naturalWidth > 0),
+      SLOT,
+      { timeout: 5000 },
+    );
+  } catch (error) {
+    throw new Error(`openDashboard(${state}): an image inside the Fan activity card did not load within 5 s (${error.message})`);
+  }
   // No pointer over the page, no focus: the at-rest render (AD-13).
   await page.mouse.move(1360, 1090);
 }
@@ -155,6 +165,16 @@ function boxProblems(state, got) {
     near(`day label ${i}.y`, day.y, chartBottom - expected.day.h);
     near(`day label ${i}.h`, day.h, expected.day.h);
     near(`day label ${i} centre`, day.x + day.w / 2, barX + expected.bar.w / 2);
+    // The CSS column geometry is the geometry.js geometry (exact): a CSS
+    // change cannot silently move the bar space or the label clearance.
+    if (column.box.h !== RUNTIME_COLUMN_HEIGHT_PX) problems.push(`${state} column ${i}: height ${column.box.h} ≠ RUNTIME_COLUMN_HEIGHT_PX ${RUNTIME_COLUMN_HEIGHT_PX}`);
+    if (day.h !== RUNTIME_DAY_LABEL_PX) problems.push(`${state} column ${i}: day label box ${day.h} ≠ RUNTIME_DAY_LABEL_PX ${RUNTIME_DAY_LABEL_PX}`);
+    if (column.box.h - day.h !== RUNTIME_BAR_SPACE_PX) {
+      problems.push(`${state} column ${i}: bar space ${column.box.h - day.h} ≠ RUNTIME_BAR_SPACE_PX ${RUNTIME_BAR_SPACE_PX}`);
+    }
+    // The tallest usable barPx keeps its value label inside the chart.
+    const clearance = chart.h - day.h - (bar.y - hours.y);
+    if (clearance < RUNTIME_MAX_BAR_PX) problems.push(`${state} column ${i}: room for a bar with its label ${clearance} < RUNTIME_MAX_BAR_PX ${RUNTIME_MAX_BAR_PX}`);
   });
   const caption = present('the caption', got.caption);
   near('caption.x', caption.x, expected.caption.x);
