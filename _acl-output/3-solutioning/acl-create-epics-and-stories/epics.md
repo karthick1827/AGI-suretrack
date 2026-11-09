@@ -704,6 +704,7 @@ Each is within ±1 px (FR-69).
 **Given** each state
 **When** the card is compared with its Reference render
 **Then** it passes the Fidelity check
+- [x] Story 2.4 completed — Manager approved 2026-11-09 (spec-2-4); feature/2-4-equipment-card
 
 ### Story 2.5: Recent Alerts card (SCRUM-38)
 

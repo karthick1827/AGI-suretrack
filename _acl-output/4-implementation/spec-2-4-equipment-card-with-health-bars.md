@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T09:19:23.543Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 spec_approved_by: Manager (via Markdown Studio)
 spec_approved_at: 2026-11-09T06:26:31.562Z
 title: 'Story 2.4 — Equipment card with Health bars'
@@ -7,7 +10,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'fc6e3f482c15d6b1a4d442aed4d9397e042e3255'
-implementation_status: review
+implementation_status: done
 story_key: 2-4-equipment-card-with-health-bars
 jira: SCRUM-37
 review_loop_iteration: 0
