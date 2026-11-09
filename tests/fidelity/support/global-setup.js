@@ -13,6 +13,7 @@ import {
   FORGOT_PASSWORD_CARD_IN_REFERENCE,
   FORGOT_PASSWORD_CORNER_MASK,
   FORGOT_PASSWORD_REFERENCE,
+  GRAIN_CARD_REFERENCES,
   HEADER_BASELINE,
   HEADER_IN_REFERENCE,
   HEADER_MASK,
@@ -30,6 +31,8 @@ import {
   equipmentCardInReference,
   fanActivityBaseline,
   fanActivityInReference,
+  grainCardBaseline,
+  grainCardInReference,
   kpiStripBaseline,
   recentAlertsBaseline,
   recentAlertsInReference,
@@ -66,5 +69,9 @@ export default async function globalSetup() {
   // Story 2.6: the Fan activity card (inside its border) from the same renders (no mask).
   for (const [state, source] of Object.entries(FAN_ACTIVITY_REFERENCES)) {
     await writeCroppedBaseline(source, fanActivityBaseline(state), fanActivityInReference(state), []);
+  }
+  // Story 2.7: the Grain On Hand card (inside its border) from the same renders (no mask).
+  for (const [state, source] of Object.entries(GRAIN_CARD_REFERENCES)) {
+    await writeCroppedBaseline(source, grainCardBaseline(state), grainCardInReference(state), []);
   }
 }

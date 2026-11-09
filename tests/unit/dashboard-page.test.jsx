@@ -251,8 +251,9 @@ describe('Dashboard states (FR-50, FR-93)', () => {
     // the KPI readings. Story 2.4: the Equipment card adds its rows (covered
     // in equipment-card.test.jsx); Story 2.5: Recent Alerts adds its Alert
     // rows (recent-alerts-card.test.jsx); Story 2.6: Fan activity adds its
-    // Stat tiles, Runtime chart and caption (fan-activity-card.test.jsx); no
-    // other card contents yet (2.7–2.8).
+    // Stat tiles, Runtime chart and caption (fan-activity-card.test.jsx); Story
+    // 2.7: Grain On Hand adds its summary, Fill bar and Legend
+    // (grain-card.test.jsx); no Liquid contents yet (2.8).
     expect(section('kpi').querySelector(`[data-fid="${FID.kpi.strip}"]`)).toBe(fid(FID.kpi.strip));
     expect(section('kpi').dataset.fid).toBeUndefined();
     expect(fid(FID.kpi.strip).textContent).toContain(DOCS.full.kpi.attention.label);
@@ -260,7 +261,9 @@ describe('Dashboard states (FR-50, FR-93)', () => {
     expect(section('recentAlerts').querySelectorAll('[data-alert-row]')).toHaveLength(DOCS.full.recentAlerts.items.length);
     expect(section('fanActivity').querySelectorAll('[data-fan-tile]')).toHaveLength(DOCS.full.fanActivity.tiles.length);
     expect(section('fanActivity').querySelectorAll('[data-fan-column]')).toHaveLength(DOCS.full.fanActivity.chart.length);
-    for (const key of CARD_KEYS.filter((k) => !['equipmentCard', 'recentAlerts', 'fanActivity'].includes(k))) {
+    expect(section('grain').querySelectorAll('[data-grain-item]')).toHaveLength(DOCS.full.grain.items.length);
+    expect(section('grain').querySelectorAll('[data-grain-segment]')).toHaveLength(DOCS.full.grain.items.length);
+    for (const key of CARD_KEYS.filter((k) => !['equipmentCard', 'recentAlerts', 'fanActivity', 'grain'].includes(k))) {
       expect(section(key).textContent).toBe(`${DOCS.full[key].title}${DOCS.full[key].subtitle}${DOCS.full[key].link ?? ''}`);
     }
     expect(screen.queryByText(copy.dashboard.sectionError)).toBeNull();
@@ -476,12 +479,11 @@ describe('robustness (AD-18)', () => {
     expect(section('fanActivity').querySelector('h2')).toBeNull();
     expect(section('fanActivity').firstElementChild.hasAttribute('aria-labelledby')).toBe(false);
     expect(section('fanActivity').querySelectorAll('[data-fan-tile]')).toHaveLength(DOCS.full.fanActivity.tiles.length);
-    for (const key of ['grain']) {
-      expect(section(key).querySelector('h2')).toBeNull();
-      expect(section(key).textContent).toBe('');
-      expect(section(key).firstElementChild.childElementCount).toBe(0);
-      expect(section(key).firstElementChild.hasAttribute('aria-labelledby')).toBe(false);
-    }
+    // So does Grain On Hand (Story 2.7).
+    expect(section('grain').querySelector('h2')).toBeNull();
+    expect(section('grain').firstElementChild.hasAttribute('aria-labelledby')).toBe(false);
+    expect(section('grain').firstElementChild.firstElementChild).toBe(section('grain').querySelector('[data-grain-body]'));
+    expect(section('grain').querySelectorAll('[data-grain-item]')).toHaveLength(DOCS.full.grain.items.length);
   });
 
   it('each card <section> is labelled by its title h2', () => {

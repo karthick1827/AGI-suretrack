@@ -15,12 +15,14 @@
 // state. A ready slice that is missing, or has no content its section can
 // draw (the Equipment card with no usable rows; Recent Alerts with no usable
 // items, or an empty `items` array without Empty-state copy; Fan activity with
-// no usable Stat tile or Runtime bar), shows that section's error. The KPI
-// section draws the KPI strip (Story 2.3), the Equipment card its rows (Story
-// 2.4), Recent Alerts its Alert rows or Empty state (Story 2.5) and Fan
-// activity its Stat tiles, Runtime chart and caption (Story 2.6) when ready;
-// until Stories 2.7–2.8 add their contents, the other `ready` cards show only
-// their shell and card header. `loading` and `error` show the FR-95 / FR-96
+// no usable Stat tile or Runtime bar; Grain On Hand with no usable summary,
+// Legend item or coloured Fill bar segment), shows that section's error. The
+// KPI section draws the KPI strip (Story 2.3), the Equipment card its rows
+// (Story 2.4), Recent Alerts its Alert rows or Empty state (Story 2.5), Fan
+// activity its Stat tiles, Runtime chart and caption (Story 2.6) and Grain On
+// Hand its summary, Fill bar and Legend (Story 2.7) when ready; until Story
+// 2.8 adds its contents, the Liquid `ready` card shows only its shell and
+// card header. `loading` and `error` show the FR-95 / FR-96
 // blocks at the section's final size.
 import { useRef } from 'react';
 import { useOutletContext } from 'react-router';
@@ -32,6 +34,8 @@ import RecentAlertsCard from '../../features/dashboard/alerts/RecentAlertsCard.j
 import { hasAlertContent } from '../../features/dashboard/alerts/alertItems.js';
 import FanActivityCard from '../../features/dashboard/fan/FanActivityCard.jsx';
 import { hasFanContent } from '../../features/dashboard/fan/fanActivity.js';
+import GrainCard from '../../features/dashboard/grain/GrainCard.jsx';
+import { hasGrainContent } from '../../features/dashboard/grain/grain.js';
 import KpiStrip from '../../features/dashboard/kpi/KpiStrip.jsx';
 import CardShell from '../../ui/CardShell.jsx';
 import SectionState from '../../ui/SectionState.jsx';
@@ -61,7 +65,7 @@ function KpiSection({ status, data, onRetry, variant }) {
 /**
  * A card section with the FR-65 shell and header. `Body` (when given) draws
  * the card contents below the header when ready, with the section's `data`
- * and the page's `variant`; card contents for Stories 2.7–2.8 come later.
+ * and the page's `variant`; the Liquid card contents (Story 2.8) come later.
  * One stable component per section for every state, so a state change never
  * remounts it.
  */
@@ -93,6 +97,7 @@ const HAS_CONTENT = Object.freeze({
   equipmentCard: (data) => equipmentRows(data).length > 0,
   recentAlerts: hasAlertContent,
   fanActivity: hasFanContent,
+  grain: hasGrainContent,
 });
 
 /** The section component for each key of SECTION_KEYS (FR-65 header variants). */
@@ -111,7 +116,7 @@ const SECTIONS = Object.freeze({
     Body: RecentAlertsCard,
   }),
   fanActivity: cardSection({ headerSize: 'regular', subtitleTone: 'muted', Body: FanActivityCard }),
-  grain: cardSection({ headerSize: 'compact', subtitleTone: 'muted' }),
+  grain: cardSection({ headerSize: 'compact', subtitleTone: 'muted', Body: GrainCard }),
   liquid: cardSection({ headerSize: 'compact', subtitleTone: 'muted' }),
 });
 

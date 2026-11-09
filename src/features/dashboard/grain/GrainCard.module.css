@@ -1,0 +1,281 @@
+/*
+ * Grain On Hand card body (FR-83 to FR-87). Values verbatim from PRD FR-83 to
+ * FR-87 and design spec Part B §8, §10, §12 to §14.
+ *
+ * Card 426 × 326, border 1, padding 20, column gap 20: [top group, gap 24:
+ * the compact header (33 nominal, CardShell) + the summary (45)], then the
+ * Legend. Figma strokes take no layout: in each frame the card's 1 px border
+ * does not push its content, so the summary starts at card top + 20 + 33 +
+ * 24 = 77 and the Legend at 77 + 45 + 20 = 142, in the frame's 386 px content
+ * box (card x 20–406). In the browser the border does push the content box by
+ * 1 px, so the body reaches 1 px out on the left, right and top to land on
+ * the frame's box (as in EquipmentCard and FanActivityCard): margin-top is
+ * the 24 px gap less that 1 px.
+ */
+.body {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 20px;
+  margin: 23px -1px 0;
+}
+
+/*
+ * Summary ("LSN & Grain Variety", FR-84): h 45, column gap 10: the text row
+ * (45 − 10 − 10 = 25) then the 10 px Fill bar.
+ *
+ * Frame vs layout (±1 px): the layout puts the summary at card y 77–122, but
+ * in all three 1× renders the Fill bar's top and bottom rows are half
+ * covered at card y 111 and 121 (Full Canola #F1E1A0 over #E3C341; track
+ * #F7F8F7 over #EEF1EF), i.e. the bar is drawn at 111.5–121.5, and the
+ * summary text sits as much higher, while the Legend still starts at 142.
+ * The block is moved up the 0.5 px by a translation, which (unlike a layout
+ * offset) is painted at the exact fractional position; its layout box, and
+ * so the Legend, stay put.
+ */
+.summaryBlock {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  height: 45px;
+  transform: translateY(-0.5px);
+}
+
+/* Text row: space-between, flex-end, nowrap. */
+.textRow {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 25px;
+  white-space: nowrap;
+}
+
+/* Left paragraph: #374151; SF stack 400 16/1.3 (summaryRest). */
+.summary {
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 16px;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--raw-374151);
+}
+
+/* Bold span `summaryBold` + one space: SF stack 700, 16/1.3 (tokens.css has
+   no 700 weight token; adding one is an Ask First token change, as in
+   EquipmentCard, RecentAlertsCard and FanActivityCard). */
+.summaryBold {
+  font-weight: 700;
+}
+
+.summaryRest {
+  font-weight: var(--font-weight-regular);
+}
+
+/* Right: `fillLabel`, SF stack 510, 16/1.5, #111827. */
+.fillLabel {
+  flex: none;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-medium);
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--raw-111827);
+}
+
+/* Fill bar (FR-85): 386 × 10, radius 8.75, overflow hidden; the segments and
+   the track are absolutely placed inside it, 10 px high (track first, so
+   the segments paint over it). */
+.bar {
+  position: relative;
+  flex: none;
+  width: 386px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 8.75px;
+}
+
+/*
+ * A segment or the track: a 1 × 10 px box, moved to its geometry.js `left`
+ * (and `top`, the Small / All-good −0.5 nudge) and stretched to its `width`
+ * by an inline translate + scaleX, not placed by left / width: Chromium
+ * snaps a laid-out box's edges to whole pixels (a 72.5 px Canola would paint
+ * 73 px), while the 1× renders anti-alias every segment edge at its
+ * fractional px (Full Canola ends at 72.5: card column 92 half covered,
+ * #F1E1A0; Corn starts at 76.33: column 96 two-thirds covered). Under the
+ * transform the edges are painted at the exact px, and the box's client rect
+ * is the segment's px.
+ */
+.box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 10px;
+  transform-origin: 0 0;
+}
+
+/* The box's paint layer (the colour: the inline Commodity map token; none
+   for an unknown or mismatched Commodity, FR-85). */
+.paint {
+  position: absolute;
+  inset: 0;
+}
+
+/* Remaining-capacity track: #EEF1EF, clipped by the bar. */
+.track {
+  background: var(--raw-eef1ef);
+}
+
+/*
+ * Paint edges on the bar's own top or bottom edge (data-grain-bleed; the
+ * bar sits at a half pixel, see .summaryBlock): Chromium anti-aliases such
+ * an edge twice, once for the box and once for the bar's clip, so the edge
+ * row gets a quarter of the colour instead of the half the 1× renders show
+ * (Full Canola card y 111: #F8F0CF instead of #F1E1A0). The paint layer
+ * reaches 1 px past that edge (the box itself stays 10 px), so only the clip
+ * draws it, as in the frames. The Small and All-good Wheat segment (top
+ * −0.5) ends inside the bar: its bottom edge (card y 121.0, a pixel
+ * boundary) is its own, so it does not bleed there.
+ */
+.bleedTop {
+  top: -1px;
+}
+
+.bleedBottom {
+  bottom: -1px;
+}
+
+/*
+ * Legend (FR-87): rows of two 188 px items in file order (row-major), width
+ * 386, rows 16 apart; each row space-between (198 − 188 = 10 between the
+ * columns).
+ *
+ * Frame vs PRD: rows are bottom-aligned (align-items flex-end): in the Full
+ * render the 40 px Corn item's swatch sits at card y 155.65 = 144 + 11.65,
+ * i.e. at the bottom of the 42 px first row that starts at 142.
+ */
+.legend {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  row-gap: 16px;
+  width: 386px;
+}
+
+/*
+ * Legend item: 188 wide, text block at left 24.
+ *
+ * Frame vs PRD (item height "≈ 42–45, exact value UNKNOWN"; sub-label "top
+ * 36"): the 1× renders fix both. Swatch tops (always item top + 12.81) put
+ * the Full rows at card y 142, 200 and 261: the first row is 42 high (200 −
+ * 16 − 142) and the others 45 (261 − 16 − 200); the Small / All-good Wheat
+ * item has the same 45 px layout. The sub-label sits 9 px above the item's
+ * bottom edge in every item: at the PRD's top 36 in the 45 px items (Full
+ * Soybeans sub-label ink at card y 231–240, item top 200), and 3 px higher
+ * in the 42 px Canola item (ink 170–179, item top 142: Δ 28 vs Δ 31). So
+ * items are 45 high with the sub-label at top 36, and the Canola item (the
+ * 42 px one in the frame, Corn being the 40 px scaled copy) is 42 high with
+ * its sub-label at top 33.
+ */
+.item {
+  position: relative;
+  flex: none;
+  width: 188px;
+  height: 45px;
+  padding-left: 24px;
+}
+
+.canola {
+  height: 42px;
+}
+
+/*
+ * Swatch: 12.5 × 12.5, radius 3.75, absolute at top 12.81; colour = the
+ * segment colour (inline Commodity map token).
+ *
+ * As with the Fill bar boxes, a laid-out 12.5 px box at y 12.81 would paint
+ * snapped to whole pixels (13 px from 155), while the 1× renders anti-alias
+ * its edges (Full Canola rows 154 and 167 and column 32 partly covered). So
+ * the swatch is a 1 px box (radius 0.3 = 3.75 / 12.5) moved to top 12.81 and
+ * scaled to 12.5 by a transform; its client rect is the 12.5 px swatch.
+ */
+.swatch {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  border-radius: 0.3px;
+  transform: translateY(12.81px) scale(12.5);
+  transform-origin: 0 0;
+}
+
+/* Name: SF stack 590, 16/1.5, #111827. */
+.name {
+  display: block;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-semibold);
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--raw-111827);
+}
+
+/* Sub-label: SF stack 400, 12/1.5, rgba(0,0,0,0.8), absolute at top 36,
+   centred on it by translateY(-50%). */
+.sub {
+  position: absolute;
+  top: 36px;
+  left: 24px;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--raw-rgba-0-0-0-0-8);
+  transform: translateY(-50%);
+}
+
+.canola .sub {
+  top: 33px;
+}
+
+/*
+ * Corn (Figma 6337:54860, Q-G2): a scaled copy kept as drawn: item height
+ * 40, swatch 11.368 (radius 3.41, top 11.65), text at left 22, name 14.551
+ * px, sub-label 10.913 px.
+ *
+ * Frame vs PRD (sub-label top): the PRD gives no Corn value. Every Corn value
+ * is the regular one scaled by 0.9094 (12.5 → 11.368, 3.75 → 3.41, 12.81 →
+ * 11.65, 24 → 22, 16 → 14.551, 12 → 10.913), and so is its sub-label: 36 ×
+ * 0.9094 = 32.74, which is where the Full render draws it (ink card y
+ * 172–180, item top 144); the regular top 36 would draw it about 3 px low.
+ */
+.corn {
+  height: 40px;
+  padding-left: 22px;
+}
+
+/* 11.368 px at top 11.65; radius 0.3 × 11.368 = 3.41. */
+.corn .swatch {
+  transform: translateY(11.65px) scale(11.368);
+}
+
+.corn .name {
+  font-size: 14.551px;
+}
+
+.corn .sub {
+  top: 32.74px;
+  left: 22px;
+  font-size: 10.913px;
+}
+
+/* .regular: the 45 px item above (no overrides). */
+.regular {
+  height: 45px;
+}

@@ -97,6 +97,9 @@ export const copy = deepFreeze({
     equipmentRowLabel: '{type}, {count}: {caption}',
     // FR-74 Alert meta line: `<deviceId> | <location>` (space, U+007C, space).
     alertMeta: '{deviceId} | {location}',
+    // FR-84 Grain summary: the bold `summaryBold` span ends with one space
+    // (U+0020, in the bold weight) before `summaryRest`.
+    grainSummarySpace: ' ',
   },
 
   notifications: {

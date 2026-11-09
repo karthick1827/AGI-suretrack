@@ -548,3 +548,35 @@ export const fanActivityBaseline = (state) => {
   fanActivityTop(state);
   return `fan-activity-card-${state}.png`;
 };
+
+/* ------------------------------------------------------------------------ */
+/* Grain On Hand card (Story 2.7)                                            */
+/* ------------------------------------------------------------------------ */
+
+// The Grain On Hand card (page 470, 710 Full / 506 Small and All-good,
+// 426 × 326, FR-83) is compared inside its 1 px #D1D5DB border: the 424 × 324
+// box at page (471, top + 1), cropped out of the 1× Dashboard renders after
+// the alignment check (the crop's edge rows and columns are white card
+// interior; the pixels just outside them are the grey border). The card
+// reaches below the 768 px viewport, so its spec uses a taller viewport.
+export const GRAIN_CARD_REFERENCES = Object.freeze({
+  full: path.join(FIGMA_1X, 'dashboard-full-6215-58878.raw-1374x1054.png'),
+  small: path.join(FIGMA_1X, 'dashboard-small-6864-4514.raw-1374x862.png'),
+  allgood: path.join(FIGMA_1X, 'dashboard-allgood-6879-15603.raw-1374x858.png'),
+});
+export const GRAIN_CARD_X = 470;
+export const GRAIN_CARD_TOP = Object.freeze({ full: 710, small: 506, allgood: 506 });
+const grainCardTop = (state) => {
+  if (!Object.hasOwn(GRAIN_CARD_TOP, state)) {
+    throw new Error(`grain card: unknown Dashboard state ${JSON.stringify(state)} (expected ${Object.keys(GRAIN_CARD_TOP).join(', ')})`);
+  }
+  return GRAIN_CARD_TOP[state];
+};
+export const grainCardClip = (state) => Object.freeze({ x: GRAIN_CARD_X + 1, y: grainCardTop(state) + 1, width: 424, height: 324 });
+// Render (475, top + 3) = page (471, top + 1) + the render's 4 px left / 2 px top canvas border.
+export const grainCardInReference = (state) =>
+  Object.freeze({ left: GRAIN_CARD_X + 5, top: grainCardTop(state) + 3, width: 424, height: 324 });
+export const grainCardBaseline = (state) => {
+  grainCardTop(state);
+  return `grain-card-${state}.png`;
+};
