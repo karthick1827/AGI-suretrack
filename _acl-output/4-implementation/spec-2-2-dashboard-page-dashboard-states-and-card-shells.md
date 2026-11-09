@@ -1,9 +1,12 @@
 ---
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T05:06:07.264Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 2.2 — Dashboard page, Dashboard states and card shells'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-10'
-status: In Review
 story_key: 2-2-dashboard-page-dashboard-states-and-card-shells
 jira: NEW
 review_loop_iteration: 0
