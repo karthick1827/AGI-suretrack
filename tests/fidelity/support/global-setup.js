@@ -7,6 +7,7 @@
 // rewritten on every run, so they can never come from an app screenshot.
 import { mkdirSync } from 'node:fs';
 import {
+  EQUIPMENT_CARD_REFERENCES,
   FORGOT_PASSWORD_BASELINE,
   FORGOT_PASSWORD_CARD_IN_REFERENCE,
   FORGOT_PASSWORD_CORNER_MASK,
@@ -49,7 +50,7 @@ export default async function globalSetup() {
     await writeCroppedBaseline(source, kpiStripBaseline(state), KPI_STRIP_IN_REFERENCE, []);
   }
   // Story 2.4: the Equipment card (inside its border) from the same renders (no mask).
-  for (const [state, source] of Object.entries(KPI_STRIP_REFERENCES)) {
+  for (const [state, source] of Object.entries(EQUIPMENT_CARD_REFERENCES)) {
     await writeCroppedBaseline(source, equipmentCardBaseline(state), equipmentCardInReference(state), []);
   }
 }

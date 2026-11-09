@@ -18,17 +18,34 @@
  * Left column w 74 (column, gap 1, pb 1); right group w 523 (row, gap 32):
  * the 474 px bar block (Health bar 474×8, gap 6, caption) then the 18×18
  * chevron box (12×16 glyph at left 3, top 1).
+ *
+ * Overflow: rows beyond a frame's capacity never paint over the header or
+ * outside the card. The list may shrink to the card body (min-height 0) and
+ * clips its rows; the 4 px clip margin keeps the FR-58 focus ring (2 px at
+ * offset 2) visible around every row. Full centres with `safe`, so extra rows
+ * spill downward (clipped), never upward over the header. At rest (5 / 2 / 1
+ * rows) nothing is clipped and nothing moves.
  */
 .list {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   flex-direction: column;
+  min-height: 0;
   margin: -1px -1px 0;
+  overflow: clip;
+  overflow-clip-margin: 4px;
 }
 
 .full {
+  flex: none;
   height: 344px;
-  justify-content: center;
+  justify-content: safe center;
+}
+
+/* Small and All-good: auto height, top-aligned. */
+.small,
+.allgood {
+  justify-content: flex-start;
 }
 
 .row {
@@ -192,14 +209,15 @@
 /* Caption (FR-71): Roboto 14 / normal; words and " · " 400 #4B5563 ... */
 .caption {
   font-family: var(--font-stack-roboto);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   font-size: 14px;
   line-height: normal;
   white-space: nowrap;
   color: var(--raw-4b5563);
 }
 
-/* ... every digit run 700 #111827. */
+/* ... every digit run 700 #111827 (tokens.css has no 700 weight token; Ask
+   First before adding one, as KpiStrip does). */
 .num {
   font-weight: 700;
   color: var(--raw-111827);
@@ -225,9 +243,15 @@
 
 /* states */
 
-/* FR-58: #F0FFF8 row hover, no layout shift. */
+/* FR-58: #F0FFF8 row hover, no layout shift. The rows reach 1 px past the
+   card's content box (the Figma-matching list margins); white 1 px inset
+   edges keep the hover fill inside the content box, clear of the card's
+   padding and its #D1D5DB border. */
 .link:hover {
   background: var(--raw-f0fff8);
+  box-shadow:
+    inset 1px 0 0 var(--primitives-color-base-white),
+    inset -1px 0 0 var(--primitives-color-base-white);
 }
 
 /* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */

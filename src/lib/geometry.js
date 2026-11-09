@@ -1,9 +1,7 @@
-// Chart geometry (AD-8). Pure: no React, DOM or storage.
+// Chart geometry (AD-8). Pure: no imports, React, DOM or storage.
 //
-// Every chart px value comes from these functions; components render the
-// result as plain DOM and never re-derive a width. Explicit px in the data
-// (`barPx`, `segmentPx`, `segmentTopPx`) always wins over a formula (Stories
-// 2.6–2.8 add those charts here).
+// healthSegments() gives the Equipment card's Health bar segment px (FR-69);
+// the card renders them as plain DOM and never re-derives a width.
 
 /** Health bar (FR-69): 474 px wide, 2 px gaps between non-zero segments. */
 export const HEALTH_BAR_PX = 474;
@@ -12,15 +10,16 @@ export const HEALTH_GAP_PX = 2;
 /** Health segment order, left to right (FR-69): alert, offline (hatch), healthy. */
 export const HEALTH_KINDS = Object.freeze(['alerts', 'offline', 'healthy']);
 
-/** A count usable for geometry: a finite number ≥ 0; anything else counts as 0. */
-const countOf = (value) => (typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0);
+/** A count usable for geometry: a non-negative integer; anything else counts as 0. */
+const countOf = (value) => (Number.isInteger(value) && value > 0 ? value : 0);
 
 /**
  * FR-69 Health segments: `segment_px = (474 − 2·(k − 1)) × count / total`,
  * where `total = alerts + offline + healthy` and `k` is the number of non-zero
  * segments. Zero-count segments are omitted (no gap is reserved for them); a
- * single segment spans the full 474 px. A total of 0 (or no usable counts)
- * gives no segments.
+ * single segment spans the full 474 px. A count that is not a non-negative
+ * integer counts as 0. A total of 0, or one too large to be finite, gives no
+ * segments.
  *
  * @param {{ alerts?: number, offline?: number, healthy?: number }} counts
  * @returns {{ kind: 'alerts' | 'offline' | 'healthy', x: number, width: number }[]}

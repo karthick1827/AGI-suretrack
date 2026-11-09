@@ -8,6 +8,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import sharp from 'sharp';
 import { FID } from '../../src/lib/fid.js';
 import { paths } from '../../src/lib/paths.js';
 import { SESSION_KEY, createSessionRecord } from '../../src/lib/session.js';
@@ -27,6 +28,18 @@ const demo = users.users.find((user) => user.username === 'demo');
 const expected = readExpected('equipment-card.json');
 const STATES = ['full', 'small', 'allgood'];
 const slot = (page) => page.locator('[data-section="equipmentCard"]');
+const DASHBOARD_JSON = /\/dashboard\.(full|small|allgood)[^/]*\.json(\?|$)/;
+
+/** RGB of page pixel (x, y) in a full-viewport screenshot. */
+async function pixelsAt(page, points) {
+  const { data, info } = await sharp(await page.screenshot()).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return points.map(([x, y]) => {
+    const i = (Math.round(y) * info.width + Math.round(x)) * 4;
+    return [data[i], data[i + 1], data[i + 2]];
+  });
+}
+const hexRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const closeTo = (rgb, hex, tolerance = 40) => rgb.every((c, i) => Math.abs(c - hexRgb(hex)[i]) <= tolerance);
 
 /** Sign in as `demo`, open the Dashboard in `state` and wait for a stable render. */
 async function openDashboard(page, state) {
@@ -52,21 +65,26 @@ function measureCard(page) {
       return { x: r.x - s.x, y: r.y - s.y, w: r.width, h: r.height };
     };
     const part = (row, name) => row.querySelector(`[data-row-part="${name}"]`);
+    const missing = [];
+    const list = el.querySelector('[data-equipment-list]');
+    if (!list) missing.push('the row list [data-equipment-list]');
     return {
+      missing,
       page: { x: s.x + window.scrollX, y: s.y + window.scrollY, w: s.width, h: s.height },
-      list: rel(el.querySelector('[data-equipment-list]')),
+      list: rel(list) ?? {},
       rows: [...el.querySelectorAll('[data-equipment-row]')].map((row) => {
         const bar = part(row, 'bar');
-        const b = bar.getBoundingClientRect();
+        if (!bar) missing.push(`the Health bar of row ${row.dataset.equipmentRow}`);
+        const b = bar ? bar.getBoundingClientRect() : { x: Number.NaN, y: Number.NaN };
         return {
           typeKey: row.dataset.equipmentRow,
           box: rel(row),
-          name: rel(part(row, 'name')),
-          count: rel(part(row, 'count')),
-          bar: rel(bar),
-          caption: rel(part(row, 'caption')),
-          chevron: rel(part(row, 'chevron')),
-          segments: [...bar.querySelectorAll('[data-health-segment]')].map((seg) => {
+          name: rel(part(row, 'name')) ?? {},
+          count: rel(part(row, 'count')) ?? {},
+          bar: rel(bar) ?? {},
+          caption: rel(part(row, 'caption')) ?? {},
+          chevron: rel(part(row, 'chevron')) ?? {},
+          segments: [...(bar?.querySelectorAll('[data-health-segment]') ?? [])].map((seg) => {
             const r = seg.getBoundingClientRect();
             return { kind: seg.dataset.healthSegment, x: r.x - b.x, w: r.width, y: r.y - b.y, h: r.height };
           }),
@@ -78,7 +96,7 @@ function measureCard(page) {
 
 function boxProblems(state, got) {
   const want = expected[state];
-  const problems = [];
+  const problems = got.missing.map((what) => `${state}: missing ${what}`);
   const near = (name, actual, wanted) => {
     if (typeof actual !== 'number' || Math.abs(actual - wanted) > BOX_TOLERANCE_PX) {
       problems.push(`${state} ${name}: expected ${wanted}, got ${actual}`);
@@ -186,9 +204,10 @@ test.describe('Equipment card (FR-66 to FR-72)', () => {
         const part = (row, name) => row.querySelector(`[data-row-part="${name}"]`);
         return [...el.querySelectorAll('[data-equipment-row]')].map((row) => {
           const c = cs(row);
-          const left = part(row, 'name').parentElement;
-          const right = part(row, 'bar').parentElement.parentElement;
           const bar = part(row, 'bar');
+          if (!bar) throw new Error(`row ${row.dataset.equipmentRow} has no Health bar`);
+          const left = part(row, 'name').parentElement;
+          const right = bar.parentElement.parentElement;
           const caption = part(row, 'caption');
           return {
             tag: row.tagName,
@@ -227,8 +246,8 @@ test.describe('Equipment card (FR-66 to FR-72)', () => {
         expect(row.tag).toBe('A');
         expect(row.minHeight).toBe(st.row.minHeight);
         expect(row.divider).toBe(want.divider ? `${dw} ${ds} ${cssColour(dc)}` : 'none');
-        // Left / right paddings are 0; the top and bottom keep the 48 px row content box.
-        expect([row.padding[3]]).toEqual([st.row.padding[3]]);
+        // Per-row paddings (top right bottom left); the 48 px content box is kept.
+        expect(row.padding, `${want.typeKey} padding`).toEqual(want.padding);
         expect(parseFloat(row.padding[0]) + parseFloat(row.padding[2]) + (want.divider ? 1 : 0) + 48).toBe(want.h);
         // Pointer only on <a>; nothing shows at rest (AD-13, FR-58).
         expect(row.cursor).toBe('pointer');
@@ -312,6 +331,7 @@ test.describe('Equipment card (FR-66 to FR-72)', () => {
 
   async function clickCentre(page, locator) {
     const box = await locator.boundingBox();
+    if (box === null) throw new Error(`clickCentre: ${locator} has no bounding box (not visible)`);
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   }
 
@@ -344,6 +364,7 @@ test.describe('Equipment card (FR-66 to FR-72)', () => {
       const focusable = [...document.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, [tabindex]')].filter(
         (node) => node.tabIndex >= 0 && !el.contains(node) && node.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
       );
+      if (focusable.length === 0) throw new Error('no focusable element precedes the Equipment card');
       focusable.at(-1).focus();
     });
     const ring = `solid 2px ${cssColour('#006a36')} 2px`;
@@ -362,6 +383,21 @@ test.describe('Equipment card (FR-66 to FR-72)', () => {
       order.push(got.key);
       expect(got.tag, `${got.key}`).toBe('A');
       expect(got.ring, `${got.key} focus ring`).toBe(ring);
+      // The ring (2 px at offset 2) is painted on all four sides: the list's
+      // clip margin and the card never cut it off.
+      const box = await page.evaluate(() => {
+        const r = document.activeElement.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      });
+      const cx = (box.left + box.right) / 2;
+      const cy = (box.top + box.bottom) / 2;
+      const sides = await pixelsAt(page, [
+        [box.left - 3, cy],
+        [box.right + 2, cy],
+        [cx, box.top - 3],
+        [cx, box.bottom + 2],
+      ]);
+      sides.forEach((rgb, side) => expect(closeTo(rgb, '#006a36'), `${got.key} ring side ${side}: rgb(${rgb})`).toBe(true));
     }
     expect(order).toEqual(['viewAll', ...Object.keys(FULL_TARGETS)]);
     // The next Tab leaves the card.
@@ -383,5 +419,75 @@ test.describe('Equipment card (FR-66 to FR-72)', () => {
     await expect(chevrons).toHaveCount(expected.full.rows.length);
     const attrs = await chevrons.evaluateAll((imgs) => imgs.map((img) => [img.getAttribute('width'), img.getAttribute('height'), img.getAttribute('alt')]));
     for (const a of attrs) expect(a).toEqual(['12', '16', '']);
+  });
+
+  test('hover: the FR-58 #F0FFF8 fill stays inside the card content box, clear of the #D1D5DB border', async ({ page }) => {
+    await openDashboard(page, 'full');
+    const row = slot(page).locator('[data-equipment-row="piles"]');
+    const box = await row.boundingBox();
+    if (box === null) throw new Error('the Piles row has no bounding box');
+    const card = await slot(page).locator('section').boundingBox();
+    if (card === null) throw new Error('the Equipment card has no bounding box');
+    await page.mouse.move(box.x + 30, box.y + box.height - 3);
+    const y = box.y + box.height - 3;
+    const [cardBorder, rowEdge, inside, rightEdge, rightBorder] = await pixelsAt(page, [
+      [card.x, y],
+      [box.x, y],
+      [box.x + 1, y],
+      [box.x + box.width - 1, y],
+      [card.x + card.width - 1, y],
+    ]);
+    expect(closeTo(cardBorder, '#d1d5db', 6), `left border rgb(${cardBorder})`).toBe(true);
+    expect(closeTo(rightBorder, '#d1d5db', 6), `right border rgb(${rightBorder})`).toBe(true);
+    expect(closeTo(rowEdge, '#ffffff', 2), `row left edge rgb(${rowEdge})`).toBe(true);
+    expect(closeTo(rightEdge, '#ffffff', 2), `row right edge rgb(${rightEdge})`).toBe(true);
+    expect(closeTo(inside, '#f0fff8', 2), `hover fill rgb(${inside})`).toBe(true);
+  });
+
+  test('overflow: 7 Full rows stay inside the card; extra rows are clipped below, never over the header', async ({ page }) => {
+    await page.route(DASHBOARD_JSON, async (route) => {
+      const response = await route.fetch();
+      const doc = await response.json();
+      const extra = (type, typeKey) => ({ type, typeKey, count: 1, alerts: 0, offline: 0, healthy: 1, caption: '1 healthy' });
+      doc.equipmentCard.rows.push(extra('Silos', 'silos'), extra('Augers', 'augers'));
+      await route.fulfill({ response, json: doc });
+    });
+    await openDashboard(page, 'full');
+    const got = await slot(page).evaluate((el) => {
+      const card = el.querySelector('section');
+      const list = el.querySelector('[data-equipment-list]');
+      const title = card.querySelector('h2');
+      if (!list || !title) throw new Error('missing card list or title');
+      const c = card.getBoundingClientRect();
+      const l = list.getBoundingClientRect();
+      const rows = [...list.querySelectorAll('[data-equipment-row]')];
+      const last = rows.at(-1).getBoundingClientRect();
+      const t = title.getBoundingClientRect();
+      const hit = (x, y) => document.elementFromPoint(x, y);
+      return {
+        rows: rows.length,
+        card: { top: c.top, bottom: c.bottom },
+        list: { top: l.top, bottom: l.bottom, h: l.height, overflow: getComputedStyle(list).overflow },
+        firstRowTop: rows[0].getBoundingClientRect().top,
+        lastRowBelowCard: last.top > c.bottom,
+        // Below the card, inside the last row's box: the row is not hit (clipped).
+        // A point inside the last row's box (below the card) does not hit it: clipped.
+        belowCardHitsRow: (() => {
+          const node = hit(last.left + 30, Math.min(last.top + 10, window.innerHeight - 1));
+          return Boolean(node && list.contains(node));
+        })(),
+        titleHit: hit(t.left + 5, t.top + t.height / 2) === title || title.contains(hit(t.left + 5, t.top + t.height / 2)),
+      };
+    });
+    expect(got.rows).toBe(7);
+    expect(got.list.overflow).toBe('clip');
+    expect(got.list.h).toBeCloseTo(344, 0);
+    // safe centring: no upward spill over the header.
+    expect(Math.abs(got.firstRowTop - got.list.top)).toBeLessThanOrEqual(0.5);
+    expect(got.list.top).toBeGreaterThan(got.card.top);
+    expect(got.list.bottom).toBeLessThan(got.card.bottom);
+    expect(got.lastRowBelowCard).toBe(true);
+    expect(got.belowCardHitsRow).toBe(false);
+    expect(got.titleHit).toBe(true);
   });
 });

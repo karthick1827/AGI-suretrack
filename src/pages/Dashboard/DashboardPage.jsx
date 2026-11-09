@@ -9,10 +9,12 @@
 // arrives (CLS 0). The page is exactly as tall as the Figma frame: the last
 // card row plus `pageBottomSpacePx` (1052 / 860 / 856).
 //
-// Sections: each takes exactly `{ status, data, onRetry }` (AD-18) with
-// `data` = its slice of the document; the KPI strip and the Equipment card
-// also take the page's `variant` (the Dashboard state), because their layout
-// differs per state. The KPI section draws the KPI strip (Story 2.3) and the
+// Sections: each takes `{ status, data, onRetry }` (AD-18) with `data` = its
+// slice of the document, plus the page's `variant` (the Dashboard state), which
+// the KPI strip and the Equipment card use because their layout differs per
+// state. A ready slice that is missing, or has no content its section can
+// draw (the Equipment card with no usable rows), shows that section's error.
+// The KPI section draws the KPI strip (Story 2.3) and the
 // Equipment card its rows (Story 2.4) when ready; until Stories 2.5–2.8 add
 // their contents, the other `ready` cards show only their shell and card
 // header. `loading` and `error` show the FR-95 / FR-96 blocks at the
@@ -22,6 +24,7 @@ import { useOutletContext } from 'react-router';
 import { CONTENT_TOP, FRAME, SECTION_KEYS, pageHeight } from '../../lib/dashboardLayout.js';
 import { paths } from '../../lib/paths.js';
 import EquipmentCard from '../../features/dashboard/equipment/EquipmentCard.jsx';
+import { equipmentRows } from '../../features/dashboard/equipment/equipmentRows.js';
 import KpiStrip from '../../features/dashboard/kpi/KpiStrip.jsx';
 import CardShell from '../../ui/CardShell.jsx';
 import SectionState from '../../ui/SectionState.jsx';
@@ -78,8 +81,10 @@ function cardSection({ headerSize, subtitleTone, linkTo, Body }) {
   };
 }
 
-/** Sections whose layout differs per Dashboard state: they also take `variant`. */
-const VARIANT_SECTIONS = Object.freeze(['kpi', 'equipmentCard']);
+/** Slices that need content to be drawn: ready with none → the section error (FR-96). */
+const HAS_CONTENT = Object.freeze({
+  equipmentCard: (data) => equipmentRows(data).length > 0,
+});
 
 /** The section component for each key of SECTION_KEYS (FR-65 header variants). */
 const SECTIONS = Object.freeze({
@@ -134,8 +139,10 @@ export default function DashboardPage() {
         const Section = SECTIONS[key];
         const { x, y, w, h } = frame.sections[key];
         const data = doc?.[key] ?? null;
-        // A ready document without this section's slice is a load error for that section.
-        const sectionStatus = status === 'ready' && data === null ? 'error' : status;
+        // A ready document without this section's slice, or with a slice its
+        // section cannot draw, is a load error for that section.
+        const usable = data !== null && (HAS_CONTENT[key]?.(data) ?? true);
+        const sectionStatus = status === 'ready' && !usable ? 'error' : status;
         return (
           <div
             key={key}
@@ -145,11 +152,7 @@ export default function DashboardPage() {
             data-status={sectionStatus}
             aria-busy={sectionStatus === 'loading' ? true : undefined}
           >
-            {VARIANT_SECTIONS.includes(key) ? (
-              <Section status={sectionStatus} data={data} onRetry={onRetry} variant={state} />
-            ) : (
-              <Section status={sectionStatus} data={data} onRetry={onRetry} />
-            )}
+            <Section status={sectionStatus} data={data} onRetry={onRetry} variant={state} />
           </div>
         );
       })}

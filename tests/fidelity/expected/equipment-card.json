@@ -1,5 +1,5 @@
 {
-  "$comment": "Story 2.4 — Equipment card 649 × 444 (Full) / 240 (Small, All-good) at page 24, 246 (FR-66). Boxes are CARD coordinates (px, ±1 px, relative to the card slot) transcribed from PRD FR-66 to FR-71 and design spec Part B §5, §10, §12, §13, with the row offsets read off the 1× Figma renders (figma-reference/1x) where the frames differ from the generic row rule: Figma strokes take no layout, so the list is the frame's 609 px content box at x 20, y 76 (card top 20 + header 56); rows are 68 high, 69 with the 1 px #E6E8EB top divider (FR-68). Row content box 48 px (padding 12/8): a plain bordered row starts it 13 px below its top (1 + 12), Full rows 2–4 (Figma Item wrappers) 11 px. In that box: left column (name 24 + gap 1 + count 17.5 + pb 1 = 43.5) centred → name at +2.25; bar block (bar 8 + gap 6 + Roboto 14 caption) centred → bar at +9; caption 14 below the bar top; 18 × 18 chevron box centred, 12 × 16 glyph at left 3, top 1 → glyph at bar top + 7. Right group 523 wide at the row's right edge → bar x 106 (x 105 in a plain bordered row, as in every frame), chevron glyph at bar x + 474 + 32 + 3. Segment x / width are relative to the bar (FR-69). Copy is transcribed from the PRD (FR-66, FR-67, FR-71, FR-72), not from the state JSON, so the two cross-check.",
+  "$comment": "Story 2.4 — Equipment card 649 × 444 (Full) / 240 (Small, All-good) at page 24, 246 (FR-66). Boxes are CARD coordinates (px, ±1 px, relative to the card slot) transcribed from PRD FR-66 to FR-71 and design spec Part B §5, §10, §12, §13, with the row offsets read off the 1× Figma renders (figma-reference/1x) where the frames differ from the generic row rule: Figma strokes take no layout, so the list is the frame's 609 px content box at x 20, y 76 (card top 20 + header 56); rows are 68 high, 69 with the 1 px #E6E8EB top divider (FR-68). Row content box 48 px; padding per row (top right bottom left): plain 12 0 8 0, Full Item rows 10 0 10 0, plain bordered rows 12 1 8 0: a plain bordered row starts it 13 px below its top (1 + 12), Full rows 2–4 (Figma Item wrappers) 11 px. In that box: left column (name 24 + gap 1 + count 17.5 + pb 1 = 43.5) centred → name at +2.25; bar block (bar 8 + gap 6 + Roboto 14 caption) centred → bar at +9; caption 14 below the bar top; 18 × 18 chevron box centred, 12 × 16 glyph at left 3, top 1 → glyph at bar top + 7. Right group 523 wide at the row's right edge → bar x 106 (x 105 in a plain bordered row, as in every frame), chevron glyph at bar x + 474 + 32 + 3. Segment x / width are relative to the bar (FR-69). Copy is transcribed from the PRD (FR-66, FR-67, FR-71, FR-72), not from the state JSON, so the two cross-check.",
   "card": {
     "x": 24,
     "y": 246,
@@ -28,12 +28,6 @@
   },
   "styles": {
     "row": {
-      "padding": [
-        "12px",
-        "0px",
-        "8px",
-        "0px"
-      ],
       "minHeight": "58px",
       "divider": "1px solid #e6e8eb"
     },
@@ -127,7 +121,13 @@
           "7",
           "3 alerts · 1 offline · 3 healthy"
         ],
-        "label": "Bins, 7: 3 alerts, 1 offline, 3 healthy"
+        "label": "Bins, 7: 3 alerts, 1 offline, 3 healthy",
+        "padding": [
+          "12px",
+          "0px",
+          "8px",
+          "0px"
+        ]
       },
       {
         "typeKey": "piles",
@@ -156,7 +156,13 @@
           "3",
           "1 alert · 2 healthy"
         ],
-        "label": "Piles, 3: 1 alert, 2 healthy"
+        "label": "Piles, 3: 1 alert, 2 healthy",
+        "padding": [
+          "10px",
+          "0px",
+          "10px",
+          "0px"
+        ]
       },
       {
         "typeKey": "flats",
@@ -180,7 +186,13 @@
           "2",
           "2 healthy"
         ],
-        "label": "Flats, 2: 2 healthy"
+        "label": "Flats, 2: 2 healthy",
+        "padding": [
+          "10px",
+          "0px",
+          "10px",
+          "0px"
+        ]
       },
       {
         "typeKey": "tanks",
@@ -209,7 +221,13 @@
           "6",
           "1 alert · 5 healthy"
         ],
-        "label": "Tanks, 6: 1 alert, 5 healthy"
+        "label": "Tanks, 6: 1 alert, 5 healthy",
+        "padding": [
+          "10px",
+          "0px",
+          "10px",
+          "0px"
+        ]
       },
       {
         "typeKey": "dryers",
@@ -233,7 +251,13 @@
           "2",
           "2 healthy"
         ],
-        "label": "Dryers, 2: 2 healthy"
+        "label": "Dryers, 2: 2 healthy",
+        "padding": [
+          "12px",
+          "1px",
+          "8px",
+          "0px"
+        ]
       }
     ]
   },
@@ -268,7 +292,13 @@
           "1",
           "1 alert"
         ],
-        "label": "Bin, 1: 1 alert"
+        "label": "Bin, 1: 1 alert",
+        "padding": [
+          "12px",
+          "0px",
+          "8px",
+          "0px"
+        ]
       },
       {
         "typeKey": "dryers",
@@ -292,7 +322,13 @@
           "1",
           "1 healthy"
         ],
-        "label": "Dryer, 1: 1 healthy"
+        "label": "Dryer, 1: 1 healthy",
+        "padding": [
+          "12px",
+          "1px",
+          "8px",
+          "0px"
+        ]
       }
     ]
   },
@@ -327,7 +363,13 @@
           "1",
           "1 healthy"
         ],
-        "label": "Bin, 1: 1 healthy"
+        "label": "Bin, 1: 1 healthy",
+        "padding": [
+          "12px",
+          "1px",
+          "8px",
+          "0px"
+        ]
       }
     ]
   }

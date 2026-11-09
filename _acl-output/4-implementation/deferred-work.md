@@ -65,3 +65,6 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-2-2-dashboard-page-dashboard-states-and-card-shells.md`
   summary: Decide the Retry hit-target size (44 px like View All) for the FR-96 [ASSUMPTION] error state.
   evidence: Retry has no min-height; FR-96 styling is an assumption, so a design decision is needed.
+- source_spec: `_acl-output/4-implementation/spec-2-4-equipment-card-with-health-bars.md`
+  summary: Decide a minimum visible width for a non-zero Health segment (e.g. 1 alert among hundreds of units renders sub-pixel). Needs a PRD change to FR-69's exact formula.
+  evidence: healthSegments follows FR-69 exactly; tiny counts give a near-zero segment that still reserves a 2 px gap.

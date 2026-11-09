@@ -235,13 +235,16 @@ describe('Dashboard states (FR-50, FR-93)', () => {
       expect(card.getByText(DOCS.full[key].subtitle).tagName).toBe('P');
     }
     // View All on Equipment and Recent Alerts only, through paths.js (AD-10).
-    // It is the card's first link (the Equipment rows follow it, Story 2.4).
-    const viewAll = (key) => within(section(key)).queryAllByRole('link')[0] ?? null;
+    // Found by its name (the Equipment rows are links too, Story 2.4).
+    const viewAll = (key) => within(section(key)).queryByRole('link', { name: DOCS.full.equipmentCard.link });
     expect(viewAll('equipmentCard').textContent).toBe(DOCS.full.equipmentCard.link);
     expect(viewAll('equipmentCard').getAttribute('href')).toBe(paths.equipment());
     expect(viewAll('recentAlerts').textContent).toBe(DOCS.full.recentAlerts.link);
     expect(viewAll('recentAlerts').getAttribute('href')).toBe(paths.alerts());
-    for (const key of ['fanActivity', 'grain', 'liquid']) expect(viewAll(key)).toBeNull();
+    for (const key of ['fanActivity', 'grain', 'liquid']) {
+      expect(viewAll(key)).toBeNull();
+      expect(within(section(key)).queryAllByRole('link')).toHaveLength(0);
+    }
     const chevron = section('equipmentCard').querySelector('img');
     expect([chevron.getAttribute('width'), chevron.getAttribute('height'), chevron.getAttribute('alt')]).toEqual(['12', '16', '']);
     // Story 2.3: the KPI strip (its fid on the strip, inside the slot) holds

@@ -2,22 +2,25 @@
 // and All-good 6879:15603. The card shell, its header and `View All` come from
 // the page's CardShell (FR-65); this component draws the row list below it.
 //
-// One row per `equipmentCard.rows[]` entry, in file order: type name and count,
-// the 474 px Health bar, the caption and the row chevron. Every shown reading
-// is rendered verbatim (FR-94, AD-7): nothing is computed, summed, pluralised
-// or formatted. Only strings and finite numbers render; any other value renders
-// nothing. The bar widths come only from `rows[].alerts / .offline / .healthy`
-// through geometry.js `healthSegments()` (AD-8), never from the caption.
+// One row per usable `equipmentCard.rows[]` entry (an object with a string
+// `typeKey`; the first row of a duplicate typeKey wins, like KpiStrip), in file
+// order: type name and count, the 474 px Health bar, the caption and the row
+// chevron. Every shown reading is rendered verbatim (FR-94, AD-7): nothing is
+// computed, summed, pluralised or formatted. Only strings and finite numbers
+// render; any other value renders nothing. The bar widths come only from
+// `rows[].alerts / .offline / .healthy` through geometry.js `healthSegments()`
+// (AD-8), never from the caption.
 //
 // Dividers (FR-68): every row after the first has a top divider; the first row
 // has one only when it is the only row (All-good). The row list layout differs
-// per Dashboard state, so the page passes its `variant` (a FRAME key: full |
-// small | allgood; anything else → full); every px value lives in
-// EquipmentCard.module.css.
+// per Dashboard state, so the page passes its `variant` (a FRAME key with a
+// list class: full | small | allgood; anything else → full); every px value
+// lives in EquipmentCard.module.css. Rows beyond the frame's capacity are
+// clipped to the list (never drawn over the header or outside the card).
 //
-// Navigation (FR-72): each row with a known `typeKey` is one link to
-// paths.equipment({ type }); its accessible name is the FR-72 format from
-// copy.js. A row with an unknown typeKey is drawn but is not a link.
+// Navigation (FR-72): a row with a known `typeKey` and a complete accessible
+// name (the FR-72 format from copy.js) is one link to paths.equipment({ type });
+// any other row is drawn but is not a link (never an unnamed link).
 import { Link } from 'react-router';
 import { equipmentRowLabel } from '../../../lib/copy.js';
 import { FRAME } from '../../../lib/dashboardLayout.js';
@@ -25,33 +28,37 @@ import { FID } from '../../../lib/fid.js';
 import { healthSegments } from '../../../lib/geometry.js';
 import { EQUIPMENT_TYPES, paths } from '../../../lib/paths.js';
 import chevronRightSvg from '../../../assets/icons/chevron-right.svg';
+import { equipmentRows } from './equipmentRows.js';
 import styles from './EquipmentCard.module.css';
 
-/** Layout variants: the Dashboard states of FRAME (single source). */
-const VARIANTS = Object.freeze(Object.keys(FRAME));
 const DEFAULT_VARIANT = 'full';
+/** Layout variants: the Dashboard states of FRAME that have a list class. */
+const VARIANTS = Object.freeze(Object.keys(FRAME).filter((key) => typeof styles[key] === 'string'));
 
 const cx = (...names) => names.filter(Boolean).join(' ');
-const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /** A reading renders only if it is a string or a finite number (verbatim, never formatted). */
 const shown = (value) =>
   typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value)) ? value : null;
 
-const filled = (value) => shown(value) !== null && String(value) !== '';
+/** The shown reading as text ('' when nothing renders). */
+const textOf = (value) => {
+  const reading = shown(value);
+  return reading === null ? '' : String(reading);
+};
 
-/** FR-72 accessible name, only when type, count and caption are all shown. */
-const rowName = ({ type, count, caption }) =>
-  filled(type) && filled(count) && typeof caption === 'string' && caption !== ''
-    ? equipmentRowLabel({ type, count, caption })
-    : undefined;
+/** FR-72 accessible name, only when type, count and caption are all shown and non-empty. */
+function rowName(row) {
+  const [type, count, caption] = [textOf(row.type), textOf(row.count), textOf(row.caption)];
+  return type !== '' && count !== '' && caption !== '' ? equipmentRowLabel({ type, count, caption }) : undefined;
+}
 
 /** FR-71: the caption verbatim, its digit runs in Bold #111827 (styling only). */
 function Caption({ caption }) {
-  if (typeof caption !== 'string') return <span className={styles.caption} data-row-part="caption" />;
+  const text = textOf(caption);
   return (
     <span className={styles.caption} data-row-part="caption">
-      {caption.split(/(\d+)/).map((part, i) =>
+      {text.split(/(\d+)/).map((part, i) =>
         part === '' ? null : i % 2 === 1 ? (
           <span key={i} className={styles.num}>
             {part}
@@ -111,10 +118,10 @@ function EquipmentRow({ row, divider }) {
       </span>
     </>
   );
-  const key = typeof row.typeKey === 'string' ? row.typeKey : '';
-  if (!EQUIPMENT_TYPES.includes(row.typeKey)) {
+  const name = rowName(row);
+  if (!EQUIPMENT_TYPES.includes(row.typeKey) || name === undefined) {
     return (
-      <div className={className} data-equipment-row={key}>
+      <div className={className} data-equipment-row={row.typeKey}>
         {content}
       </div>
     );
@@ -123,8 +130,8 @@ function EquipmentRow({ row, divider }) {
     <Link
       className={cx(className, styles.link)}
       to={paths.equipment({ type: row.typeKey })}
-      aria-label={rowName(row)}
-      data-equipment-row={key}
+      aria-label={name}
+      data-equipment-row={row.typeKey}
     >
       {content}
     </Link>
@@ -148,11 +155,11 @@ function dividerOf(index, count, layout) {
  */
 export default function EquipmentCard({ data, variant = DEFAULT_VARIANT }) {
   const layout = VARIANTS.includes(variant) ? variant : DEFAULT_VARIANT;
-  const rows = isObject(data) && Array.isArray(data.rows) ? data.rows.filter(isObject) : [];
+  const rows = equipmentRows(data);
   return (
     <div className={cx(styles.list, styles[layout])} data-equipment-list={layout}>
       {rows.map((row, index) => (
-        <EquipmentRow key={index} row={row} divider={dividerOf(index, rows.length, layout)} />
+        <EquipmentRow key={row.typeKey} row={row} divider={dividerOf(index, rows.length, layout)} />
       ))}
     </div>
   );

@@ -383,15 +383,41 @@ describe('verbatim readings and robustness (AD-7, AD-8)', () => {
   });
 
   it('a total of 0 draws an empty bar (no segments, no NaN)', () => {
-    renderCard({ rows: [{ type: 'Bins', typeKey: 'bins', count: 0, alerts: 0, offline: 0, healthy: 0, caption: '' }] });
+    renderCard({ rows: [{ type: 'Bins', typeKey: 'bins', count: 0, alerts: 0, offline: 0, healthy: 0, caption: '0 healthy' }] });
     expect(part(rows()[0], 'bar').children).toHaveLength(0);
     expect(document.body.innerHTML).not.toContain('NaN');
   });
 
-  it('object, array, boolean and null values render nothing (no crash); no accessible name without all three parts', () => {
+  it('non-integer counts draw nothing for that segment (counts are non-negative integers)', () => {
+    renderCard({ rows: [{ type: 'Bins', typeKey: 'bins', count: 1, alerts: 1.5, offline: 0, healthy: 2, caption: '2 healthy' }] });
+    expect(segmentsOf(rows()[0])).toEqual([['healthy', 0, 474]]);
+  });
+
+  it('a numeric caption renders as its string, digit runs bolded (consistent with shown())', () => {
+    renderCard({ rows: [{ type: 'Bins', typeKey: 'bins', count: 7, alerts: 0, offline: 0, healthy: 7, caption: 42 }] });
+    const caption = part(rows()[0], 'caption');
+    expect(caption.textContent).toBe('42');
+    expect([...caption.children].map((n) => [n.textContent, hasClass(n, 'num')])).toEqual([['42', true]]);
+    expect(rows()[0].getAttribute('aria-label')).toBe('Bins, 7: 42');
+  });
+
+  it('the caption is styled by digit runs only: text between runs is kept verbatim, nothing is parsed', () => {
+    renderCard({ rows: [{ type: 'Bins', typeKey: 'bins', count: 1, alerts: 0, offline: 0, healthy: 1, caption: 'a1b22 · c333' }] });
+    const caption = part(rows()[0], 'caption');
+    expect([...caption.childNodes].map((n) => [n.nodeType === Node.TEXT_NODE ? 'text' : 'num', n.textContent])).toEqual([
+      ['text', 'a'],
+      ['num', '1'],
+      ['text', 'b'],
+      ['num', '22'],
+      ['text', ' · c'],
+      ['num', '333'],
+    ]);
+  });
+
+  it('object, array, boolean and null values render nothing (no crash); a row without a complete name is not a link', () => {
     renderCard({
       rows: [
-        { type: { x: 1 }, typeKey: 'bins', count: [7], alerts: 'x', offline: null, healthy: true, caption: 42 },
+        { type: { x: 1 }, typeKey: 'bins', count: [7], alerts: 'x', offline: null, healthy: true, caption: false },
         { type: 'Piles', typeKey: 'piles', count: Number.NaN, alerts: -1, offline: Infinity, healthy: 2, caption: null },
         { type: 'Flats', typeKey: 'flats', count: 2, alerts: 0, offline: 0, healthy: 2, caption: '2 healthy' },
       ],
@@ -403,13 +429,27 @@ describe('verbatim readings and robustness (AD-7, AD-8)', () => {
     ]);
     expect(segmentsOf(rows()[0])).toEqual([]);
     expect(segmentsOf(rows()[1])).toEqual([['healthy', 0, 474]]);
-    expect(rows()[0].hasAttribute('aria-label')).toBe(false);
-    expect(rows()[1].hasAttribute('aria-label')).toBe(false);
-    expect(rows()[2].getAttribute('aria-label')).toBe('Flats, 2: 2 healthy');
+    // Known typeKey but no usable name → a plain row, never an unnamed link.
+    expect(rows().map((row) => [row.tagName, row.getAttribute('href'), row.getAttribute('aria-label')])).toEqual([
+      ['DIV', null, null],
+      ['DIV', null, null],
+      ['A', paths.equipment({ type: 'flats' }), 'Flats, 2: 2 healthy'],
+    ]);
+    expect(hasClass(rows()[0], 'link')).toBe(false);
     expect(document.body.innerHTML).not.toContain('NaN');
   });
 
-  it('rows: non-objects are skipped; an unknown or missing typeKey is drawn but is not a link', () => {
+  it.each([
+    ['an empty type', { type: '', count: 1, caption: '1 healthy' }],
+    ['an empty caption', { type: 'Bins', count: 1, caption: '' }],
+    ['no count', { type: 'Bins', caption: '1 healthy' }],
+  ])('a known-typeKey row with %s is not a link', (_name, fields) => {
+    renderCard({ rows: [{ typeKey: 'bins', alerts: 0, offline: 0, healthy: 1, ...fields }] });
+    expect(rows()[0].tagName).toBe('DIV');
+    expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+
+  it('rows: non-objects and rows without a string typeKey are skipped; the first of a duplicate typeKey wins; an unknown typeKey is not a link', () => {
     renderCard({
       rows: [
         null,
@@ -417,16 +457,16 @@ describe('verbatim readings and robustness (AD-7, AD-8)', () => {
         [1, 2],
         { type: 'Silos', typeKey: 'silos', count: 1, alerts: 1, offline: 0, healthy: 0, caption: '1 alert' },
         { type: 'Nameless', count: 1, alerts: 0, offline: 0, healthy: 1, caption: '1 healthy' },
+        { type: 'Numeric', typeKey: 7, count: 1, alerts: 0, offline: 0, healthy: 1, caption: '1 healthy' },
         { type: 'Bins', typeKey: 'bins', count: 1, alerts: 0, offline: 0, healthy: 1, caption: '1 healthy' },
+        { type: 'Bins again', typeKey: 'bins', count: 9, alerts: 9, offline: 0, healthy: 0, caption: '9 alerts' },
       ],
     });
-    expect(rows().map((row) => [row.tagName, row.dataset.equipmentRow, row.getAttribute('href')])).toEqual([
-      ['DIV', 'silos', null],
-      ['DIV', '', null],
-      ['A', 'bins', paths.equipment({ type: 'bins' })],
+    expect(rows().map((row) => [row.tagName, row.dataset.equipmentRow, row.getAttribute('href'), rowText(row)[0]])).toEqual([
+      ['DIV', 'silos', null, 'Silos'],
+      ['A', 'bins', paths.equipment({ type: 'bins' }), 'Bins'],
     ]);
-    expect(hasClass(rows()[0], 'link')).toBe(false);
-    expect(rows().map(dividerOf)).toEqual(['none', 'item', 'divided']);
+    expect(rows().map(dividerOf)).toEqual(['none', 'divided']);
   });
 
   it.each([
@@ -441,21 +481,54 @@ describe('verbatim readings and robustness (AD-7, AD-8)', () => {
     expect(rows()).toHaveLength(0);
   });
 
-  it('an unknown variant falls back to full; dividers follow the row count (FR-68)', () => {
+  it.each([
+    ['an empty rows array', []],
+    ['only unusable rows', [null, { type: 'Nameless', count: 1 }]],
+  ])('ready with %s → the section shows the Story 2.2 error state, not a blank card', async (_name, badRows) => {
+    const doc = structuredClone(DOCS.full);
+    doc.equipmentCard.rows = badRows;
+    vi.mocked(getDashboard).mockResolvedValue(doc);
+    signInAs('demo');
+    await renderAt(paths.dashboard('full'));
+    await waitFor(() => expect(document.querySelector('[data-section="kpi"]').dataset.status).toBe('ready'));
+    expect(slot().dataset.status).toBe('error');
+    expect(within(slot()).getByText(copy.dashboard.sectionError)).toBeTruthy();
+    expect(within(slot()).getByRole('button', { name: copy.dashboard.retry })).toBeTruthy();
+    expect(list()).toBeNull();
+    expect(document.querySelector('[data-section="recentAlerts"]').dataset.status).toBe('ready');
+  });
+
+  it('an unknown variant falls back to full; small and all-good have their own list class; dividers follow the row count (FR-68)', () => {
     const one = { rows: [DOCS.full.equipmentCard.rows[0]] };
-    const { unmount } = renderCard(one, 'nope');
-    expect(list().dataset.equipmentList).toBe('full');
-    expect(rows().map(dividerOf)).toEqual(['divided']);
-    unmount();
-    renderCard(DOCS.full.equipmentCard, 'small');
-    expect(rows().map(dividerOf)).toEqual(['none', 'divided', 'divided', 'divided', 'divided']);
+    for (const variant of ['nope', undefined, 'toString', '__proto__']) {
+      const { unmount } = renderCard(one, variant);
+      expect(list().dataset.equipmentList).toBe('full');
+      expect(hasClass(list(), 'full')).toBe(true);
+      expect(rows().map(dividerOf)).toEqual(['divided']);
+      unmount();
+    }
+    for (const variant of ['small', 'allgood']) {
+      const { unmount } = renderCard(DOCS.full.equipmentCard, variant);
+      expect(list().dataset.equipmentList).toBe(variant);
+      expect(hasClass(list(), variant)).toBe(true);
+      expect(hasClass(list(), 'full')).toBe(false);
+      expect(rows().map(dividerOf)).toEqual(['none', 'divided', 'divided', 'divided', 'divided']);
+      unmount();
+    }
+  });
+
+  it('overflow: 7 Full rows are all drawn (no data dropped) inside the one clipped list', () => {
+    const extra = (type, typeKey) => ({ type, typeKey, count: 1, alerts: 0, offline: 0, healthy: 1, caption: '1 healthy' });
+    renderCard({ rows: [...DOCS.full.equipmentCard.rows, extra('Silos', 'silos'), extra('Augers', 'augers')] }, 'full');
+    expect(rows()).toHaveLength(7);
+    for (const row of rows()) expect(row.parentElement).toBe(list());
+    expect(hasClass(list(), 'list')).toBe(true);
+    expect(hasClass(list(), 'full')).toBe(true);
+    // The list is the clipping box (CSS checks below; the Fidelity spec measures it).
   });
 
   it('the component source formats nothing: no toLocaleString, Intl, toFixed, Number(), sums or plural rules', () => {
     expect(SOURCE).not.toMatch(/toLocaleString|Intl\.|toFixed|toPrecision|Number\(|parseInt|parseFloat|\.reduce\(|PluralRules|padStart|Math\./);
-    // The caption is styled by digit runs, never parsed into numbers.
-    expect(SOURCE).toContain('caption.split(/(\\d+)/)');
-    expect(SOURCE).toMatch(/healthSegments\(\{ alerts: row\.alerts, offline: row\.offline, healthy: row\.healthy \}\)/);
   });
 });
 
@@ -464,12 +537,22 @@ describe('verbatim readings and robustness (AD-7, AD-8)', () => {
 /* ------------------------------------------------------------------------ */
 
 describe('EquipmentCard source and CSS (AD-2, AD-4, AD-5, AD-8, AD-10, AD-13, AD-15, AD-16)', () => {
+  const COMMENTLESS = CSS_SOURCE.replace(/\/\*[\s\S]*?\*\//g, '');
+  /** Every declaration that applies to `selector` alone (from each rule whose selector list names it). */
   const rule = (selector) => {
-    const match = CSS_SOURCE.match(new RegExp(`(?:^|\\n)${selector.replace(/\./g, '\\.')} \\{([^}]*)\\}`));
-    if (!match) throw new Error(`no rule ${selector}`);
-    return match[1];
+    const bodies = [...COMMENTLESS.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .filter(([, selectors]) => selectors.split(',').map((s) => s.trim()).includes(selector))
+      .map(([, , body]) => body.trim());
+    if (bodies.length === 0) throw new Error(`no rule ${selector}`);
+    return bodies.join('\n');
+  };
+  /** One declaration's value for `selector` (the last one wins, as in CSS). */
+  const decl = (selector, property) => {
+    const values = [...rule(selector).matchAll(new RegExp(`(?:^|[;\\s])${property}\\s*:\\s*([^;]+);`, 'g'))].map(([, v]) => v.trim().replace(/\s+/g, ' '));
+    return values.at(-1);
   };
   const atRest = CSS_SOURCE.slice(0, CSS_SOURCE.indexOf('/* states */'));
+  const states = CSS_SOURCE.slice(CSS_SOURCE.indexOf('/* states */'));
 
   it('no literal text, text attributes, data-fid or "/" URLs in JSX', () => {
     expect(jsxLiterals(SOURCE)).toEqual([]);
@@ -485,29 +568,53 @@ describe('EquipmentCard source and CSS (AD-2, AD-4, AD-5, AD-8, AD-10, AD-13, AD
   });
 
   it('row: flex, space-between, centre, min-height 58, height 68, padding 12 0 8; divider 1px #E6E8EB, 69 high', () => {
-    for (const decl of ['display: flex;', 'align-items: center;', 'justify-content: space-between;', 'min-height: 58px;', 'height: 68px;', 'padding: 12px 0 8px;']) {
-      expect(rule('.row')).toContain(decl);
+    expect(decl('.row', 'display')).toBe('flex');
+    expect(decl('.row', 'align-items')).toBe('center');
+    expect(decl('.row', 'justify-content')).toBe('space-between');
+    expect(decl('.row', 'min-height')).toBe('58px');
+    expect(decl('.row', 'height')).toBe('68px');
+    expect(decl('.row', 'padding')).toBe('12px 0 8px');
+    for (const sel of ['.divided', '.item']) {
+      expect(decl(sel, 'height')).toBe('69px');
+      expect(decl(sel, 'border-top')).toBe('var(--border-width-hairline) solid var(--raw-e6e8eb)');
     }
-    expect(CSS_SOURCE).toMatch(/\.divided,\n\.item \{\n {2}height: 69px;\n {2}border-top: var\(--border-width-hairline\) solid var\(--raw-e6e8eb\);/);
-    expect(rule('.full')).toContain('height: 344px;');
-    expect(rule('.full')).toContain('justify-content: center;');
+  });
+
+  it('per-row offsets matching the frames: .item padding 10 / 10; .divided padding-right 1px', () => {
+    expect(decl('.item', 'padding-top')).toBe('10px');
+    expect(decl('.item', 'padding-bottom')).toBe('10px');
+    expect(decl('.divided', 'padding-right')).toBe('1px');
+    expect(decl('.divided', 'padding-top')).toBeUndefined();
+    expect(decl('.item', 'padding-right')).toBeUndefined();
+  });
+
+  it('list: Figma-matching -1px margins; shrinks to the card body and clips its rows (4 px clip margin for the focus ring); Full 344 with safe centring', () => {
+    expect(decl('.list', 'margin')).toBe('-1px -1px 0');
+    expect(decl('.list', 'min-height')).toBe('0');
+    expect(decl('.list', 'flex')).toBe('0 1 auto');
+    expect(decl('.list', 'overflow')).toBe('clip');
+    expect(decl('.list', 'overflow-clip-margin')).toBe('4px');
+    expect(decl('.full', 'height')).toBe('344px');
+    expect(decl('.full', 'flex')).toBe('none');
+    expect(decl('.full', 'justify-content')).toBe('safe center');
+    for (const sel of ['.small', '.allgood']) expect(decl(sel, 'justify-content')).toBe('flex-start');
   });
 
   it('columns: left 74 (column, gap 1, pb 1); right 523 (gap 32); bar block 474 (column, gap 6); chevron box 18×18, glyph at 3,1, 12×16', () => {
-    for (const decl of ['flex-direction: column;', 'gap: 1px;', 'width: 74px;', 'padding-bottom: 1px;']) expect(rule('.left')).toContain(decl);
-    for (const decl of ['gap: 32px;', 'width: 523px;']) expect(rule('.right')).toContain(decl);
-    for (const decl of ['flex-direction: column;', 'gap: 6px;', 'width: 474px;']) expect(rule('.barBlock')).toContain(decl);
-    for (const decl of ['width: 18px;', 'height: 18px;', 'padding: 1px 0 0 3px;']) expect(rule('.chevronBox')).toContain(decl);
-    expect(rule('.chevron')).toMatch(/width: 12px;\s+height: 16px;/);
+    expect([decl('.left', 'flex-direction'), decl('.left', 'gap'), decl('.left', 'width'), decl('.left', 'padding-bottom')]).toEqual(['column', '1px', '74px', '1px']);
+    expect([decl('.right', 'gap'), decl('.right', 'width')]).toEqual(['32px', '523px']);
+    expect([decl('.barBlock', 'flex-direction'), decl('.barBlock', 'gap'), decl('.barBlock', 'width')]).toEqual(['column', '6px', '474px']);
+    expect([decl('.chevronBox', 'width'), decl('.chevronBox', 'height'), decl('.chevronBox', 'padding')]).toEqual(['18px', '18px', '1px 0 0 3px']);
+    expect([decl('.chevron', 'width'), decl('.chevron', 'height')]).toEqual(['12px', '16px']);
   });
 
   it('Health bar 474×8, radius 4, overflow hidden; square segments; #C62828 / #15803D; the verbatim 17-stripe FR-70 hatch', () => {
-    for (const decl of ['width: 474px;', 'height: 8px;', 'overflow: hidden;', 'border-radius: 4px;']) expect(rule('.bar')).toContain(decl);
-    expect(rule('.segment')).not.toContain('radius');
-    expect(rule('.alerts')).toContain('background: var(--raw-c62828);');
-    expect(rule('.healthy')).toContain('background: var(--raw-15803d);');
-    const hatch = rule('.offline').replace(/\s+/g, ' ');
-    expect(hatch).toContain('linear-gradient( 43.841deg,');
+    expect([decl('.bar', 'width'), decl('.bar', 'height'), decl('.bar', 'overflow'), decl('.bar', 'border-radius')]).toEqual(['474px', '8px', 'hidden', '4px']);
+    expect(decl('.segment', 'border-radius')).toBeUndefined();
+    expect(decl('.alerts', 'background')).toBe('var(--raw-c62828)');
+    expect(decl('.healthy', 'background')).toBe('var(--raw-15803d)');
+    const hatch = decl('.offline', 'background');
+    expect(hatch.startsWith('linear-gradient( 43.841deg,')).toBe(true);
     const stops = [...hatch.matchAll(/var\(--raw-(9ca3af|d1d5db)\) ([\d.]+)%/g)].map(([, colour, at]) => [colour, Number(at)]);
     const expected = [];
     for (let i = 0; i < 17; i += 1) {
@@ -519,29 +626,38 @@ describe('EquipmentCard source and CSS (AD-2, AD-4, AD-5, AD-8, AD-10, AD-13, AD
     expect(CSS_SOURCE).not.toContain('repeating-linear-gradient');
   });
 
-  it('type: name SF 590 16/1.5 #1F2937; count SF 400 14/1.25 #374151; caption Roboto 400 14/normal #4B5563; digits 700 #111827', () => {
-    for (const decl of ['font-family: var(--font-stack-sf-pro);', 'font-weight: var(--font-weight-semibold);', 'font-size: 16px;', 'line-height: 1.5;', 'color: var(--raw-1f2937);']) {
-      expect(rule('.name')).toContain(decl);
-    }
-    for (const decl of ['font-family: var(--font-stack-sf-pro);', 'font-weight: var(--font-weight-regular);', 'font-size: 14px;', 'line-height: 1.25;', 'color: var(--raw-374151);']) {
-      expect(rule('.count')).toContain(decl);
-    }
-    for (const decl of ['font-family: var(--font-stack-roboto);', 'font-weight: 400;', 'font-size: 14px;', 'line-height: normal;', 'color: var(--raw-4b5563);']) {
-      expect(rule('.caption')).toContain(decl);
-    }
-    expect(rule('.num')).toContain('font-weight: 700;');
-    expect(rule('.num')).toContain('color: var(--raw-111827);');
+  it('type: name SF 590 16/1.5 #1F2937; count SF 400 14/1.25 #374151; caption Roboto 400 14/normal #4B5563; digits 700 #111827 (weights via tokens where one exists)', () => {
+    expect(['font-family', 'font-weight', 'font-size', 'line-height', 'color'].map((p) => decl('.name', p))).toEqual([
+      'var(--font-stack-sf-pro)', 'var(--font-weight-semibold)', '16px', '1.5', 'var(--raw-1f2937)',
+    ]);
+    expect(['font-family', 'font-weight', 'font-size', 'line-height', 'color'].map((p) => decl('.count', p))).toEqual([
+      'var(--font-stack-sf-pro)', 'var(--font-weight-regular)', '14px', '1.25', 'var(--raw-374151)',
+    ]);
+    expect(['font-family', 'font-weight', 'font-size', 'line-height', 'color'].map((p) => decl('.caption', p))).toEqual([
+      'var(--font-stack-roboto)', 'var(--font-weight-regular)', '14px', 'normal', 'var(--raw-4b5563)',
+    ]);
+    // tokens.css has no 700 weight token (adding one is an Ask First token change).
+    expect(decl('.num', 'font-weight')).toBe('700');
+    expect(decl('.num', 'color')).toBe('var(--raw-111827)');
+    expect(COMMENTLESS).not.toMatch(/font-weight:\s*400/);
   });
 
-  it('pointer only on <a>; hover and focus only under /* states */ (AD-13); no overlays, responsive sizing or animation (AD-4)', () => {
-    expect(rule('.link')).toContain('cursor: pointer;');
+  it('pointer only on <a>; hover (inset inside the content box) and focus only under /* states */ (AD-13); no overlays, responsive sizing or animation (AD-4)', () => {
+    expect(decl('.link', 'cursor')).toBe('pointer');
     for (const sel of ['.row', '.left', '.right', '.bar', '.segment']) expect(rule(sel)).not.toMatch(/cursor|z-index/);
     expect(CSS_SOURCE).not.toMatch(/::after|::before/);
     expect(atRest).not.toMatch(/:hover|:focus/);
-    const states = CSS_SOURCE.slice(CSS_SOURCE.indexOf('/* states */'));
-    expect(states).toMatch(/\.link:hover \{\n {2}background: var\(--raw-f0fff8\);/);
-    expect(states).toMatch(/\.link:focus-visible \{\n {2}outline: var\(--border-width-md\) solid var\(--raw-006a36\);\n {2}outline-offset: 2px;/);
-    const css = CSS_SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/linear-gradient\([\s\S]*?\);/, '');
+    const stateRule = (selector) => {
+      const m = states.replace(/\/\*[\s\S]*?\*\//g, '').match(new RegExp(`${selector.replace(/[.:]/g, (c) => `\\${c}`)}\\s*\\{([^}]*)\\}`));
+      return m ? m[1].replace(/\s+/g, ' ') : '';
+    };
+    expect(stateRule('.link:hover')).toContain('background: var(--raw-f0fff8);');
+    expect(stateRule('.link:hover')).toContain(
+      'box-shadow: inset 1px 0 0 var(--primitives-color-base-white), inset -1px 0 0 var(--primitives-color-base-white);',
+    );
+    expect(stateRule('.link:focus-visible')).toContain('outline: var(--border-width-md) solid var(--raw-006a36);');
+    expect(stateRule('.link:focus-visible')).toContain('outline-offset: 2px;');
+    const css = COMMENTLESS.replace(/linear-gradient\([\s\S]*?\);/, '');
     expect(css).not.toMatch(/@media|\dvw|\dvh|clamp\(|animation|transition|\d%/);
   });
 });

@@ -105,6 +105,12 @@ describe('healthSegments() — edge cases', () => {
     }
   });
 
+  it('counts must be non-negative integers: fractions, numeric strings, booleans and BigInts count as 0', () => {
+    expect(healthSegments({ alerts: 1.5, offline: 0.1, healthy: 2 })).toEqual([{ kind: 'healthy', x: 0, width: 474 }]);
+    expect(healthSegments({ alerts: '1', offline: true, healthy: 2n })).toEqual([]);
+    expect(healthSegments({ alerts: 2.0, healthy: 4 }).map((s) => s.kind)).toEqual(['alerts', 'healthy']);
+  });
+
   it('is pure: the input is not changed and repeated calls are equal', () => {
     const counts = Object.freeze({ alerts: 3, offline: 1, healthy: 3 });
     expect(healthSegments(counts)).toEqual(healthSegments(counts));
