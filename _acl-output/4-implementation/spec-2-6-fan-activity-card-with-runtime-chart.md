@@ -7,6 +7,8 @@ title: 'Story 2.6 — Fan activity card with Runtime chart'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: '8fe9cb9564e92f3085e02611fd5335115e3d7565'
+implementation_status: in-progress
 story_key: 2-6-fan-activity-card-with-runtime-chart
 jira: NEW
 review_loop_iteration: 0
