@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T09:20:47.741Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 title: 'Story 2.5 — Recent Alerts card'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
