@@ -120,6 +120,8 @@ export const FID = deepFreeze({
     iconOffline: '6337:55110',
     iconFans: '6337:55121',
     iconAllGood: '6882:59666',
+    // Story 2.3 — All-good: Online / Offline / Fans wrapped in a 766 px group (Part B §3).
+    statusGroupAllGood: '6916:11719',
   },
 
   equipmentCard: {

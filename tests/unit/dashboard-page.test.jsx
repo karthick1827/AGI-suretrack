@@ -243,9 +243,11 @@ describe('Dashboard states (FR-50, FR-93)', () => {
     for (const key of ['fanActivity', 'grain', 'liquid']) expect(viewAll(key)).toBeNull();
     const chevron = section('equipmentCard').querySelector('img');
     expect([chevron.getAttribute('width'), chevron.getAttribute('height'), chevron.getAttribute('alt')]).toEqual(['12', '16', '']);
-    // The KPI strip is an empty shell until Story 2.3; no card contents yet (2.4–2.8).
-    expect(fid(FID.kpi.strip).textContent).toBe('');
-    expect(fid(FID.kpi.strip).childElementCount).toBe(0);
+    // Story 2.3: the KPI strip (its fid on the strip, inside the slot) holds
+    // the KPI readings; no card contents yet (2.4–2.8).
+    expect(section('kpi').querySelector(`[data-fid="${FID.kpi.strip}"]`)).toBe(fid(FID.kpi.strip));
+    expect(section('kpi').dataset.fid).toBeUndefined();
+    expect(fid(FID.kpi.strip).textContent).toContain(DOCS.full.kpi.attention.label);
     for (const key of CARD_KEYS) {
       expect(section(key).textContent).toBe(`${DOCS.full[key].title}${DOCS.full[key].subtitle}${DOCS.full[key].link ?? ''}`);
     }
@@ -428,11 +430,11 @@ describe('robustness (AD-18)', () => {
     for (const key of ['equipmentCard', 'recentAlerts', 'fanActivity', 'liquid']) expect(section(key).dataset.status).toBe('ready');
   });
 
-  it('the KPI section receives { status, data, onRetry }: ready with data is an empty shell, Retry calls onRetry', () => {
+  it('the KPI section receives { status, data, onRetry }: ready with data draws the strip, Retry calls onRetry', () => {
     const retry = vi.fn();
     const { unmount } = renderPage(readyContext(DOCS.full, { retry }));
     expect(section('kpi').dataset.status).toBe('ready');
-    expect(fid(FID.kpi.strip).childElementCount).toBe(0);
+    expect(fid(FID.kpi.strip).querySelectorAll('[data-kpi-tile]')).toHaveLength(10);
     unmount();
     renderPage({ state: 'full', status: 'error', doc: null, retry });
     fireEvent.click(within(section('kpi')).getByRole('button', { name: copy.dashboard.retry }));

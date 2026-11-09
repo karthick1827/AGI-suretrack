@@ -1,0 +1,229 @@
+/*
+ * KPI strip (FR-59 to FR-64), Figma 6337:55041. Values verbatim from PRD
+ * FR-59 to FR-63 and design spec Part B §3, §10, §12, §13.
+ *
+ * Strip 1318×90 (its slot), outer padding-y 6, visible radius 12 with the
+ * KPI box-shadow; inner container padding-y 4, flex, align-items flex-start.
+ * Tiles: padding 12/20, gap 14, align-items center, content height 46 →
+ * tile height 70; every tile but the first has a 1px #E6E8EB left divider.
+ *
+ * Per-state widths and x positions (within the strip):
+ *   Full     264 @0 · Equipment 500 (fixed) @264 · Online 173 @764 ·
+ *            Offline 173 @937 · Fans flex 1 = 208 @1110 (justify center)
+ *   Small    264 @0 · Equipment 308 (hug) @264 · Online / Offline / Fans
+ *            flex 1 = 248.67 @572 / 820.67 / 1069.33 (justify center)
+ *   All-good 264 @0 · Equipment 248 (hug) @284 · group 6916:11719 766 @552,
+ *            gap 20: Online / Offline / Fans flex 1 = 242 @552 / 814 / 1076
+ *            (container gap 20, no justify-content)
+ */
+.strip {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  padding: 6px 0;
+  border-radius: 12px;
+  background: var(--primitives-color-base-white);
+  box-shadow: var(--shadow-kpi);
+}
+
+.container {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 0;
+}
+
+.full,
+.small {
+  justify-content: center;
+}
+
+.allgood {
+  gap: 20px;
+}
+
+/* Each KPI tile (segment). */
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.equipment,
+.online,
+.offline,
+.fans {
+  border-left: 1px solid var(--raw-e6e8eb);
+}
+
+/* Need attention: 264 in every state (FR-61). */
+.attention {
+  flex: none;
+  width: 264px;
+}
+
+/* Equipment (FR-62): blocks with gap 20; Full is fixed 500, Small and
+   All-good hug their fixed-width blocks (308 / 248). */
+.equipment {
+  position: relative;
+  flex: none;
+  gap: 20px;
+}
+
+.full .equipment {
+  width: 500px;
+}
+
+/* Full: Online and Offline 173 fixed, Fans flex 1 (208) (FR-63). */
+.full .online,
+.full .offline {
+  flex: none;
+  width: 173px;
+}
+
+.full .fans,
+.small .online,
+.small .offline,
+.small .fans,
+.group .online,
+.group .offline,
+.group .fans {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* All-good: the last three tiles wrapped in a 766 px group, gap 20. */
+.group {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-start;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* Icon wrapper 44×46 with padding-top 2, holding the 44×44 tile, radius 12,
+   icon centred (FR-60). */
+.iconWrap {
+  display: flex;
+  flex: none;
+  width: 44px;
+  height: 46px;
+  padding-top: 2px;
+}
+
+.iconTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.toneAlert {
+  background: var(--raw-fdecec);
+}
+
+.toneGood,
+.toneOnline {
+  background: var(--raw-eaf8ef);
+}
+
+.toneEquip {
+  background: var(--raw-ede9fe);
+}
+
+.toneOffline {
+  background: var(--raw-f4f5f6);
+}
+
+.toneFans {
+  background: var(--raw-eff6ff);
+}
+
+/* Text block: column, gap 2. */
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* KPI number: Roboto 700 22/25.3 #111827. */
+.value {
+  font-family: var(--font-stack-roboto);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 25.3px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--raw-111827);
+}
+
+/* Full breakdown sub-counts are Regular (subCountWeight 400). */
+.regular {
+  font-weight: 400;
+}
+
+/* KPI label: Roboto 400 13.5/normal #4B5563. */
+.label {
+  font-family: var(--font-stack-roboto);
+  font-weight: 400;
+  font-size: 13.5px;
+  line-height: normal;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--raw-4b5563);
+}
+
+/* Need attention label in Full and Small: Roboto 700 13.5 #C62828. */
+.critical {
+  font-weight: 700;
+  color: var(--raw-c62828);
+}
+
+/* The 147 px block: icon tile + total over `Equipment`, gap 14. Its link is
+   stretched over the whole tile, under the sub-count links. */
+.equipmentTotal {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+  width: 147px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.equipmentTotal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+/* Sub-count block: 40 wide (Tanks 50), number over label. */
+.sub {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  width: 40px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.subWide {
+  width: 50px;
+}
+
+/* states */
+
+/* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */
+.tile:focus-visible,
+.equipmentTotal:focus-visible,
+.sub:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-006a36);
+  outline-offset: 2px;
+}

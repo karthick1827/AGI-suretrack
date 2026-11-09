@@ -1,0 +1,119 @@
+{
+  "$comment": "Story 2.3 — KPI strip 6337:55041 per Dashboard state at 1366 px. Boxes are STRIP coordinates (px, ±1 px; the strip is at page 24, 136, 1318×90) transcribed from PRD FR-59–FR-63 and design spec Part B §3, §10, §12, §13: outer padding-y 6 + container padding-y 4 → tiles at y 10, 70 high (padding 12, content 46); icon wrapper 44×46 with padding-top 2 → icon tile at y 24, icon centred (22 → y 35, All-good tick 20 → y 36); text block (number 25.3 + gap 2 + label at Roboto 13.5 line-height normal ≈ 15.82 = 43.12) centred in the 46 px content → number at y 23.44, label at y 50.74. Tile x positions: tile x + 1 px divider (every tile but the first) + 20 padding; text starts 44 + 14 after the icon tile. Copy is transcribed from the PRD (FR-61–FR-63), not from the state JSON, so the two cross-check.",
+  "strip": { "x": 24, "y": 136, "w": 1318, "h": 90 },
+  "tileY": 10,
+  "tileH": 70,
+  "valueY": 23.44,
+  "valueH": 25.3,
+  "labelY": 50.74,
+  "labelH": 15.82,
+  "full": {
+    "frame": "6215:58878",
+    "tiles": {
+      "attention": { "x": 0, "w": 264 },
+      "equipment": { "x": 264, "w": 500 },
+      "equipment:bins": { "x": 452, "w": 40 },
+      "equipment:piles": { "x": 512, "w": 40 },
+      "equipment:flats": { "x": 572, "w": 40 },
+      "equipment:tanks": { "x": 632, "w": 50 },
+      "equipment:dryers": { "x": 702, "w": 40 },
+      "online": { "x": 764, "w": 173 },
+      "offline": { "x": 937, "w": 173 },
+      "fans": { "x": 1110, "w": 208 }
+    },
+    "icons": {
+      "6337:55047": { "x": 31, "y": 35, "w": 22, "h": 22 },
+      "6337:55059": { "x": 296, "y": 35, "w": 22, "h": 22 },
+      "6337:55100": { "x": 796, "y": 35, "w": 22, "h": 22 },
+      "6337:55110": { "x": 969, "y": 35, "w": 22, "h": 22 },
+      "6337:55121": { "x": 1142, "y": 35, "w": 22, "h": 22 }
+    },
+    "textX": { "attention": 78, "equipment": 343, "online": 843, "offline": 1016, "fans": 1189 },
+    "copy": {
+      "attention": ["7", "Need attention · 2 critical"],
+      "equipment": ["20", "Equipment"],
+      "equipment:bins": ["7", "Bins"],
+      "equipment:piles": ["3", "Piles"],
+      "equipment:flats": ["2", "Flats"],
+      "equipment:tanks": ["6", "Tanks"],
+      "equipment:dryers": ["2", "Dryers"],
+      "online": ["16", "Online"],
+      "offline": ["4", "Offline"],
+      "fans": ["7 of 24", "Fans running now"]
+    },
+    "attentionIconTile": "#fdecec",
+    "attentionLabel": { "color": "#c62828", "fontWeight": "700" },
+    "subCountWeight": "400"
+  },
+  "small": {
+    "frame": "6864:4514",
+    "tiles": {
+      "attention": { "x": 0, "w": 264 },
+      "equipment": { "x": 264, "w": 308 },
+      "equipment:bins": { "x": 452, "w": 40 },
+      "equipment:dryers": { "x": 512, "w": 40 },
+      "online": { "x": 572, "w": 248.67 },
+      "offline": { "x": 820.67, "w": 248.67 },
+      "fans": { "x": 1069.33, "w": 248.67 }
+    },
+    "icons": {
+      "6337:55047": { "x": 31, "y": 35, "w": 22, "h": 22 },
+      "6337:55059": { "x": 296, "y": 35, "w": 22, "h": 22 },
+      "6337:55100": { "x": 604, "y": 35, "w": 22, "h": 22 },
+      "6337:55110": { "x": 852.67, "y": 35, "w": 22, "h": 22 },
+      "6337:55121": { "x": 1101.33, "y": 35, "w": 22, "h": 22 }
+    },
+    "textX": { "attention": 78, "equipment": 343, "online": 651, "offline": 899.67, "fans": 1148.33 },
+    "copy": {
+      "attention": ["1", "Need attention · 1 critical"],
+      "equipment": ["2", "Equipment"],
+      "equipment:bins": ["1", "Bin"],
+      "equipment:dryers": ["1", "Dryer"],
+      "online": ["2", "Online"],
+      "offline": ["0", "Offline"],
+      "fans": ["2 of 3", "Fans running now"]
+    },
+    "attentionIconTile": "#fdecec",
+    "attentionLabel": { "color": "#c62828", "fontWeight": "700" },
+    "subCountWeight": "700"
+  },
+  "allgood": {
+    "frame": "6879:15603",
+    "group": { "fid": "6916:11719", "x": 552, "w": 766 },
+    "tiles": {
+      "attention": { "x": 0, "w": 264 },
+      "equipment": { "x": 284, "w": 248 },
+      "equipment:bins": { "x": 472, "w": 40 },
+      "online": { "x": 552, "w": 242 },
+      "offline": { "x": 814, "w": 242 },
+      "fans": { "x": 1076, "w": 242 }
+    },
+    "icons": {
+      "6882:59666": { "x": 32, "y": 36, "w": 20, "h": 20 },
+      "6337:55059": { "x": 316, "y": 35, "w": 22, "h": 22 },
+      "6337:55100": { "x": 584, "y": 35, "w": 22, "h": 22 },
+      "6337:55110": { "x": 846, "y": 35, "w": 22, "h": 22 },
+      "6337:55121": { "x": 1108, "y": 35, "w": 22, "h": 22 }
+    },
+    "textX": { "attention": 78, "equipment": 363, "online": 631, "offline": 893, "fans": 1155 },
+    "copy": {
+      "attention": ["0", "Need attention · all good"],
+      "equipment": ["1", "Equipment"],
+      "equipment:bins": ["1", "Bin"],
+      "online": ["1", "Online"],
+      "offline": ["0", "Offline"],
+      "fans": ["2 of 3", "Fans running now"]
+    },
+    "attentionIconTile": "#eaf8ef",
+    "attentionLabel": { "color": "#4b5563", "fontWeight": "400" },
+    "subCountWeight": "700"
+  },
+  "styles": {
+    "strip": { "backgroundColor": "#ffffff", "radius": "12px", "boxShadow": "rgba(39, 39, 39, 0.15) 0px 2px 4px 0px", "padding": "6px 0px" },
+    "tile": { "padding": "12px 20px", "gap": "14px", "divider": "1px solid #e6e8eb" },
+    "value": { "fontFamily": "Roboto", "fontWeight": "700", "fontSize": "22px", "lineHeight": "25.3px", "color": "#111827" },
+    "label": { "fontFamily": "Roboto", "fontWeight": "400", "fontSize": "13.5px", "lineHeight": "normal", "color": "#4b5563" },
+    "iconTile": { "w": 44, "h": 44, "radius": "12px" },
+    "iconTiles": { "equipment": "#ede9fe", "online": "#eaf8ef", "offline": "#f4f5f6", "fans": "#eff6ff" }
+  }
+}

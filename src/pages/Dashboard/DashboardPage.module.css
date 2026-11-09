@@ -21,9 +21,10 @@
 }
 
 /*
- * KPI strip shell (FR-59): #FFFFFF, visible radius 12, box-shadow
- * 0 2px 4px rgba(39,39,39,0.15), outer padding-y 6. Its tiles come in
- * Story 2.3; the loading and error blocks fill its content box.
+ * KPI strip shell (FR-59) while loading or on error: #FFFFFF, visible
+ * radius 12, box-shadow 0 2px 4px rgba(39,39,39,0.15), outer padding-y 6,
+ * as drawn by KpiStrip when ready; the loading and error blocks fill its
+ * content box.
  */
 .kpiShell {
   display: flex;

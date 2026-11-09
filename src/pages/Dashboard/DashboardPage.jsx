@@ -10,14 +10,15 @@
 // card row plus `pageBottomSpacePx` (1052 / 860 / 856).
 //
 // Sections: each takes exactly `{ status, data, onRetry }` (AD-18) with
-// `data` = its slice of the document. Until Stories 2.3–2.8 add their
-// contents, a `ready` section shows only its shell and card header; `loading`
-// and `error` show the FR-95 / FR-96 blocks.
+// `data` = its slice of the document. The KPI section draws the KPI strip
+// (Story 2.3) when ready; until Stories 2.4–2.8 add their contents, a `ready`
+// card shows only its shell and card header. `loading` and `error` show the
+// FR-95 / FR-96 blocks at the section's final size.
 import { useRef } from 'react';
 import { useOutletContext } from 'react-router';
-import { FID } from '../../lib/fid.js';
 import { CONTENT_TOP, FRAME, SECTION_KEYS, pageHeight } from '../../lib/dashboardLayout.js';
 import { paths } from '../../lib/paths.js';
+import KpiStrip from '../../features/dashboard/kpi/KpiStrip.jsx';
 import CardShell from '../../ui/CardShell.jsx';
 import SectionState from '../../ui/SectionState.jsx';
 import styles from './DashboardPage.module.css';
@@ -27,14 +28,25 @@ const DEFAULT_STATE = 'full';
 
 const isText = (value) => typeof value === 'string' && value.trim() !== '';
 
-/** KPI strip slot (FR-59 shell). Its contents (from `data`) come in Story 2.3. */
-function KpiSection({ status, data: _data, onRetry }) {
-  return (
-    <div className={styles.kpiShell} data-fid={FID.kpi.strip}>
-      {status === 'ready' ? null : <SectionState status={status} onRetry={onRetry} />}
-    </div>
-  );
+/**
+ * The KPI section for one Dashboard state (FR-59 to FR-64). Tile widths differ
+ * per state, so each state gets its own section component; each still takes
+ * exactly `{ status, data, onRetry }` (AD-18), with `data` = `doc.kpi`.
+ * Loading and error keep the strip's white shell at 1318×90 (no layout shift).
+ */
+function kpiSection(state) {
+  return function KpiSection({ status, data, onRetry }) {
+    if (status === 'ready') return <KpiStrip kpi={data} variant={state} />;
+    return (
+      <div className={styles.kpiShell}>
+        <SectionState status={status} onRetry={onRetry} />
+      </div>
+    );
+  };
 }
+
+/** One KPI section component per Dashboard state, created once (stable identity). */
+const KPI_SECTIONS = Object.freeze(Object.fromEntries(Object.keys(FRAME).map((state) => [state, kpiSection(state)])));
 
 /** A card section with the FR-65 shell and header; card contents come in Stories 2.4–2.8. */
 function cardSection({ headerSize, subtitleTone, linkTo }) {
@@ -59,9 +71,8 @@ function cardSection({ headerSize, subtitleTone, linkTo }) {
   };
 }
 
-/** The section component for each key of SECTION_KEYS (FR-65 header variants). */
+/** The card section component for each card key of SECTION_KEYS (FR-65 header variants); `kpi` is per state. */
 const SECTIONS = Object.freeze({
-  kpi: KpiSection,
   equipmentCard: cardSection({ headerSize: 'regular', subtitleTone: 'dark', linkTo: () => paths.equipment() }),
   recentAlerts: cardSection({ headerSize: 'regular', subtitleTone: 'dark', linkTo: () => paths.alerts() }),
   fanActivity: cardSection({ headerSize: 'regular', subtitleTone: 'muted' }),
@@ -104,7 +115,7 @@ export default function DashboardPage() {
       data-state={state}
     >
       {SECTION_KEYS.map((key) => {
-        const Section = SECTIONS[key];
+        const Section = key === 'kpi' ? KPI_SECTIONS[state] : SECTIONS[key];
         const { x, y, w, h } = frame.sections[key];
         const data = doc?.[key] ?? null;
         // A ready document without this section's slice is a load error for that section.

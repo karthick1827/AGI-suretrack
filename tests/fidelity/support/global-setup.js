@@ -15,12 +15,15 @@ import {
   HEADER_IN_REFERENCE,
   HEADER_MASK,
   HEADER_REFERENCE,
+  KPI_STRIP_IN_REFERENCE,
+  KPI_STRIP_REFERENCES,
   LOGIN_PHOTO_MASK,
   MASKED_BASELINE_DIR,
   PROFILE_MENU_BASELINE,
   PROFILE_MENU_IN_REFERENCE,
   PROFILE_MENU_MASK,
   PROFILE_MENU_REFERENCE,
+  kpiStripBaseline,
   writeCroppedBaseline,
   writeMaskedBaseline,
 } from './fidelity.js';
@@ -39,4 +42,8 @@ export default async function globalSetup() {
   // avatar masked; the profile panel (exact 290×768), omitted entries masked.
   await writeCroppedBaseline(HEADER_REFERENCE, HEADER_BASELINE, HEADER_IN_REFERENCE, HEADER_MASK);
   await writeCroppedBaseline(PROFILE_MENU_REFERENCE, PROFILE_MENU_BASELINE, PROFILE_MENU_IN_REFERENCE, PROFILE_MENU_MASK);
+  // Story 2.3: the KPI strip cropped out of each 1× Dashboard render (no mask).
+  for (const [state, source] of Object.entries(KPI_STRIP_REFERENCES)) {
+    await writeCroppedBaseline(source, kpiStripBaseline(state), KPI_STRIP_IN_REFERENCE, []);
+  }
 }

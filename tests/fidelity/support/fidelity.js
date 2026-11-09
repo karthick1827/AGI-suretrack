@@ -437,3 +437,21 @@ export const PROFILE_MENU_MASK = Object.freeze([
 /** `rects` moved by (dx, dy): panel coordinates → page coordinates for installMask(). */
 export const offsetRects = (rects, dx, dy) =>
   rects.map(({ left, top, width, height }) => ({ left: left + dx, top: top + dy, width, height }));
+
+/* ------------------------------------------------------------------------ */
+/* KPI strip (Story 2.3)                                                     */
+/* ------------------------------------------------------------------------ */
+
+// The 1× Dashboard renders are 1374 × (frame height + 2): the frame plus the
+// canvas border Figma exports around it (4 px left/right, 2 px top/bottom),
+// so frame (x, y) sits at (x + 4, y + 2). They are never edited; the KPI
+// strip (page 24, 136, 1318×90, FR-59) is cropped out at (28, 138) after the
+// alignment check.
+export const KPI_STRIP_CLIP = Object.freeze({ x: 24, y: 136, width: 1318, height: 90 });
+export const KPI_STRIP_IN_REFERENCE = Object.freeze({ left: 28, top: 138, width: 1318, height: 90 });
+export const KPI_STRIP_REFERENCES = Object.freeze({
+  full: path.join(FIGMA_1X, 'dashboard-full-6215-58878.raw-1374x1054.png'),
+  small: path.join(FIGMA_1X, 'dashboard-small-6864-4514.raw-1374x862.png'),
+  allgood: path.join(FIGMA_1X, 'dashboard-allgood-6879-15603.raw-1374x858.png'),
+});
+export const kpiStripBaseline = (state) => `kpi-strip-${state}.png`;
