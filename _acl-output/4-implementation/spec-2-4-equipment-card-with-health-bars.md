@@ -7,6 +7,8 @@ title: 'Story 2.4 — Equipment card with Health bars'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
+baseline_commit: 'fc6e3f482c15d6b1a4d442aed4d9397e042e3255'
+implementation_status: in-progress
 story_key: 2-4-equipment-card-with-health-bars
 jira: SCRUM-37
 review_loop_iteration: 0
