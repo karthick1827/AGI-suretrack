@@ -1,5 +1,8 @@
 ---
-status: In Review
+status: Approved
+reviewed_by: Manager (via Markdown Studio)
+review_timestamp: 2026-11-09T05:48:07.772Z
+gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 spec_approved_by: Manager (via Markdown Studio)
 spec_approved_at: 2026-11-09T05:06:07.264Z
 title: 'Story 2.2 — Dashboard page, Dashboard states and card shells'
@@ -7,7 +10,7 @@ tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-10'
 baseline_commit: '37bf9fb493675ef8b8738404d9ed100fe453981d'
-implementation_status: review
+implementation_status: done
 story_key: 2-2-dashboard-page-dashboard-states-and-card-shells
 jira: NEW
 review_loop_iteration: 0

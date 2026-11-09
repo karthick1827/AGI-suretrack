@@ -616,6 +616,8 @@ So that I always see my own farm's status, even if something is slow or fails.
 **When** a value is shown anywhere on the Dashboard
 **Then** it is the JSON display string verbatim (FR-94). A unit test fails if any component formats, sums or pluralises a reading.
 
+- [x] Story 2.2 completed — Manager approved 2026-11-09 (spec-2-2); feature/2-2-dashboard-states
+
 ### Story 2.3: KPI strip (SCRUM-37)
 
 As a farm customer,
