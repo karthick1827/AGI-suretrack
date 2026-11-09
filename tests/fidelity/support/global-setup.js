@@ -8,6 +8,7 @@
 import { mkdirSync } from 'node:fs';
 import {
   EQUIPMENT_CARD_REFERENCES,
+  FAN_ACTIVITY_REFERENCES,
   FORGOT_PASSWORD_BASELINE,
   FORGOT_PASSWORD_CARD_IN_REFERENCE,
   FORGOT_PASSWORD_CORNER_MASK,
@@ -27,6 +28,8 @@ import {
   RECENT_ALERTS_REFERENCES,
   equipmentCardBaseline,
   equipmentCardInReference,
+  fanActivityBaseline,
+  fanActivityInReference,
   kpiStripBaseline,
   recentAlertsBaseline,
   recentAlertsInReference,
@@ -59,5 +62,9 @@ export default async function globalSetup() {
   // Story 2.5: the Recent Alerts card (inside its border) from the same renders (no mask).
   for (const [state, source] of Object.entries(RECENT_ALERTS_REFERENCES)) {
     await writeCroppedBaseline(source, recentAlertsBaseline(state), recentAlertsInReference(state), []);
+  }
+  // Story 2.6: the Fan activity card (inside its border) from the same renders (no mask).
+  for (const [state, source] of Object.entries(FAN_ACTIVITY_REFERENCES)) {
+    await writeCroppedBaseline(source, fanActivityBaseline(state), fanActivityInReference(state), []);
   }
 }

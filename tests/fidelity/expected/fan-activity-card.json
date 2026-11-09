@@ -1,0 +1,158 @@
+{
+  "$comment": "Story 2.6 — Fan activity card 426 × 326 at page 24, 710 (Full) / 24, 506 (Small, All-good) (FR-78). Boxes are CARD coordinates (px, ±1 px, relative to the card slot) transcribed from PRD FR-78 to FR-82 and design spec Part B §7, §10, §12 to §14, with the offsets read off the 1× Figma renders (figma-reference/1x). Figma strokes take no layout, so the body is the frame's 386 px content box at x 20, y 76 (card top 20 + header 56). Stat tile row: 65 high (53 px tiles + pb 12), three 118 px tiles at x 20, 154, 288 (gap 16), padding 8 / 10: value box 20 high at tile y + 8, label box 17 at tile y + 28. Runtime chart at y 141, 386 × 119 (Full) / 120 (Small, All-good); its 103 px columns end on the chart's bottom edge; bars 24 wide at chart x 15.57, 70.71, 125.86, 181.00, 236.14, 291.29, 346.43, their heights exactly barPx (0 px tolerance, AD-14), their bottoms at chart bottom − 19 (day label pt 5 + 14: the crisp bar bottoms at page y 951 Full / 748 Small and All-good in the renders); value label 14 high at bar top − 18, its box inset 16.5 % of the 24 px bar on each side (3.96 px: 16.08 wide; the wider text starts at its left edge, as drawn in the renders); day label 19 high (pt 5) below the bar, centred. Caption at chart bottom: pt 12 + 2 lines × 18 = 48. Copy is transcribed from the PRD (FR-79 to FR-82), not from the state JSON, so the two cross-check.",
+  "card": {
+    "x": 24,
+    "w": 426,
+    "h": 326
+  },
+  "body": {
+    "x": 20,
+    "y": 76,
+    "w": 386
+  },
+  "tileRow": {
+    "y": 76,
+    "h": 65
+  },
+  "tile": {
+    "xs": [20, 154, 288],
+    "y": 76,
+    "w": 118,
+    "h": 53
+  },
+  "tileValue": {
+    "dx": 10,
+    "dy": 8,
+    "w": 98,
+    "h": 20
+  },
+  "tileLabel": {
+    "dx": 10,
+    "dy": 28,
+    "w": 98,
+    "h": 17
+  },
+  "chart": {
+    "x": 20,
+    "y": 141,
+    "w": 386
+  },
+  "column": {
+    "h": 103,
+    "w": 24
+  },
+  "bar": {
+    "w": 24,
+    "xs": [15.57, 70.71, 125.86, 181, 236.14, 291.29, 346.43],
+    "barPx": [54, 61, 66, 72, 68, 79, 76],
+    "bottomInset": 19
+  },
+  "hours": {
+    "dy": -18,
+    "h": 14,
+    "dx": 3.96,
+    "w": 16.08
+  },
+  "day": {
+    "h": 19
+  },
+  "caption": {
+    "x": 20,
+    "w": 386,
+    "h": 48,
+    "lines": 2
+  },
+  "styles": {
+    "tile": {
+      "backgroundColor": "#f4f5f6",
+      "radius": "8px",
+      "padding": ["8px", "10px", "8px", "10px"]
+    },
+    "tileValue": {
+      "fontWeight": "590",
+      "fontSize": "16px",
+      "lineHeight": "24px",
+      "color": "#111827"
+    },
+    "tileLabel": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "lineHeight": "18px",
+      "color": "#000000cc"
+    },
+    "bar": {
+      "backgroundColor": "#0b7a3b",
+      "radius": ["5px", "5px", "2px", "2px"]
+    },
+    "todayBar": {
+      "backgroundColor": "#0a5c30"
+    },
+    "hours": {
+      "fontFamily": "Roboto",
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "lineHeight": "normal",
+      "color": "#4b5563",
+      "textAlign": "center"
+    },
+    "day": {
+      "fontFamily": "Roboto",
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "lineHeight": "normal",
+      "color": "#4b5563",
+      "paddingTop": "5px"
+    },
+    "todayDay": {
+      "fontFamily": "Roboto",
+      "fontWeight": "700",
+      "fontSize": "12px",
+      "lineHeight": "normal",
+      "color": "#111827",
+      "paddingTop": "5px"
+    },
+    "caption": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "lineHeight": "18px",
+      "color": "#000000cc",
+      "paddingTop": "12px"
+    }
+  },
+  "copy": {
+    "title": "Fan activity",
+    "subtitle": "All storage fans",
+    "chartLabel": "Fan runtime hours for the last 7 days, from 62 to 90 hours",
+    "hours": ["62h", "70h", "74h", "81h", "77h", "90h", "86h"],
+    "days": ["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Today"],
+    "todayIndex": 6,
+    "caption": "Runtime hours, last 7 days. Higher this week as Auto modes used the cool nights."
+  },
+  "full": {
+    "top": 710,
+    "chartH": 119,
+    "tiles": [
+      ["7", "Running Now"],
+      ["86 h", "Runtime Today"],
+      ["410 kWh", "Energy Today"]
+    ]
+  },
+  "small": {
+    "top": 506,
+    "chartH": 120,
+    "tiles": [
+      ["7", "Running Now"],
+      ["86 h", "Runtime Today"],
+      ["410 kWh", "Energy Today"]
+    ]
+  },
+  "allgood": {
+    "top": 506,
+    "chartH": 120,
+    "tiles": [
+      ["2 of 3", "Running Now"],
+      ["7 h 24 m", "Runtime Today"],
+      ["38 kWh", "Energy Today"]
+    ]
+  }
+}

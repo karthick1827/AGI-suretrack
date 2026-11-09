@@ -1,0 +1,233 @@
+/*
+ * Fan activity card body (FR-78 to FR-82). Values verbatim from PRD FR-78 to
+ * FR-82 and design spec Part B §7, §10, §12 to §14.
+ *
+ * Card 426 × 326, border 1, padding 20; header 56 (CardShell). Figma strokes
+ * take no layout: in each frame the card's 1 px border does not push its
+ * content, so the body is the frame's 386 px content box (page x 44–430)
+ * starting at card top + 20 + 56 = 76 (Full page y 786, Small and All-good
+ * 582: the Stat tiles' top edge in the 1× renders). In the browser the border
+ * does push the content box by 1 px, so the body reaches 1 px out on the
+ * left, right and top to land on the frame's box (as in EquipmentCard).
+ *
+ * Body: Stat tile row 65 (53 + pb 12), chart 119 / 120, caption 12 + 2 × 18:
+ * 232 / 233 px, while the frame's content box below the header is 230
+ * (326 − 2 × 20 − 56). As in the frames, the caption's second line runs 2 / 3
+ * px into the card's bottom padding (Full caption page y 982–1018, card
+ * border at 1035). The body never shrinks (flex none) and nothing is clipped.
+ */
+.body {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  margin: -1px -1px 0;
+}
+
+/* Stat tile row (FR-79): wrapper 386 wide, padding-bottom 12, holding the
+   53 px tiles (8 + 20 + 17 + 8); fixed at 65 so the chart never moves. */
+.tileRow {
+  display: flex;
+  flex: none;
+  height: 65px;
+  padding-bottom: 12px;
+}
+
+/* Row, gap 16; three tiles of flex 1: (386 − 2 × 16) / 3 = 118 px. */
+.tiles {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Stat tile: #F4F5F6, radius 8, padding 8px 10px, value over label. */
+.tile {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--raw-f4f5f6);
+}
+
+/*
+ * Value: SF stack 590, 16/1.5 in a fixed 20 px high box, #111827. The 24 px
+ * line is centred on the box (2 px over each edge): in the 1× renders the
+ * value's cap tops sit at tile top + 12.5 (Full page y 798.5), which is the
+ * centred line; a top-aligned line would put them 2 px lower.
+ */
+.valueBox {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 20px;
+  min-width: 0;
+}
+
+.value {
+  overflow: hidden;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-semibold);
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--raw-111827);
+}
+
+/* Label: SF stack 400, 12/1.5 in a 17 px box, rgba(0,0,0,0.8); its 18 px
+   line centred on the box like the value. */
+.labelBox {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 17px;
+  min-width: 0;
+}
+
+.label {
+  overflow: hidden;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--raw-rgba-0-0-0-0-8);
+}
+
+/*
+ * Runtime chart (FR-80): 386 × 119 (Full) / 120 (Small, All-good); no axis
+ * lines, gridlines or y-axis. Its seven 103 px columns are bottom-aligned on
+ * one baseline (the chart's bottom edge), each 55.14 px slot centring its
+ * 24 px bar; the columns are placed at the bar `x` from geometry.js
+ * runtimeBars() (15.57, 70.71, …, 346.43), so the layout never re-derives a
+ * position.
+ */
+.chart {
+  position: relative;
+  flex: none;
+  width: 386px;
+  height: 119px;
+}
+
+.small .chart,
+.allgood .chart {
+  height: 120px;
+}
+
+.plot {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * A column: the bar's own 24 px width, 103 high, column direction,
+ * justify-content flex-end, align-items center (the day label, wider than
+ * the bar, overflows it evenly on both sides: centred under the bar).
+ *
+ * The column is moved to the bar `x` by an inline translateX (from
+ * runtimeBars()), not by `left`: Chromium snaps a box placed by layout to
+ * whole pixels, so a bar at x 15.57 would paint with hard edges at 16, while
+ * the 1× renders anti-alias every bar edge at its fractional x (e.g. Full
+ * Wed: page column 59 at 43 % and 83 at 57 % coverage). Under a translation
+ * the edges are painted at the exact x, as drawn.
+ */
+.column {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 24px;
+  height: 103px;
+}
+
+/* Bar: width 24 (max-width 30), radius top 5 / bottom 2, #0B7A3B; the
+   height is set inline from runtimeBars() (barPx). */
+.bar {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 24px;
+  max-width: 30px;
+  border-radius: 5px 5px 2px 2px;
+  background: var(--raw-0b7a3b);
+}
+
+/* The `isToday` bar: #0A5C30. */
+.todayBar {
+  background: var(--raw-0a5c30);
+}
+
+/*
+ * Value label (FR-81): absolute, top −18 px over the bar, text-align centre,
+ * Roboto 400, 12 / normal, #4B5563, with the PRD's inset of about 16.5 % on
+ * each side. The inset is of the 24 px bar (its containing block):
+ * 0.165 × 24 = 3.96 px, written in px (AD-4), leaving a 16.08 px box.
+ *
+ * Frame vs PRD (±1 px): FR-81 calls the label "horizontally centred", but
+ * every label ("62h" … "86h", about 18–19 px wide) is wider than that 16.08
+ * px box, so its line overflows on the end side and starts at the box's left
+ * edge, bar x + 3.96. That is where the 1× renders draw them: all seven ink
+ * runs start at bar x + 4 and their centres sit 2 px right of the bar centre
+ * (e.g. Full "81h" ink at page x 229–248 over the 225–249 bar). A label
+ * centred on the bar would sit 2 px left of the frames.
+ */
+.hours {
+  position: absolute;
+  top: -18px;
+  right: 3.96px;
+  left: 3.96px;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: normal;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--raw-4b5563);
+}
+
+/*
+ * Day label (FR-81): padding-top 5, Roboto 400, 12 / normal, #4B5563.
+ * Frame vs PRD (±1 px): Roboto 12's normal line is 14.0625 px, which would
+ * put every bar bottom at a fractional y (chart bottom − 19.0625); in all
+ * three 1× renders the bar bottoms are crisp at chart bottom − 19 (Full page
+ * y 951, Small and All-good 748), so the label box is 5 + 14 = 19 px (the
+ * text keeps its normal line; it overflows the box by 0.0625 px).
+ */
+.day {
+  display: block;
+  flex: none;
+  height: 19px;
+  padding-top: 5px;
+  font-family: var(--font-stack-roboto);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: normal;
+  white-space: nowrap;
+  color: var(--raw-4b5563);
+}
+
+/* The `isToday` day label: Roboto 700 12, #111827 (tokens.css has no 700
+   weight token; adding one is an Ask First token change, as in
+   EquipmentCard and RecentAlertsCard). */
+.todayDay {
+  font-weight: 700;
+  color: var(--raw-111827);
+}
+
+/* Caption (FR-82): padding-top 12, SF stack 400, 12/1.5, rgba(0,0,0,0.8),
+   wrapping across 2 lines in the 386 px body. */
+.caption {
+  flex: none;
+  padding-top: 12px;
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--raw-rgba-0-0-0-0-8);
+}

@@ -517,3 +517,34 @@ export const recentAlertsBaseline = (state) => {
   recentAlertsHeight(state);
   return `recent-alerts-card-${state}.png`;
 };
+
+/* ------------------------------------------------------------------------ */
+/* Fan activity card (Story 2.6)                                             */
+/* ------------------------------------------------------------------------ */
+
+// The Fan activity card (page 24, 710 Full / 506 Small and All-good,
+// 426 × 326, FR-78) is compared inside its 1 px #D1D5DB border: the 424 × 324
+// box at page (25, top + 1), cropped out of the 1× Dashboard renders after
+// the alignment check (the crop's edge rows and columns are white card
+// interior; the pixels just outside them are the grey border). The card
+// reaches below the 768 px viewport, so its spec uses a taller viewport.
+export const FAN_ACTIVITY_REFERENCES = Object.freeze({
+  full: path.join(FIGMA_1X, 'dashboard-full-6215-58878.raw-1374x1054.png'),
+  small: path.join(FIGMA_1X, 'dashboard-small-6864-4514.raw-1374x862.png'),
+  allgood: path.join(FIGMA_1X, 'dashboard-allgood-6879-15603.raw-1374x858.png'),
+});
+export const FAN_ACTIVITY_TOP = Object.freeze({ full: 710, small: 506, allgood: 506 });
+const fanActivityTop = (state) => {
+  if (!Object.hasOwn(FAN_ACTIVITY_TOP, state)) {
+    throw new Error(`fan activity card: unknown Dashboard state ${JSON.stringify(state)} (expected ${Object.keys(FAN_ACTIVITY_TOP).join(', ')})`);
+  }
+  return FAN_ACTIVITY_TOP[state];
+};
+export const fanActivityClip = (state) => Object.freeze({ x: 25, y: fanActivityTop(state) + 1, width: 424, height: 324 });
+// Render (29, top + 3) = page (25, top + 1) + the render's 4 px left / 2 px top canvas border.
+export const fanActivityInReference = (state) =>
+  Object.freeze({ left: 29, top: fanActivityTop(state) + 3, width: 424, height: 324 });
+export const fanActivityBaseline = (state) => {
+  fanActivityTop(state);
+  return `fan-activity-card-${state}.png`;
+};

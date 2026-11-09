@@ -250,13 +250,17 @@ describe('Dashboard states (FR-50, FR-93)', () => {
     // Story 2.3: the KPI strip (its fid on the strip, inside the slot) holds
     // the KPI readings. Story 2.4: the Equipment card adds its rows (covered
     // in equipment-card.test.jsx); Story 2.5: Recent Alerts adds its Alert
-    // rows (recent-alerts-card.test.jsx); no other card contents yet (2.6–2.8).
+    // rows (recent-alerts-card.test.jsx); Story 2.6: Fan activity adds its
+    // Stat tiles, Runtime chart and caption (fan-activity-card.test.jsx); no
+    // other card contents yet (2.7–2.8).
     expect(section('kpi').querySelector(`[data-fid="${FID.kpi.strip}"]`)).toBe(fid(FID.kpi.strip));
     expect(section('kpi').dataset.fid).toBeUndefined();
     expect(fid(FID.kpi.strip).textContent).toContain(DOCS.full.kpi.attention.label);
     expect(section('equipmentCard').querySelectorAll('[data-equipment-row]')).toHaveLength(DOCS.full.equipmentCard.rows.length);
     expect(section('recentAlerts').querySelectorAll('[data-alert-row]')).toHaveLength(DOCS.full.recentAlerts.items.length);
-    for (const key of CARD_KEYS.filter((k) => k !== 'equipmentCard' && k !== 'recentAlerts')) {
+    expect(section('fanActivity').querySelectorAll('[data-fan-tile]')).toHaveLength(DOCS.full.fanActivity.tiles.length);
+    expect(section('fanActivity').querySelectorAll('[data-fan-column]')).toHaveLength(DOCS.full.fanActivity.chart.length);
+    for (const key of CARD_KEYS.filter((k) => !['equipmentCard', 'recentAlerts', 'fanActivity'].includes(k))) {
       expect(section(key).textContent).toBe(`${DOCS.full[key].title}${DOCS.full[key].subtitle}${DOCS.full[key].link ?? ''}`);
     }
     expect(screen.queryByText(copy.dashboard.sectionError)).toBeNull();
@@ -468,7 +472,11 @@ describe('robustness (AD-18)', () => {
       expect(within(section(key)).queryAllByRole('link', { name: /\S/ })).toEqual(links);
       expect(links.length).toBeGreaterThan(0);
     }
-    for (const key of ['fanActivity', 'grain']) {
+    // Fan activity (Story 2.6) still draws its body without the header block.
+    expect(section('fanActivity').querySelector('h2')).toBeNull();
+    expect(section('fanActivity').firstElementChild.hasAttribute('aria-labelledby')).toBe(false);
+    expect(section('fanActivity').querySelectorAll('[data-fan-tile]')).toHaveLength(DOCS.full.fanActivity.tiles.length);
+    for (const key of ['grain']) {
       expect(section(key).querySelector('h2')).toBeNull();
       expect(section(key).textContent).toBe('');
       expect(section(key).firstElementChild.childElementCount).toBe(0);

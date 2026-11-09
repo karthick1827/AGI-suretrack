@@ -1,8 +1,21 @@
-// geometry.js (AD-8) — Health bar segments (FR-69): every expected px value of
-// PRD FR-69 / addendum §B.8 to ±0.01, plus the edge cases.
+// geometry.js (AD-8) — Health bar segments (FR-69) and Runtime bars (FR-80):
+// every expected px value of PRD FR-69, FR-80 / addendum §B.8 (segments to
+// ±0.01; bar heights exact), plus the edge cases.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { HEALTH_BAR_PX, HEALTH_GAP_PX, HEALTH_KINDS, healthSegments } from '../../src/lib/geometry.js';
+import {
+  HEALTH_BAR_PX,
+  HEALTH_GAP_PX,
+  HEALTH_KINDS,
+  RUNTIME_BAR_SPACE_PX,
+  RUNTIME_BAR_WIDTH_PX,
+  RUNTIME_CHART_PX,
+  RUNTIME_COLUMN_PX,
+  RUNTIME_SCALE_PX,
+  RUNTIME_SLOTS,
+  healthSegments,
+  runtimeBars,
+} from '../../src/lib/geometry.js';
 import { fromRoot } from './support/project.js';
 
 const near = (actual, expected) => expect(Math.abs(actual - expected)).toBeLessThanOrEqual(0.01);
@@ -120,5 +133,138 @@ describe('healthSegments() — edge cases', () => {
     const source = readFileSync(fromRoot('src/lib/geometry.js'), 'utf8');
     expect(source).not.toMatch(/^\s*import\s/m);
     expect(source).not.toMatch(/\bdocument\.|\bwindow\.|localStorage|sessionStorage/);
+  });
+});
+
+/* ------------------------------------------------------------------------ */
+/* runtimeBars() — FR-80, AD-14                                              */
+/* ------------------------------------------------------------------------ */
+
+const doc = (state) => JSON.parse(readFileSync(fromRoot(`src/data/json/dashboard.${state}.json`), 'utf8'));
+/** FR-80 bar x offsets within the chart (2 decimals in the PRD). */
+const X_OFFSETS = [15.57, 70.71, 125.86, 181.0, 236.14, 291.29, 346.43];
+const BAR_PX = [54, 61, 66, 72, 68, 79, 76];
+const HOURS = [62, 70, 74, 81, 77, 90, 86];
+const DAYS = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Today'];
+const nearX = (bars, count = bars.length) =>
+  bars.slice(0, count).forEach((bar, i) => expect(Math.abs(bar.x - X_OFFSETS[i]), `bar ${i} x ${bar.x}`).toBeLessThanOrEqual(0.005));
+
+describe('runtimeBars() — FR-80 expected px (addendum §B.8)', () => {
+  it('constants: 386 px chart, 7 slots of 55.14 px, 24 px bars, 79 px formula scale, 84 px column space', () => {
+    expect(RUNTIME_CHART_PX).toBe(386);
+    expect(RUNTIME_SLOTS).toBe(7);
+    near(RUNTIME_COLUMN_PX, 55.14);
+    expect(RUNTIME_BAR_WIDTH_PX).toBe(24);
+    expect(RUNTIME_SCALE_PX).toBe(79);
+    // 103 px column − 5 px padding − 14 px day label.
+    expect(RUNTIME_BAR_SPACE_PX).toBe(103 - 5 - 14);
+  });
+
+  it.each(['full', 'small', 'allgood'])('%s: heights are exactly barPx 54/61/66/72/68/79/76 (0 px) at the FR-80 x offsets', (state) => {
+    const bars = runtimeBars(doc(state).fanActivity.chart);
+    expect(bars.map((bar) => bar.height)).toEqual(BAR_PX);
+    nearX(bars);
+    expect(bars.map((bar) => [bar.day, bar.hours, bar.isToday])).toEqual(DAYS.map((day, i) => [day, HOURS[i], day === 'Today']));
+  });
+
+  it('every bar is centred in its 55.14 px slot', () => {
+    runtimeBars(doc('full').fanActivity.chart).forEach((bar, i) => {
+      near(bar.x + RUNTIME_BAR_WIDTH_PX / 2, (i + 0.5) * RUNTIME_COLUMN_PX);
+    });
+  });
+
+  it('barPx always wins over the formula, also where they disagree (Q-N2: Fri 66 vs 65, Sat 72 vs 71, Today 76 vs 75)', () => {
+    const chart = doc('full').fanActivity.chart;
+    const formula = runtimeBars(chart.map(({ barPx: _barPx, ...entry }) => entry)).map((bar) => bar.height);
+    expect(formula).toEqual([54, 61, 65, 71, 68, 79, 75]);
+    expect(runtimeBars(chart).map((bar) => bar.height)).toEqual(BAR_PX);
+    // A barPx of 0 is used as given (not replaced by the formula).
+    expect(runtimeBars([{ hours: 90, barPx: 0 }]).map((bar) => bar.height)).toEqual([0]);
+  });
+
+  it('fallback without barPx: round(hours / max(hours) × 79)', () => {
+    const bars = runtimeBars(HOURS.map((hours, i) => ({ day: DAYS[i], hours })));
+    expect(bars.map((bar) => bar.height)).toEqual([54, 61, 65, 71, 68, 79, 75]);
+    expect(runtimeBars([{ hours: 10 }, { hours: 5 }]).map((bar) => bar.height)).toEqual([79, 40]);
+    // Mixed: the max runs over every drawn bar's hours, barPx or not.
+    expect(runtimeBars([{ hours: 100, barPx: 3 }, { hours: 50 }]).map((bar) => bar.height)).toEqual([3, 40]);
+  });
+});
+
+describe('runtimeBars() — edge cases (never NaN, never a crash)', () => {
+  const allFinite = (bars) => bars.every((bar) => Number.isFinite(bar.x) && Number.isFinite(bar.height) && bar.height >= 0);
+
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['an object', { 0: { hours: 1 } }],
+    ['a string', '62,70'],
+    ['an empty array', []],
+  ])('unusable chart (%s) gives no bars', (_name, chart) => {
+    expect(runtimeBars(chart)).toEqual([]);
+  });
+
+  it('max 0 or no finite hours → 0 px bars, no NaN', () => {
+    const zero = runtimeBars([{ hours: 0 }, { hours: 0 }]);
+    expect(zero.map((bar) => bar.height)).toEqual([0, 0]);
+    expect(allFinite(zero)).toBe(true);
+    const mixed = runtimeBars([{ day: 'Wed', hours: Number.NaN, barPx: 12 }, { hours: -5 }, { hours: 0 }]);
+    expect(mixed.map((bar) => bar.height)).toEqual([12, 0, 0]);
+    expect(allFinite(mixed)).toBe(true);
+    // All-negative hours: max stays 0, every bar 0.
+    expect(runtimeBars([{ hours: -3 }, { hours: -1 }]).map((bar) => bar.height)).toEqual([0, 0]);
+    // Huge finite hours stay finite.
+    expect(allFinite(runtimeBars([{ hours: Number.MAX_VALUE }, { hours: 1 }]))).toBe(true);
+  });
+
+  it('entries without a finite hours or a usable barPx (and non-objects) are skipped', () => {
+    const bars = runtimeBars([
+      null,
+      7,
+      'Wed',
+      [62],
+      { day: 'Wed' },
+      { day: 'Thu', hours: '70' },
+      { day: 'Fri', hours: Infinity, barPx: -1 },
+      { day: 'Sat', hours: 81, barPx: '72' },
+      { day: 'Sun', barPx: 68 },
+    ]);
+    expect(bars.map((bar) => [bar.day, bar.height])).toEqual([
+      ['Sat', 79],
+      ['Sun', 68],
+    ]);
+    nearX(bars);
+  });
+
+  it('fewer than 7 entries fill slots from the left; more than 7 keep the last 7 (ending today)', () => {
+    const chart = doc('full').fanActivity.chart;
+    const three = runtimeBars(chart.slice(0, 3));
+    expect(three.map((bar) => bar.height)).toEqual([54, 61, 66]);
+    nearX(three);
+    const nine = runtimeBars([{ day: 'Mon-1', hours: 1, barPx: 1 }, { day: 'Tue-1', hours: 2, barPx: 2 }, ...chart]);
+    expect(nine.map((bar) => bar.day)).toEqual(DAYS);
+    expect(nine.map((bar) => bar.height)).toEqual(BAR_PX);
+    nearX(nine);
+    expect(allFinite(nine)).toBe(true);
+  });
+
+  it('a barPx above the 84 px column space is drawn at 84 (the bar never leaves its column)', () => {
+    expect(runtimeBars([{ hours: 1, barPx: 500 }, { hours: 1, barPx: 84 }]).map((bar) => bar.height)).toEqual([84, 84]);
+  });
+
+  it('isToday is true only for the boolean true; day and hours pass through untouched', () => {
+    const bars = runtimeBars([
+      { day: 'Today', hours: 1, isToday: 'true' },
+      { day: { d: 1 }, hours: 2, isToday: 1 },
+      { day: 7, hours: 3, isToday: true },
+    ]);
+    expect(bars.map((bar) => bar.isToday)).toEqual([false, false, true]);
+    expect(bars[1].day).toEqual({ d: 1 });
+    expect(bars[2].day).toBe(7);
+  });
+
+  it('is pure: the input is not changed and repeated calls are equal', () => {
+    const chart = Object.freeze(doc('full').fanActivity.chart.map((entry) => Object.freeze({ ...entry })));
+    expect(runtimeBars(chart)).toEqual(runtimeBars(chart));
   });
 });
