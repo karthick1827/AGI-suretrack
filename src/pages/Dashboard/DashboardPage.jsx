@@ -10,14 +10,18 @@
 // card row plus `pageBottomSpacePx` (1052 / 860 / 856).
 //
 // Sections: each takes exactly `{ status, data, onRetry }` (AD-18) with
-// `data` = its slice of the document. The KPI section draws the KPI strip
-// (Story 2.3) when ready; until Stories 2.4–2.8 add their contents, a `ready`
-// card shows only its shell and card header. `loading` and `error` show the
-// FR-95 / FR-96 blocks at the section's final size.
+// `data` = its slice of the document; the KPI strip and the Equipment card
+// also take the page's `variant` (the Dashboard state), because their layout
+// differs per state. The KPI section draws the KPI strip (Story 2.3) and the
+// Equipment card its rows (Story 2.4) when ready; until Stories 2.5–2.8 add
+// their contents, the other `ready` cards show only their shell and card
+// header. `loading` and `error` show the FR-95 / FR-96 blocks at the
+// section's final size.
 import { useRef } from 'react';
 import { useOutletContext } from 'react-router';
 import { CONTENT_TOP, FRAME, SECTION_KEYS, pageHeight } from '../../lib/dashboardLayout.js';
 import { paths } from '../../lib/paths.js';
+import EquipmentCard from '../../features/dashboard/equipment/EquipmentCard.jsx';
 import KpiStrip from '../../features/dashboard/kpi/KpiStrip.jsx';
 import CardShell from '../../ui/CardShell.jsx';
 import SectionState from '../../ui/SectionState.jsx';
@@ -44,9 +48,15 @@ function KpiSection({ status, data, onRetry, variant }) {
   );
 }
 
-/** A card section with the FR-65 shell and header; card contents come in Stories 2.4–2.8. */
-function cardSection({ headerSize, subtitleTone, linkTo }) {
-  return function CardSection({ status, data, onRetry }) {
+/**
+ * A card section with the FR-65 shell and header. `Body` (when given) draws
+ * the card contents below the header when ready, with the section's `data`
+ * and the page's `variant`; card contents for Stories 2.5–2.8 come later.
+ * One stable component per section for every state, so a state change never
+ * remounts it.
+ */
+function cardSection({ headerSize, subtitleTone, linkTo, Body }) {
+  return function CardSection({ status, data, onRetry, variant }) {
     const ready = status === 'ready';
     // No header block unless the document gives both strings (FR-94: verbatim, never invented).
     const header =
@@ -61,16 +71,25 @@ function cardSection({ headerSize, subtitleTone, linkTo }) {
         : null;
     return (
       <CardShell className={styles.fill} header={header}>
+        {ready && Body ? <Body data={data} variant={variant} /> : null}
         {ready ? null : <SectionState status={status} onRetry={onRetry} />}
       </CardShell>
     );
   };
 }
 
+/** Sections whose layout differs per Dashboard state: they also take `variant`. */
+const VARIANT_SECTIONS = Object.freeze(['kpi', 'equipmentCard']);
+
 /** The section component for each key of SECTION_KEYS (FR-65 header variants). */
 const SECTIONS = Object.freeze({
   kpi: KpiSection,
-  equipmentCard: cardSection({ headerSize: 'regular', subtitleTone: 'dark', linkTo: () => paths.equipment() }),
+  equipmentCard: cardSection({
+    headerSize: 'regular',
+    subtitleTone: 'dark',
+    linkTo: () => paths.equipment(),
+    Body: EquipmentCard,
+  }),
   recentAlerts: cardSection({ headerSize: 'regular', subtitleTone: 'dark', linkTo: () => paths.alerts() }),
   fanActivity: cardSection({ headerSize: 'regular', subtitleTone: 'muted' }),
   grain: cardSection({ headerSize: 'compact', subtitleTone: 'muted' }),
@@ -126,7 +145,7 @@ export default function DashboardPage() {
             data-status={sectionStatus}
             aria-busy={sectionStatus === 'loading' ? true : undefined}
           >
-            {key === 'kpi' ? (
+            {VARIANT_SECTIONS.includes(key) ? (
               <Section status={sectionStatus} data={data} onRetry={onRetry} variant={state} />
             ) : (
               <Section status={sectionStatus} data={data} onRetry={onRetry} />

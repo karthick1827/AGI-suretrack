@@ -455,3 +455,19 @@ export const KPI_STRIP_REFERENCES = Object.freeze({
   allgood: path.join(FIGMA_1X, 'dashboard-allgood-6879-15603.raw-1374x858.png'),
 });
 export const kpiStripBaseline = (state) => `kpi-strip-${state}.png`;
+
+/* ------------------------------------------------------------------------ */
+/* Equipment card (Story 2.4)                                                */
+/* ------------------------------------------------------------------------ */
+
+// The Equipment card (page 24, 246, 649 × 444 Full / 240 Small and All-good,
+// FR-66) is compared inside its 1 px #D1D5DB border: the 647 × (h − 2) box
+// at page (25, 247), cropped out of the same 1× Dashboard renders at
+// (29, 249) after the alignment check (the crop's edge rows and columns are
+// white card interior; the pixels just outside them are the grey border).
+export const EQUIPMENT_CARD_HEIGHT = Object.freeze({ full: 444, small: 240, allgood: 240 });
+export const equipmentCardClip = (state) =>
+  Object.freeze({ x: 25, y: 247, width: 647, height: EQUIPMENT_CARD_HEIGHT[state] - 2 });
+export const equipmentCardInReference = (state) =>
+  Object.freeze({ left: 29, top: 249, width: 647, height: EQUIPMENT_CARD_HEIGHT[state] - 2 });
+export const equipmentCardBaseline = (state) => `equipment-card-${state}.png`;

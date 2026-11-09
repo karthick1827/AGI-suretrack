@@ -23,6 +23,8 @@ import {
   PROFILE_MENU_IN_REFERENCE,
   PROFILE_MENU_MASK,
   PROFILE_MENU_REFERENCE,
+  equipmentCardBaseline,
+  equipmentCardInReference,
   kpiStripBaseline,
   writeCroppedBaseline,
   writeMaskedBaseline,
@@ -45,5 +47,9 @@ export default async function globalSetup() {
   // Story 2.3: the KPI strip cropped out of each 1× Dashboard render (no mask).
   for (const [state, source] of Object.entries(KPI_STRIP_REFERENCES)) {
     await writeCroppedBaseline(source, kpiStripBaseline(state), KPI_STRIP_IN_REFERENCE, []);
+  }
+  // Story 2.4: the Equipment card (inside its border) from the same renders (no mask).
+  for (const [state, source] of Object.entries(KPI_STRIP_REFERENCES)) {
+    await writeCroppedBaseline(source, equipmentCardBaseline(state), equipmentCardInReference(state), []);
   }
 }

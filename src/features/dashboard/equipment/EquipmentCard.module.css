@@ -1,0 +1,237 @@
+/*
+ * Equipment card rows (FR-66 to FR-71). Values verbatim from PRD FR-67 to
+ * FR-71 and design spec Part B §5, §10, §12, §13.
+ *
+ * Card 649 wide, border 1, padding 20 → a 607 px content box; the header is
+ * 56 high (CardShell). List: Full 344 high with justify-content center
+ * (68 + 4 × 69); Small and All-good auto height, top-aligned.
+ *
+ * Figma strokes take no layout: in each frame the card's 1 px border does not
+ * push its content, so the list box is the frame's 609 px content box (page
+ * x 44–653) starting at card top + 20 + 56 = 76 (page y 322); the dividers
+ * span x 44–652 in all three renders. In the browser the border does push the
+ * content box by 1 px, so the list reaches 1 px out on the top, left and
+ * right to land on the frame's box.
+ *
+ * Row: flex, space-between, align-items center, min-height 58, padding
+ * 12 0 8, height 68 (69 with its 1 px top divider #E6E8EB, FR-68).
+ * Left column w 74 (column, gap 1, pb 1); right group w 523 (row, gap 32):
+ * the 474 px bar block (Health bar 474×8, gap 6, caption) then the 18×18
+ * chevron box (12×16 glyph at left 3, top 1).
+ */
+.list {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  margin: -1px -1px 0;
+}
+
+.full {
+  height: 344px;
+  justify-content: center;
+}
+
+.row {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+  height: 68px;
+  padding: 12px 0 8px;
+  text-decoration: none;
+}
+
+/* FR-68 divider: 1px #E6E8EB on top of the row, 69 high in all. */
+.divided,
+.item {
+  height: 69px;
+  border-top: var(--border-width-hairline) solid var(--raw-e6e8eb);
+}
+
+/* A plain bordered row (Full row 5, Small row 2, All-good row 1): its right
+   group ends 1 px short of the content box in every frame (bar at page x
+   129, not 130 as in the other rows). */
+.divided {
+  padding-right: 1px;
+}
+
+/* Full rows 2–4 are Figma "Item" wrappers (69 high, design spec §5.1) whose
+   top stroke takes no layout: in the Full frame their row content (bar, text,
+   chevron) sits 11 px below the divider line, 2 px higher than in a plain
+   bordered row (Full row 5, Small row 2, All-good row 1: 1 + 12). The 48 px
+   content box keeps its height; the rest of the 69 px goes below it. */
+.item {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Rows that are links: pointer only on <a>. */
+.link {
+  cursor: pointer;
+}
+
+/* Left column: type name over count. */
+.left {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 1px;
+  width: 74px;
+  padding-bottom: 1px;
+}
+
+/* Type name: SF stack 590, 16/1.5, #1F2937. */
+.name {
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-semibold);
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--raw-1f2937);
+}
+
+/* Count: SF stack 400, 14/1.25, #374151. */
+.count {
+  font-family: var(--font-stack-sf-pro);
+  font-weight: var(--font-weight-regular);
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+  color: var(--raw-374151);
+}
+
+/* Right group: bar block then chevron, gap 32. */
+.right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 32px;
+  width: 523px;
+}
+
+/* Bar block: Health bar, gap 6, caption. */
+.barBlock {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  width: 474px;
+}
+
+/* Health bar (FR-69): 474×8, radius 4, clipped; segments are square-cornered
+   and placed at the px from geometry.js healthSegments(). */
+.bar {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 474px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.segment {
+  position: absolute;
+  top: 0;
+  height: 8px;
+}
+
+.alerts {
+  background: var(--raw-c62828);
+}
+
+.healthy {
+  background: var(--raw-15803d);
+}
+
+/* FR-70 offline hatch, verbatim from the node: 17 hard-edged stripes of
+   5.8535 % starting with #9CA3AF, then #D1D5DB from 99.5095 % to 100 %. */
+.offline {
+  background: linear-gradient(
+    43.841deg,
+    var(--raw-9ca3af) 0%,
+    var(--raw-9ca3af) 5.8535%,
+    var(--raw-d1d5db) 5.8535%,
+    var(--raw-d1d5db) 11.707%,
+    var(--raw-9ca3af) 11.707%,
+    var(--raw-9ca3af) 17.5605%,
+    var(--raw-d1d5db) 17.5605%,
+    var(--raw-d1d5db) 23.414%,
+    var(--raw-9ca3af) 23.414%,
+    var(--raw-9ca3af) 29.2675%,
+    var(--raw-d1d5db) 29.2675%,
+    var(--raw-d1d5db) 35.121%,
+    var(--raw-9ca3af) 35.121%,
+    var(--raw-9ca3af) 40.9745%,
+    var(--raw-d1d5db) 40.9745%,
+    var(--raw-d1d5db) 46.828%,
+    var(--raw-9ca3af) 46.828%,
+    var(--raw-9ca3af) 52.6815%,
+    var(--raw-d1d5db) 52.6815%,
+    var(--raw-d1d5db) 58.535%,
+    var(--raw-9ca3af) 58.535%,
+    var(--raw-9ca3af) 64.3885%,
+    var(--raw-d1d5db) 64.3885%,
+    var(--raw-d1d5db) 70.242%,
+    var(--raw-9ca3af) 70.242%,
+    var(--raw-9ca3af) 76.0955%,
+    var(--raw-d1d5db) 76.0955%,
+    var(--raw-d1d5db) 81.949%,
+    var(--raw-9ca3af) 81.949%,
+    var(--raw-9ca3af) 87.8025%,
+    var(--raw-d1d5db) 87.8025%,
+    var(--raw-d1d5db) 93.656%,
+    var(--raw-9ca3af) 93.656%,
+    var(--raw-9ca3af) 99.5095%,
+    var(--raw-d1d5db) 99.5095%,
+    var(--raw-d1d5db) 100%
+  );
+}
+
+/* Caption (FR-71): Roboto 14 / normal; words and " · " 400 #4B5563 ... */
+.caption {
+  font-family: var(--font-stack-roboto);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: normal;
+  white-space: nowrap;
+  color: var(--raw-4b5563);
+}
+
+/* ... every digit run 700 #111827. */
+.num {
+  font-weight: 700;
+  color: var(--raw-111827);
+}
+
+/* Row chevron: 18×18 box, 12×16 glyph at left 3, top 1 (#006A36 baked into
+   the SVG, AD-5). */
+.chevronBox {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  width: 18px;
+  height: 18px;
+  padding: 1px 0 0 3px;
+}
+
+.chevron {
+  display: block;
+  flex: none;
+  width: 12px;
+  height: 16px;
+}
+
+/* states */
+
+/* FR-58: #F0FFF8 row hover, no layout shift. */
+.link:hover {
+  background: var(--raw-f0fff8);
+}
+
+/* FR-58: 2px #006A36 outline, offset 2px, keyboard focus only. */
+.link:focus-visible {
+  outline: var(--border-width-md) solid var(--raw-006a36);
+  outline-offset: 2px;
+}

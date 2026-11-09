@@ -1,0 +1,334 @@
+{
+  "$comment": "Story 2.4 — Equipment card 649 × 444 (Full) / 240 (Small, All-good) at page 24, 246 (FR-66). Boxes are CARD coordinates (px, ±1 px, relative to the card slot) transcribed from PRD FR-66 to FR-71 and design spec Part B §5, §10, §12, §13, with the row offsets read off the 1× Figma renders (figma-reference/1x) where the frames differ from the generic row rule: Figma strokes take no layout, so the list is the frame's 609 px content box at x 20, y 76 (card top 20 + header 56); rows are 68 high, 69 with the 1 px #E6E8EB top divider (FR-68). Row content box 48 px (padding 12/8): a plain bordered row starts it 13 px below its top (1 + 12), Full rows 2–4 (Figma Item wrappers) 11 px. In that box: left column (name 24 + gap 1 + count 17.5 + pb 1 = 43.5) centred → name at +2.25; bar block (bar 8 + gap 6 + Roboto 14 caption) centred → bar at +9; caption 14 below the bar top; 18 × 18 chevron box centred, 12 × 16 glyph at left 3, top 1 → glyph at bar top + 7. Right group 523 wide at the row's right edge → bar x 106 (x 105 in a plain bordered row, as in every frame), chevron glyph at bar x + 474 + 32 + 3. Segment x / width are relative to the bar (FR-69). Copy is transcribed from the PRD (FR-66, FR-67, FR-71, FR-72), not from the state JSON, so the two cross-check.",
+  "card": {
+    "x": 24,
+    "y": 246,
+    "w": 649
+  },
+  "height": {
+    "full": 444,
+    "small": 240,
+    "allgood": 240
+  },
+  "list": {
+    "x": 20,
+    "y": 76,
+    "w": 609
+  },
+  "nameH": 24,
+  "countH": 17.5,
+  "captionH": 16.41,
+  "bar": {
+    "w": 474,
+    "h": 8
+  },
+  "chevron": {
+    "w": 12,
+    "h": 16
+  },
+  "styles": {
+    "row": {
+      "padding": [
+        "12px",
+        "0px",
+        "8px",
+        "0px"
+      ],
+      "minHeight": "58px",
+      "divider": "1px solid #e6e8eb"
+    },
+    "left": {
+      "w": 74,
+      "gap": "1px",
+      "paddingBottom": "1px"
+    },
+    "right": {
+      "w": 523,
+      "gap": "32px"
+    },
+    "barBlock": {
+      "gap": "6px"
+    },
+    "name": {
+      "fontWeight": "590",
+      "fontSize": "16px",
+      "lineHeight": "24px",
+      "color": "#1f2937"
+    },
+    "count": {
+      "fontWeight": "400",
+      "fontSize": "14px",
+      "lineHeight": "17.5px",
+      "color": "#374151"
+    },
+    "caption": {
+      "fontFamily": "Roboto",
+      "fontWeight": "400",
+      "fontSize": "14px",
+      "color": "#4b5563"
+    },
+    "num": {
+      "fontFamily": "Roboto",
+      "fontWeight": "700",
+      "fontSize": "14px",
+      "color": "#111827"
+    },
+    "barRadius": "4px",
+    "segments": {
+      "alerts": "#c62828",
+      "healthy": "#15803d"
+    },
+    "hatch": {
+      "angle": "43.841deg",
+      "stripePercent": 5.8535,
+      "stripes": 17,
+      "even": "#9ca3af",
+      "odd": "#d1d5db"
+    }
+  },
+  "full": {
+    "frame": "6215:58878",
+    "listH": 344,
+    "copy": {
+      "title": "Equipment (20)",
+      "subtitle": "Health by type",
+      "link": "View All"
+    },
+    "rows": [
+      {
+        "typeKey": "bins",
+        "y": 76,
+        "h": 68,
+        "divider": false,
+        "barX": 106,
+        "barY": 97,
+        "nameY": 90.25,
+        "chevronX": 615,
+        "chevronY": 104,
+        "segments": [
+          {
+            "kind": "alerts",
+            "x": 0,
+            "w": 201.43
+          },
+          {
+            "kind": "offline",
+            "x": 203.43,
+            "w": 67.14
+          },
+          {
+            "kind": "healthy",
+            "x": 272.57,
+            "w": 201.43
+          }
+        ],
+        "copy": [
+          "Bins",
+          "7",
+          "3 alerts · 1 offline · 3 healthy"
+        ],
+        "label": "Bins, 7: 3 alerts, 1 offline, 3 healthy"
+      },
+      {
+        "typeKey": "piles",
+        "y": 144,
+        "h": 69,
+        "divider": true,
+        "barX": 106,
+        "barY": 164,
+        "nameY": 157.25,
+        "chevronX": 615,
+        "chevronY": 171,
+        "segments": [
+          {
+            "kind": "alerts",
+            "x": 0,
+            "w": 157.33
+          },
+          {
+            "kind": "healthy",
+            "x": 159.33,
+            "w": 314.67
+          }
+        ],
+        "copy": [
+          "Piles",
+          "3",
+          "1 alert · 2 healthy"
+        ],
+        "label": "Piles, 3: 1 alert, 2 healthy"
+      },
+      {
+        "typeKey": "flats",
+        "y": 213,
+        "h": 69,
+        "divider": true,
+        "barX": 106,
+        "barY": 233,
+        "nameY": 226.25,
+        "chevronX": 615,
+        "chevronY": 240,
+        "segments": [
+          {
+            "kind": "healthy",
+            "x": 0,
+            "w": 474
+          }
+        ],
+        "copy": [
+          "Flats",
+          "2",
+          "2 healthy"
+        ],
+        "label": "Flats, 2: 2 healthy"
+      },
+      {
+        "typeKey": "tanks",
+        "y": 282,
+        "h": 69,
+        "divider": true,
+        "barX": 106,
+        "barY": 302,
+        "nameY": 295.25,
+        "chevronX": 615,
+        "chevronY": 309,
+        "segments": [
+          {
+            "kind": "alerts",
+            "x": 0,
+            "w": 78.67
+          },
+          {
+            "kind": "healthy",
+            "x": 80.67,
+            "w": 393.33
+          }
+        ],
+        "copy": [
+          "Tanks",
+          "6",
+          "1 alert · 5 healthy"
+        ],
+        "label": "Tanks, 6: 1 alert, 5 healthy"
+      },
+      {
+        "typeKey": "dryers",
+        "y": 351,
+        "h": 69,
+        "divider": true,
+        "barX": 105,
+        "barY": 373,
+        "nameY": 366.25,
+        "chevronX": 614,
+        "chevronY": 380,
+        "segments": [
+          {
+            "kind": "healthy",
+            "x": 0,
+            "w": 474
+          }
+        ],
+        "copy": [
+          "Dryers",
+          "2",
+          "2 healthy"
+        ],
+        "label": "Dryers, 2: 2 healthy"
+      }
+    ]
+  },
+  "small": {
+    "frame": "6864:4514",
+    "listH": 137,
+    "copy": {
+      "title": "Equipment (2)",
+      "subtitle": "Health by type",
+      "link": "View All"
+    },
+    "rows": [
+      {
+        "typeKey": "bins",
+        "y": 76,
+        "h": 68,
+        "divider": false,
+        "barX": 106,
+        "barY": 97,
+        "nameY": 90.25,
+        "chevronX": 615,
+        "chevronY": 104,
+        "segments": [
+          {
+            "kind": "alerts",
+            "x": 0,
+            "w": 474
+          }
+        ],
+        "copy": [
+          "Bin",
+          "1",
+          "1 alert"
+        ],
+        "label": "Bin, 1: 1 alert"
+      },
+      {
+        "typeKey": "dryers",
+        "y": 144,
+        "h": 69,
+        "divider": true,
+        "barX": 105,
+        "barY": 166,
+        "nameY": 159.25,
+        "chevronX": 614,
+        "chevronY": 173,
+        "segments": [
+          {
+            "kind": "healthy",
+            "x": 0,
+            "w": 474
+          }
+        ],
+        "copy": [
+          "Dryer",
+          "1",
+          "1 healthy"
+        ],
+        "label": "Dryer, 1: 1 healthy"
+      }
+    ]
+  },
+  "allgood": {
+    "frame": "6879:15603",
+    "listH": 69,
+    "copy": {
+      "title": "Equipment (1)",
+      "subtitle": "Health by type",
+      "link": "View All"
+    },
+    "rows": [
+      {
+        "typeKey": "bins",
+        "y": 76,
+        "h": 69,
+        "divider": true,
+        "barX": 105,
+        "barY": 98,
+        "nameY": 91.25,
+        "chevronX": 614,
+        "chevronY": 105,
+        "segments": [
+          {
+            "kind": "healthy",
+            "x": 0,
+            "w": 474
+          }
+        ],
+        "copy": [
+          "Bin",
+          "1",
+          "1 healthy"
+        ],
+        "label": "Bin, 1: 1 healthy"
+      }
+    ]
+  }
+}

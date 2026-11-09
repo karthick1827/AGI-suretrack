@@ -235,7 +235,8 @@ describe('Dashboard states (FR-50, FR-93)', () => {
       expect(card.getByText(DOCS.full[key].subtitle).tagName).toBe('P');
     }
     // View All on Equipment and Recent Alerts only, through paths.js (AD-10).
-    const viewAll = (key) => within(section(key)).queryByRole('link');
+    // It is the card's first link (the Equipment rows follow it, Story 2.4).
+    const viewAll = (key) => within(section(key)).queryAllByRole('link')[0] ?? null;
     expect(viewAll('equipmentCard').textContent).toBe(DOCS.full.equipmentCard.link);
     expect(viewAll('equipmentCard').getAttribute('href')).toBe(paths.equipment());
     expect(viewAll('recentAlerts').textContent).toBe(DOCS.full.recentAlerts.link);
@@ -244,11 +245,13 @@ describe('Dashboard states (FR-50, FR-93)', () => {
     const chevron = section('equipmentCard').querySelector('img');
     expect([chevron.getAttribute('width'), chevron.getAttribute('height'), chevron.getAttribute('alt')]).toEqual(['12', '16', '']);
     // Story 2.3: the KPI strip (its fid on the strip, inside the slot) holds
-    // the KPI readings; no card contents yet (2.4–2.8).
+    // the KPI readings. Story 2.4: the Equipment card adds its rows (covered
+    // in equipment-card.test.jsx); no other card contents yet (2.5–2.8).
     expect(section('kpi').querySelector(`[data-fid="${FID.kpi.strip}"]`)).toBe(fid(FID.kpi.strip));
     expect(section('kpi').dataset.fid).toBeUndefined();
     expect(fid(FID.kpi.strip).textContent).toContain(DOCS.full.kpi.attention.label);
-    for (const key of CARD_KEYS) {
+    expect(section('equipmentCard').querySelectorAll('[data-equipment-row]')).toHaveLength(DOCS.full.equipmentCard.rows.length);
+    for (const key of CARD_KEYS.filter((k) => k !== 'equipmentCard')) {
       expect(section(key).textContent).toBe(`${DOCS.full[key].title}${DOCS.full[key].subtitle}${DOCS.full[key].link ?? ''}`);
     }
     expect(screen.queryByText(copy.dashboard.sectionError)).toBeNull();
@@ -258,7 +261,7 @@ describe('Dashboard states (FR-50, FR-93)', () => {
     signInAs('demo');
     await renderAt(paths.dashboard());
     await waitFor(() => expect(section('kpi').dataset.status).toBe('ready'));
-    await act(async () => fireEvent.click(within(section('equipmentCard')).getByRole('link')));
+    await act(async () => fireEvent.click(within(section('equipmentCard')).getByRole('link', { name: DOCS.full.equipmentCard.link })));
     expect(window.location.pathname).toBe(paths.equipment());
     expect(screen.getByText(copy.placeholder.comingSoon)).toBeTruthy();
   });
@@ -451,7 +454,7 @@ describe('robustness (AD-18)', () => {
       grain: { ...DOCS.full.grain, subtitle: undefined },
     };
     renderPage(readyContext(doc));
-    expect(within(section('equipmentCard')).queryByRole('link')).toBeNull();
+    expect(within(section('equipmentCard')).queryByRole('link', { name: DOCS.full.equipmentCard.link })).toBeNull();
     expect(within(section('recentAlerts')).queryByRole('link')).toBeNull();
     for (const key of ['fanActivity', 'grain']) {
       expect(section(key).querySelector('h2')).toBeNull();
