@@ -746,6 +746,7 @@ So that I can respond straight away.
 **Given** each state
 **When** the card is compared with its Reference render
 **Then** it passes the Fidelity check
+- [x] Story 2.5 completed — Manager approved 2026-11-09 (spec-2-5); feature/2-5-recent-alerts
 
 ### Story 2.6: Fan activity card with Runtime chart (NEW)
 
