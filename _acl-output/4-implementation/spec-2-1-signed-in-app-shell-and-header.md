@@ -1,14 +1,13 @@
 ---
-status: Approved
-reviewed_by: Manager (via Markdown Studio)
-review_timestamp: 2026-11-08T20:54:10.297Z
-gate_signature: ACL-STUDIO-APPROVAL-APPROVED
+status: In Review
+spec_approved_by: Manager (via Markdown Studio)
+spec_approved_at: 2026-11-08T20:54:10.297Z
 title: 'Story 2.1 — Signed-in app shell and Header'
 tier: Tier 1 (Self-Contained)
 type: 'feature'
 created: '2026-11-09'
 baseline_commit: 'b56840ba2779ee51f779113c7559c007cf7413d9'
-implementation_status: in-review
+implementation_status: review
 story_key: 2-1-signed-in-app-shell-and-header
 jira: NEW
 review_loop_iteration: 0
@@ -122,3 +121,69 @@ Every signed-in route renders this shell (AD-17). `/dashboard` shows the shell, 
 
 **Commands:**
 - `npm run lint`, `npm run build`, `npm test`, `npm run test:fidelity`: expected exit code 0, except for documented Windows screenshot advisories.
+
+## Implementation Review (Story 2.1)
+
+**Result:**
+- **Commits:** `b56840b` to `5df3326` on `feature/2-1-app-shell`.
+- **Lint and build:** `npm run lint` passes with 0 issues and `npm run build` succeeds.
+- **Unit tests:** `npm test` passes **708/708**.
+- **Fidelity check:** `npm run test:fidelity` passes **32/34**.
+  - The profile panel is within ≤ 0.455% of Figma, and Login is unchanged at ≤ 0.436%.
+  - **Windows-only advisories** (the limit stays 0.5%; macOS CI is authoritative and hasn't run yet because the repo has no remote): Header **0.516%**, Forgot Password modal **0.70%** (recorded in Story 1.5).
+  - Every measurement (±1 px), copy, focus and navigation check passes.
+
+### Acceptance Criteria Checklist
+
+- [x] **Canvas and Header (FR-50/FR-51):** a 1366 px canvas on `#F3F4F6`, and a 64 px white Header with the Figma logo (176.895×14, `#111827`). The divider SVG stays at opacity 0.
+- [x] **Nav tabs (FR-52):** Dashboard, Equipment and Alerts, with the active tab on `#F0FFF8` and a 4 px `#006A36` underline. Equipment and Alerts show the "Coming soon" placeholder inside the shell, with the matching tab active.
+- [x] **Bell (FR-53):** the badge value comes from the state JSON (`2`), with `#FF0000` and Roboto 800. It is hidden while loading, on error, and for 0 or invalid values. The bell is `aria-disabled` until Epic 3 adds its click.
+- [x] **Profile menu (FR-54):** the avatar opens the Figma panel `6026:52937` with `My Profile` and `Logout`, using the exported Logout icon. It closes on Esc, outside click, focus leaving and route change, and focus returns correctly.
+- [x] **Logout:** every tab goes to `/login`. The same tab has empty fields, no banner and no `from`; other tabs keep `{ from, reason: 'required' }`. Back doesn't return to the Dashboard, and a storage failure or double click is handled.
+- [x] **Title strip (FR-55):** 68 px on `#F3F4F4`, reading `Dashboard`.
+- [x] **Route protection (FR-56):** guarded routes redirect to `/login`, and the state resolves once per shell (AD-11).
+- [x] **Data (AD-17/AD-11):** the state document is loaded once by the layout and passed to the page through the Outlet context, which Story 2.2 uses.
+
+### Review Findings
+
+- **Patched (21):** see the Spec Change Log ("Review fixes").
+- **Kept as designed:** the Header keeps `filter: drop-shadow`. It was measured closer to the Figma render than `box-shadow`.
+- **Rejected:**
+  - **Viewport sizes and panel scrolling:** the canvas is fixed at 1366 px (AD-4).
+  - **The `#F3F4F4` strip and the Alerts icon ID:** both come straight from Figma and the design spec.
+  - **Literal font weights:** no weight tokens exist.
+  - **Routing details:** NavTabs reading the URL, and the alert-action route mapping to the Equipment tab.
+
+## Suggested Review Order
+
+**Shell and data**
+
+- Layout: canvas, title strip, the state document loaded once and passed via Outlet context, badge validation.
+  [`SignedInLayout.jsx:1`](../../src/pages/SignedInLayout.jsx#L1)
+- Header contract `{ activeTab, badge, onBellClick }`.
+  [`Header.jsx:1`](../../src/features/shell/Header.jsx#L1)
+- Bell, badge, `aria-describedby`, `aria-disabled`.
+  [`BellButton.jsx:1`](../../src/features/shell/BellButton.jsx#L1)
+
+**Profile menu and Logout**
+
+- Panel geometry, focusout, pointerdown outside-click, Logout guard.
+  [`ProfileMenu.jsx:1`](../../src/features/shell/ProfileMenu.jsx#L1)
+- `aria-controls` / `aria-expanded`.
+  [`AvatarButton.jsx:1`](../../src/features/shell/AvatarButton.jsx#L1)
+- Logout intent, storage-failure fallback.
+  [`session.js:1`](../../src/lib/session.js#L1)
+
+**Routing**
+
+- Signed-in layout route, SessionSync logout handling.
+  [`App.jsx:1`](../../src/app/App.jsx#L1)
+- Tab helpers (case-insensitive).
+  [`paths.js:1`](../../src/lib/paths.js#L1)
+
+**Tests**
+
+- I/O matrix, badge, menu, logout, a11y.
+  [`shell.test.jsx:1`](../../tests/unit/shell.test.jsx#L1)
+- Header + profile panel vs 1× Figma, audits.
+  [`shell.spec.js:1`](../../tests/fidelity/shell.spec.js#L1)
