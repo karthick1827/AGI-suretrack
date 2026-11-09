@@ -274,7 +274,12 @@ test.describe('Grain On Hand card (FR-83 to FR-87)', () => {
         };
         const part = (root, name) => root.querySelector(`[data-grain-part="${name}"]`);
         const bar = el.querySelector('[data-grain-bar]');
-        const paintOf = (box) => getComputedStyle(box.firstElementChild).backgroundColor;
+        const paintOf = (box) => getComputedStyle(box.querySelector('[data-grain-paint]')).backgroundColor;
+        // The paint layer's top / bottom against the edges data-grain-bleed lists.
+        const bleedOf = (box) => {
+          const cs = getComputedStyle(box.querySelector('[data-grain-paint]'));
+          return { bleed: box.dataset.grainBleed, top: cs.top, bottom: cs.bottom };
+        };
         return {
           summary: pick(part(el, 'summary'), TYPE),
           summaryBold: pick(part(el, 'summaryBold'), TYPE),
@@ -283,6 +288,7 @@ test.describe('Grain On Hand card (FR-83 to FR-87)', () => {
           bar: { ...pick(bar, ['borderTopLeftRadius', 'overflow']), width: bar.getBoundingClientRect().width },
           track: paintOf(el.querySelector('[data-grain-track]')),
           segments: [...el.querySelectorAll('[data-grain-segment]')].map(paintOf),
+          bleeds: [...el.querySelectorAll('[data-grain-track], [data-grain-segment]')].map(bleedOf),
           items: [...el.querySelectorAll('[data-grain-item]')].map((item) => {
             const swatch = part(item, 'swatch');
             return {
@@ -298,7 +304,16 @@ test.describe('Grain On Hand card (FR-83 to FR-87)', () => {
           pseudo: [...el.querySelectorAll('*')].filter((node) =>
             ['::before', '::after'].some((p) => getComputedStyle(node, p).content !== 'none' && getComputedStyle(node, p).content !== 'normal'),
           ).length,
-          cursors: [...new Set([...el.querySelectorAll('[data-grain-body] *')].map((node) => getComputedStyle(node).cursor))],
+          // The drawn parts a pointer could rest on: summary, fill label, bar boxes, Legend items and their parts.
+          cursors: [
+            ...new Set(
+              [
+                ...el.querySelectorAll(
+                  '[data-grain-part], [data-grain-bar], [data-grain-track], [data-grain-segment], [data-grain-paint], [data-grain-item]',
+                ),
+              ].map((node) => getComputedStyle(node).cursor),
+            ),
+          ],
         };
       });
       const typeOf = (t) => ({ ...t, color: cssColour(t.color) });
@@ -309,6 +324,18 @@ test.describe('Grain On Hand card (FR-83 to FR-87)', () => {
       expect(got.bar).toEqual({ borderTopLeftRadius: st.bar.radius, overflow: st.bar.overflow, width: expected.bar.w });
       expect(got.track).toBe(cssColour(st.track));
       expect(got.segments).toEqual(want.segments.map(([colour]) => cssColour(colour)));
+      // Each bar box's paint reaches 1 px past exactly the edges data-grain-bleed lists (0 elsewhere).
+      expect(got.bleeds).toHaveLength(want.segments.length + 1);
+      for (const { bleed, top, bottom } of got.bleeds) {
+        const edges = bleed.split(' ');
+        expect(edges.length).toBeGreaterThan(0);
+        expect({ top, bottom }, bleed).toEqual({
+          top: edges.includes('top') ? st.bleedPx : '0px',
+          bottom: edges.includes('bottom') ? st.bleedPx : '0px',
+        });
+      }
+      // Track (0) and Full segments bleed on both edges; the nudged Small / All-good Wheat (−0.5) only at the top.
+      expect(got.bleeds.map(({ bleed }) => bleed)).toEqual(['top bottom', ...want.segments.map(([, , , top]) => (top < 0 ? 'top' : 'top bottom'))]);
       got.items.forEach((item, i) => {
         const [name, , colour] = want.legend[i];
         expect(item.swatch, `${name} swatch`).toBe(cssColour(colour));

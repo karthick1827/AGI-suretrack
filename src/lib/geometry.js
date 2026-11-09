@@ -140,9 +140,12 @@ export function runtimeBars(chart) {
   });
 }
 
-// grainSegments() gives the Grain On Hand card's Fill bar (FR-85, AD-8): each
-// Commodity segment's px and colour, plus the remaining-capacity track. The
-// card renders them as plain DOM and never re-derives a width or an offset.
+
+// grainItems() / grainSegments() give the Grain On Hand card's drawn
+// Commodities (FR-85, FR-87, AD-8): the usable items, each with its Fill bar
+// segment px and colour, plus the remaining-capacity track. The card draws
+// its Legend and its bar from the same list, and never re-derives a width or
+// an offset.
 
 /** Grain Fill bar (FR-85): 386 × 10 px. */
 export const GRAIN_BAR_PX = 386;
@@ -158,9 +161,14 @@ export const GRAIN_GAP_PX = 3.75;
  * (it overflows the 386 px bar by 16.58 px and is clipped). Every frame draws
  * it at this same place, whatever the segments (Full: right after Oats;
  * Small and All-good: 0.33 px after the 321 px Wheat override, Q-G1), so it
- * is the frame's fixed rectangle, not derived from the data.
+ * is the frame's fixed rectangle, not derived from the data. Segments never
+ * reach past its left edge.
  */
 export const GRAIN_TRACK = Object.freeze({ left: 321.33, width: 81.25 });
+/** The Figma `segmentTopPx` nudge range: −1 to 1 px (Small and All-good −0.5). */
+export const GRAIN_MAX_NUDGE_PX = 1;
+/** FR-87: the Legend's 3 rows × 2 items; the drawn Commodities are capped to match. */
+export const GRAIN_MAX_ITEMS = 6;
 
 /**
  * The one Commodity colour map (FR-85, SCRUM-39 AC7): segment and Legend
@@ -178,78 +186,101 @@ export const GRAIN_COMMODITIES = Object.freeze({
 
 /**
  * A Commodity's map entry, only when `name` is a mapped Commodity AND the
- * item's `color` is that Commodity's colour (hex, any letter case); anything
- * else (unknown Commodity, missing or different colour) is null: no colour.
+ * item's `color` is that Commodity's 6-digit hex (surrounding whitespace and
+ * letter case ignored); anything else (unknown Commodity, missing, short-hex
+ * or different colour) is null.
  *
  * @returns {{ color: string, token: string } | null}
  */
 export function grainCommodity(name, color) {
   if (typeof name !== 'string' || !Object.hasOwn(GRAIN_COMMODITIES, name)) return null;
   const entry = GRAIN_COMMODITIES[name];
-  return typeof color === 'string' && color.toUpperCase() === entry.color ? entry : null;
+  return typeof color === 'string' && color.trim().toUpperCase() === entry.color ? entry : null;
 }
 
 /** FR-85 `round_to_1.25`. */
 export const roundToGrainStep = (px) => Math.round(px / GRAIN_ROUND_PX) * GRAIN_ROUND_PX;
 
-/** An explicit `segmentPx` usable as a width: a finite number > 0 and ≤ the 386 px bar. */
-const usableSegmentPx = (value) => finite(value) && value > 0 && value <= GRAIN_BAR_PX;
-/** An explicit `segmentTopPx` usable as a nudge: a finite number smaller in size than the 10 px bar. */
-const usableSegmentTopPx = (value) => finite(value) && Math.abs(value) < GRAIN_BAR_HEIGHT_PX;
 /** Usable `amountK`: a finite number ≥ 0. */
 const usableAmountK = (value) => finite(value) && value >= 0;
+/** A segment of `width` at `left` that ends at or before the track's left edge. */
+const fitsBeforeTrack = (left, width) => finite(width) && width > 0 && left + width <= GRAIN_TRACK.left;
 
 /**
- * FR-85 Grain Fill bar, in file order (= Legend order).
+ * The width of `item`'s segment at `left`, or null when it has none (AD-8:
+ * explicit px wins, never capped or rounded):
+ *   - `segmentPx` when it is a finite number > 0 that keeps the segment ending
+ *     at or before the track (321.33; Small and All-good Wheat 321, Q-G1);
+ *   - otherwise `round_to_1.25(amountK × 0.21386)` for a usable `amountK`
+ *     (finite, ≥ 0), when that is > 0 and also ends at or before the track
+ *     (Full Canola 72.5, Corn 67.5, Soybeans 57.5, Wheat 47.5, Barley 30,
+ *     Oats 23.75);
+ *   - otherwise null.
+ */
+function segmentWidth(item, left) {
+  if (fitsBeforeTrack(left, item.segmentPx)) return item.segmentPx;
+  if (!usableAmountK(item.amountK)) return null;
+  const width = roundToGrainStep(item.amountK * GRAIN_PX_PER_K);
+  return fitsBeforeTrack(left, width) ? width : null;
+}
+
+/**
+ * The drawn Commodities (FR-85, FR-87), in file order: ONE list from which the
+ * card draws both its Fill bar and its Legend, so the two always match.
  *
- * Width per item (AD-8: explicit px wins):
- *   - `segmentPx` when usable (a finite number > 0 and ≤ 386; Small and
- *     All-good Wheat 321, Q-G1). An unusable `segmentPx` (0, negative,
- *     over 386, non-finite, not a number) is never capped or rounded: the
- *     formula applies instead.
- *   - Otherwise `round_to_1.25(amountK × 0.21386)` for a usable `amountK`
- *     (finite, ≥ 0): Full Canola 72.5, Corn 67.5, Soybeans 57.5, Wheat 47.5,
- *     Barley 30, Oats 23.75.
- * An item that is not a plain object, or whose width is not > 0 (zero,
- * negative or invalid amount and no usable `segmentPx`), gets no segment and
- * no gap. Segments sit left to right with a 3.83 px gap after the first and
- * 3.75 px after each later one: Full lefts 0, 76.33, 147.58, 208.83, 260.08,
- * 293.83. A segment that would start at or beyond the bar's right edge (386)
- * is entirely clipped, so it is left out.
+ * An item is usable only when it is a plain object whose `name` is a mapped
+ * Commodity, whose `color` matches the map (grainCommodity), and that has a
+ * segment width (see segmentWidth). Unusable items are left out of both the
+ * bar and the Legend. Segments sit left to right with a 3.83 px gap after the
+ * first and 3.75 px after each later one (Full lefts 0, 76.33, 147.58,
+ * 208.83, 260.08, 293.83). An item whose segment would pass the track's left
+ * edge is left out (a later, narrower one may still fit). At most 6 items
+ * (FR-87's 3 × 2 Legend) are kept.
  *
- * `top` is a usable `segmentTopPx` (a finite number with |value| < 10; the
- * Figma nudge −0.5 in Small and All-good), else 0. `color` is the Commodity
- * map colour when the item's `name` and `color` match the map, else null (no
- * segment colour; see grainCommodity). `name` is passed through as given.
+ * `top` is a usable `segmentTopPx` (a finite number from −1 to 1; the Figma
+ * nudge −0.5 in Small and All-good), else 0.
  *
  * Never throws and never returns NaN.
  *
  * @param {unknown} items  `grain.items`
+ * @returns {{ item: object, name: string, color: string, token: string, left: number, width: number, top: number }[]}
+ */
+export function grainItems(items) {
+  const drawn = [];
+  let left = 0;
+  for (const item of Array.isArray(items) ? items : []) {
+    if (drawn.length === GRAIN_MAX_ITEMS) break;
+    if (!isPlainObject(item)) continue;
+    const commodity = grainCommodity(item.name, item.color);
+    if (commodity === null) continue;
+    const width = segmentWidth(item, left);
+    if (width === null) continue;
+    const nudge = item.segmentTopPx;
+    drawn.push({
+      item,
+      name: item.name,
+      color: commodity.color,
+      token: commodity.token,
+      left,
+      width,
+      top: finite(nudge) && Math.abs(nudge) <= GRAIN_MAX_NUDGE_PX ? nudge : 0,
+    });
+    left += width + (drawn.length === 1 ? GRAIN_FIRST_GAP_PX : GRAIN_GAP_PX);
+  }
+  return drawn;
+}
+
+/**
+ * FR-85 Fill bar: the segments of grainItems() and the track, which is drawn
+ * only when there is at least one segment.
+ *
+ * @param {unknown} items  `grain.items`
  * @returns {{
- *   segments: { name: unknown, color: string | null, token: string | null, left: number, width: number, top: number }[],
- *   track: { left: number, width: number },
+ *   segments: { name: string, color: string, token: string, left: number, width: number, top: number }[],
+ *   track: { left: number, width: number } | null,
  * }}
  */
 export function grainSegments(items) {
-  const segments = [];
-  let left = 0;
-  for (const item of Array.isArray(items) ? items : []) {
-    if (!isPlainObject(item)) continue;
-    let width = 0;
-    if (usableSegmentPx(item.segmentPx)) width = item.segmentPx;
-    else if (usableAmountK(item.amountK)) width = roundToGrainStep(item.amountK * GRAIN_PX_PER_K);
-    if (!(finite(width) && width > 0)) continue;
-    if (!(left < GRAIN_BAR_PX)) break;
-    const commodity = grainCommodity(item.name, item.color);
-    segments.push({
-      name: item.name,
-      color: commodity ? commodity.color : null,
-      token: commodity ? commodity.token : null,
-      left,
-      width,
-      top: usableSegmentTopPx(item.segmentTopPx) ? item.segmentTopPx : 0,
-    });
-    left += width + (segments.length === 1 ? GRAIN_FIRST_GAP_PX : GRAIN_GAP_PX);
-  }
-  return { segments, track: { ...GRAIN_TRACK } };
+  const segments = grainItems(items).map(({ item: _item, ...segment }) => segment);
+  return { segments, track: segments.length > 0 ? { ...GRAIN_TRACK } : null };
 }

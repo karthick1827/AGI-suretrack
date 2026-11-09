@@ -9,17 +9,23 @@
 // `summaryRest`, and `fillLabel` on the right, all verbatim (grain.js; the
 // Q-G3 contradictions are kept).
 //
-// Fill bar (FR-85): segments and track come only from geometry.js
-// `grainSegments()` (AD-8). Each is a 1 px box translated to its `left` /
-// `top` and scaled to its `width` (so the fractional px are painted
-// exactly, see the CSS); its colour is the Commodity map token, or none
-// (data-grain-colour names it).
-// The bar is decorative (aria-hidden): the summary and the Legend carry its
-// readings, and no new copy is needed.
+// Commodities: the Fill bar and the Legend are drawn from ONE list,
+// grain.js grainCommodities() (geometry.js grainItems(), AD-8): the usable
+// items (mapped Commodity, matching colour, a segment that ends before the
+// track), at most 6, in file order. So every segment has its Legend item and
+// every Legend item its segment.
 //
-// Legend (FR-87): usable `grain.items` in file order, row-major in two
-// columns; the Corn item keeps its scaled sizes (Q-G2, data-fid
-// 6337:54860).
+// Fill bar (FR-85): each segment is a 1 px box translated to its `left` /
+// `top` and scaled to its `width` (so the fractional px are painted exactly,
+// see the CSS), in its Commodity map colour (data-grain-colour names the
+// token); the track is drawn only beside at least one segment. The bar is
+// decorative (aria-hidden): the summary and the Legend carry its readings,
+// and no new copy is needed.
+//
+// Legend (FR-87): row-major in two columns. In the Full layout the first
+// item is the frame's 42 px first-row item and a Corn second item keeps its
+// scaled sizes (Q-G2, data-fid 6337:54860); everywhere else the regular
+// item (grain.js legendLayout).
 //
 // Only strings and finite numbers with visible text render (grain.js
 // visibleText). Keys are slot positions (the bar's segment slots and the
@@ -27,35 +33,42 @@
 // in place.
 import { copy } from '../../../lib/copy.js';
 import { FID } from '../../../lib/fid.js';
-import { grainBar, grainLegend, grainSummary } from './grain.js';
+import { grainCommodities, grainSummary, grainTrack } from './grain.js';
 import styles from './GrainCard.module.css';
 
 const cx = (...names) => names.filter(Boolean).join(' ');
-/** A Commodity map token as a colour, or no colour. */
-const fillOf = (token) => (token === null ? undefined : `var(${token})`);
 
 /**
- * A Fill bar box (segment or track) at `left` / `top`, `width` wide: a
- * 1 px box translated and scaled to its px (see .box in the CSS), so the
- * fractional geometry.js px are painted exactly and getBoundingClientRect()
- * is the segment's box. Its paint layer carries the colour. data-grain-bleed
- * names the edges that lie on the bar's own top / bottom edge (top ≤ 0: top;
- * top ≥ 0, so the 10 px box reaches the bar's bottom: bottom), where the
- * paint reaches 1 px past the box (see .bleedTop).
+ * The edges of a Fill bar box (segment or track) that lie on the bar's own
+ * top or bottom edge, where the paint reaches 1 px past the box (see
+ * .bleedTop in the CSS): a box nudged up (top < 0) reaches only past the
+ * top, one nudged down (top > 0) only past the bottom, one at 0 both.
  */
-function BarBox({ left, top, width, paintClassName, colour, ...rest }) {
-  const bleedTop = top <= 0;
-  const bleedBottom = top >= 0;
+const bleedOf = (top) => {
+  if (top < 0) return 'top';
+  if (top > 0) return 'bottom';
+  return 'top bottom';
+};
+
+/**
+ * A Fill bar box at `left` / `top`, `width` wide: a 1 px box translated and
+ * scaled to its px (see .box in the CSS), so the fractional px are painted
+ * exactly and getBoundingClientRect() is the segment's box. Its paint layer
+ * carries the colour (a Commodity map token, or the track's CSS colour).
+ */
+function BarBox({ left, top, width, paintClassName, token, ...rest }) {
+  const bleed = bleedOf(top);
   return (
     <span
       className={styles.box}
       style={{ transform: `translate(${left}px, ${top}px) scaleX(${width})` }}
-      data-grain-bleed={cx(bleedTop && 'top', bleedBottom && 'bottom')}
+      data-grain-bleed={bleed}
       {...rest}
     >
       <span
-        className={cx(styles.paint, paintClassName, bleedTop && styles.bleedTop, bleedBottom && styles.bleedBottom)}
-        style={colour === undefined ? undefined : { backgroundColor: colour }}
+        className={cx(styles.paint, paintClassName, bleed !== 'bottom' && styles.bleedTop, bleed !== 'top' && styles.bleedBottom)}
+        style={token === undefined ? undefined : { backgroundColor: `var(${token})` }}
+        data-grain-paint=""
       />
     </span>
   );
@@ -72,11 +85,7 @@ function Summary({ summary }) {
             {rest === null ? null : copy.dashboard.grainSummarySpace}
           </strong>
         )}
-        {rest === null ? null : (
-          <span className={styles.summaryRest} data-grain-part="summaryRest">
-            {rest}
-          </span>
-        )}
+        {rest === null ? null : <span data-grain-part="summaryRest">{rest}</span>}
       </p>
       {fillLabel === null ? null : (
         <p className={styles.fillLabel} data-grain-part="fillLabel">
@@ -87,50 +96,52 @@ function Summary({ summary }) {
   );
 }
 
-function FillBar({ bar }) {
-  const { segments, track } = bar;
+function FillBar({ commodities }) {
+  const track = grainTrack(commodities);
   return (
     <div className={styles.bar} aria-hidden="true" data-grain-bar="">
-      <BarBox left={track.left} top={0} width={track.width} paintClassName={styles.track} data-grain-track="" />
-      {segments.map((segment, slot) => (
+      {track === null ? null : (
+        <BarBox left={track.left} top={0} width={track.width} paintClassName={styles.track} data-grain-track="" />
+      )}
+      {commodities.map((commodity, slot) => (
         <BarBox
           key={slot}
-          left={segment.left}
-          top={segment.top}
-          width={segment.width}
-          colour={fillOf(segment.token)}
+          left={commodity.left}
+          top={commodity.top}
+          width={commodity.width}
+          token={commodity.token}
           data-grain-segment={slot}
-          data-grain-colour={segment.token ?? 'none'}
+          data-grain-colour={commodity.token}
         />
       ))}
     </div>
   );
 }
 
-function Legend({ items }) {
+function Legend({ commodities }) {
   return (
     // role="list": WebKit drops list semantics under `list-style: none`.
     <ul className={styles.legend} role="list" data-grain-legend="">
-      {items.map((item, slot) => (
+      {commodities.map((commodity, slot) => (
         <li
           key={slot}
-          className={cx(styles.item, styles[item.layout])}
+          className={cx(styles.item, commodity.layout !== 'regular' && styles[commodity.layout])}
           data-grain-item={slot}
-          data-grain-layout={item.layout}
-          data-grain-colour={item.token ?? 'none'}
-          data-fid={item.layout === 'corn' ? FID.grain.cornLegendItem : undefined}
+          data-grain-layout={commodity.layout}
+          data-grain-colour={commodity.token}
+          data-fid={commodity.layout === 'corn' ? FID.grain.cornLegendItem : undefined}
         >
           <span
             className={styles.swatch}
-            style={{ backgroundColor: fillOf(item.token) }}
+            style={{ backgroundColor: `var(${commodity.token})` }}
             aria-hidden="true"
             data-grain-part="swatch"
           />
           <span className={styles.name} data-grain-part="name">
-            {item.name}
+            {commodity.name}
           </span>
           <span className={styles.sub} data-grain-part="sub">
-            {item.subLabel}
+            {commodity.subLabel}
           </span>
         </li>
       ))}
@@ -139,18 +150,19 @@ function Legend({ items }) {
 }
 
 /**
- * @param {{ data: object }} props  `data` = the `grain` slice. The layout is
- *   the same in every Dashboard state (only the data differs), so the page's
- *   `variant` is not used.
+ * @param {{ data: object, variant?: 'full' | 'small' | 'allgood' }} props
+ *   `data` = the `grain` slice; `variant` = the Dashboard state, which places
+ *   the Full frame's special Legend items (anything else → Full).
  */
-export default function GrainCard({ data }) {
+export default function GrainCard({ data, variant }) {
+  const commodities = grainCommodities(data, variant);
   return (
     <div className={styles.body} data-grain-body="">
       <div className={styles.summaryBlock} data-grain-summary="">
         <Summary summary={grainSummary(data)} />
-        <FillBar bar={grainBar(data)} />
+        <FillBar commodities={commodities} />
       </div>
-      <Legend items={grainLegend(data)} />
+      <Legend commodities={commodities} />
     </div>
   );
 }

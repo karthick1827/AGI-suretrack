@@ -1,15 +1,15 @@
 // The Grain On Hand card's usable content (FR-84 to FR-87). GrainCard draws
 // exactly these; the Dashboard page uses hasGrainContent() to show a ready
 // slice it cannot draw as the section error (FR-96).
-import { grainCommodity, grainSegments } from '../../../lib/geometry.js';
+import { GRAIN_TRACK, grainItems } from '../../../lib/geometry.js';
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /**
- * The one "visible text" rule (summary, fill label, Legend names and
- * sub-labels): a string with non-whitespace text, or a finite number (as its
- * String()), returned verbatim (never trimmed or formatted); anything else is
- * null.
+ * The one "visible text" rule (summary, fill label, Legend sub-labels): a
+ * string with non-whitespace text, or a finite number (as its String()),
+ * returned verbatim (never trimmed or formatted); anything else is null.
+ * (Legend names are always mapped Commodity names: see geometry.grainItems.)
  */
 export const visibleText = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
@@ -29,47 +29,54 @@ export function grainSummary(data) {
 /** Whether the summary row shows anything. */
 export const summaryIsVisible = ({ bold, rest, fillLabel }) => bold !== null || rest !== null || fillLabel !== null;
 
-/**
- * The Corn Legend item is a scaled copy in the Full frame (Figma 6337:54860,
- * Q-G2) and is kept as drawn; Canola's is 42 px high where the others are 45
- * (see GrainCard.module.css). Every other name, mapped or not, is 'regular'.
- */
-const LEGEND_LAYOUTS = Object.freeze({ Corn: 'corn', Canola: 'canola' });
-export const legendLayout = (name) => (typeof name === 'string' && Object.hasOwn(LEGEND_LAYOUTS, name) ? LEGEND_LAYOUTS[name] : 'regular');
+/** Layout variants: the Dashboard states; anything else → Full (as FanActivityCard). */
+const VARIANTS = Object.freeze(['full', 'small', 'allgood']);
+export const grainVariant = (variant) => (VARIANTS.includes(variant) ? variant : 'full');
 
 /**
- * FR-87 Legend items: objects of `grain.items` with a visible name or
- * sub-label, in file order (row-major in two columns). The swatch colour is
- * the Commodity map colour (geometry.js grainCommodity), or null.
+ * The Legend item layout drawn at `slot` (FR-87), by the Full frame's
+ * positions: in the Full layout the first item is the 42 px first-row item
+ * ('fullFirst') and the second, when it is Corn, keeps the scaled Corn copy
+ * (Figma 6337:54860, Q-G2: 'corn'). Every other slot, name or state is
+ * 'regular'.
  *
- * @returns {{ name: string | null, subLabel: string | null, token: string | null, layout: 'regular' | 'corn' | 'canola' }[]}
+ * @returns {'regular' | 'fullFirst' | 'corn'}
  */
-export function grainLegend(data) {
-  if (!isObject(data) || !Array.isArray(data.items)) return [];
-  return data.items
-    .filter((item) => isObject(item) && (visibleText(item.name) !== null || visibleText(item.subLabel) !== null))
-    .map((item) => ({
-      name: visibleText(item.name),
-      subLabel: visibleText(item.subLabel),
-      token: grainCommodity(item.name, item.color)?.token ?? null,
-      layout: legendLayout(item.name),
-    }));
+export function legendLayout(slot, name, variant) {
+  if (grainVariant(variant) !== 'full') return 'regular';
+  if (slot === 0) return 'fullFirst';
+  if (slot === 1 && name === 'Corn') return 'corn';
+  return 'regular';
 }
 
-/** FR-85 Fill bar segments and track (geometry.grainSegments, AD-8). */
-export function grainBar(data) {
-  return grainSegments(isObject(data) ? data.items : null);
+/**
+ * The drawn Commodities (geometry.grainItems, AD-8): each with its Legend
+ * text (name, verbatim sub-label or null), layout and colour token, and its
+ * Fill bar segment. The Legend and the bar are drawn from this one list.
+ *
+ * @returns {{ name: string, subLabel: string | null, token: string, layout: 'regular' | 'fullFirst' | 'corn', left: number, width: number, top: number }[]}
+ */
+export function grainCommodities(data, variant) {
+  if (!isObject(data)) return [];
+  return grainItems(data.items).map(({ item, name, token, left, width, top }, slot) => ({
+    name,
+    subLabel: visibleText(item.subLabel),
+    token,
+    layout: legendLayout(slot, name, variant),
+    left,
+    width,
+    top,
+  }));
 }
+
+/** The remaining-capacity track (FR-85): drawn only beside at least one segment. */
+export const grainTrack = (commodities) => (commodities.length > 0 ? GRAIN_TRACK : null);
 
 /**
  * Whether a ready `grain` slice has something the card can draw: a visible
- * summary part or fill label, a Legend item, or a coloured Fill bar segment.
- * Anything else (no usable items and no summary) is a section load error.
+ * summary part or fill label, or a drawn Commodity. Anything else (no usable
+ * items and no summary) is a section load error.
  */
 export function hasGrainContent(data) {
-  return (
-    summaryIsVisible(grainSummary(data)) ||
-    grainLegend(data).length > 0 ||
-    grainBar(data).segments.some((segment) => segment.token !== null)
-  );
+  return summaryIsVisible(grainSummary(data)) || grainCommodities(data).length > 0;
 }

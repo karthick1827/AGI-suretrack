@@ -15,8 +15,8 @@
 // state. A ready slice that is missing, or has no content its section can
 // draw (the Equipment card with no usable rows; Recent Alerts with no usable
 // items, or an empty `items` array without Empty-state copy; Fan activity with
-// no usable Stat tile or Runtime bar; Grain On Hand with no usable summary,
-// Legend item or coloured Fill bar segment), shows that section's error. The
+// no usable Stat tile or Runtime bar; Grain On Hand with neither a usable
+// summary nor a usable Commodity), shows that section's error. The
 // KPI section draws the KPI strip (Story 2.3), the Equipment card its rows
 // (Story 2.4), Recent Alerts its Alert rows or Empty state (Story 2.5), Fan
 // activity its Stat tiles, Runtime chart and caption (Story 2.6) and Grain On

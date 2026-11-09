@@ -10,6 +10,7 @@ import {
   GRAIN_COMMODITIES,
   GRAIN_FIRST_GAP_PX,
   GRAIN_GAP_PX,
+  GRAIN_MAX_ITEMS,
   GRAIN_PX_PER_K,
   GRAIN_ROUND_PX,
   GRAIN_TRACK,
@@ -28,6 +29,7 @@ import {
   RUNTIME_SLOTS,
   RUNTIME_VALUE_LABEL_OFFSET_PX,
   grainCommodity,
+  grainItems,
   grainSegments,
   healthSegments,
   roundToGrainStep,
@@ -429,14 +431,19 @@ describe('grainSegments() — the Commodity colour map (FR-85, SCRUM-39 AC7)', (
     }
   });
 
-  it('the data colour must match the map (any letter case); an unknown Commodity or a different colour has none; never a crash', () => {
+  it('the data colour must match the map (whitespace and letter case ignored); short hex, an unknown Commodity or a different colour has none', () => {
     expect(grainCommodity('Corn', '#e07b39')?.color).toBe('#E07B39');
+    expect(grainCommodity('Corn', '  #e07B39\n')?.token).toBe('--raw-e07b39');
     for (const [name, color] of [
       ['Corn', '#E3C341'],
+      ['Corn', '#E07'],
+      ['Corn', 'E07B39'],
+      ['Corn', '#E07B39FF'],
       ['Corn', undefined],
       ['Corn', 7],
       ['Rye', '#E07B39'],
       ['corn', '#E07B39'],
+      [' Corn', '#E07B39'],
       ['__proto__', '#E07B39'],
       ['toString', '#E07B39'],
       [{ name: 'Corn' }, '#E07B39'],
@@ -444,15 +451,14 @@ describe('grainSegments() — the Commodity colour map (FR-85, SCRUM-39 AC7)', (
     ]) {
       expect(grainCommodity(name, color), `${String(name)} ${String(color)}`).toBeNull();
     }
-    // The segment still takes its place in the bar, just without a colour.
-    const { segments } = grainSegments([
+    // Such items are left out of the bar entirely (and so of the Legend: one list, grainItems).
+    const items = [
       { name: 'Rye', color: '#123456', amountK: 100 },
       { name: 'Corn', color: '#E3C341', amountK: 100 },
-    ]);
-    expect(segments.map((s) => [s.name, s.color, s.token])).toEqual([
-      ['Rye', null, null],
-      ['Corn', null, null],
-    ]);
+      { name: 'Oats', color: ' #b9a47a ', amountK: 111 },
+    ];
+    expectGrain(items, [['Oats', '#B9A47A', 0, 23.75]]);
+    expect(grainItems(items).map((entry) => entry.item)).toEqual([items[2]]);
   });
 });
 
@@ -463,8 +469,9 @@ describe('grainSegments() — edge cases (never NaN, never a crash)', () => {
     ['an object', { 0: { amountK: 1 } }],
     ['a string', 'Canola'],
     ['an empty array', []],
-  ])('items %s → no segments, the track only', (_name, items) => {
-    expect(grainSegments(items)).toEqual({ segments: [], track: { left: 321.33, width: 81.25 } });
+    ['only unusable items', [{ name: 'Wheat', color: '#C98F2E', amountK: 0 }, { name: 'Rye', color: '#C98F2E', amountK: 10 }]],
+  ])('items %s → no segments and no track', (_name, items) => {
+    expect(grainSegments(items)).toEqual({ segments: [], track: null });
   });
 
   it('zero, negative, non-finite or non-numeric amounts without a usable segmentPx give no segment and no gap', () => {
@@ -488,6 +495,7 @@ describe('grainSegments() — edge cases (never NaN, never a crash)', () => {
   it.each([
     ['0', 0],
     ['negative', -5],
+    ['past the track (321.33)', 321.34],
     ['over the 386 px bar', 386.5],
     ['NaN', Number.NaN],
     ['Infinity', Infinity],
@@ -497,34 +505,63 @@ describe('grainSegments() — edge cases (never NaN, never a crash)', () => {
     expectGrain([{ name: 'Wheat', color: '#C98F2E', amountK: 224, segmentPx }], [['Wheat', '#C98F2E', 0, 47.5]]);
   });
 
-  it('the largest usable segmentPx is the bar width (386)', () => {
-    expectGrain([{ name: 'Wheat', color: '#C98F2E', segmentPx: 386 }], [['Wheat', '#C98F2E', 0, 386]]);
+  it('the largest usable segmentPx ends exactly at the track (321.33); later, it must fit the room left', () => {
+    expectGrain([{ name: 'Wheat', color: '#C98F2E', segmentPx: 321.33 }], [['Wheat', '#C98F2E', 0, 321.33]]);
+    // After a 100 px Canola (+ 3.83 gap) only 217.5 px remain: a 300 px override falls back to the formula.
+    expectGrain(
+      [
+        { name: 'Canola', color: '#E3C341', segmentPx: 100 },
+        { name: 'Corn', color: '#E07B39', segmentPx: 300, amountK: 314 },
+      ],
+      [
+        ['Canola', '#E3C341', 0, 100],
+        ['Corn', '#E07B39', 103.83, 67.5],
+      ],
+    );
   });
 
   it.each([
     ['NaN', Number.NaN],
+    ['1.5', 1.5],
+    ['−1.01', -1.01],
     ['10 (the bar height)', 10],
-    ['−10', -10],
     ['a string', '-0.5'],
     ['−Infinity', -Infinity],
-  ])('an unusable segmentTopPx (%s) gives top 0', (_name, segmentTopPx) => {
+  ])('an out-of-range segmentTopPx (%s) gives top 0', (_name, segmentTopPx) => {
     expectGrain([{ name: 'Wheat', color: '#C98F2E', segmentPx: 321, segmentTopPx }], [['Wheat', '#C98F2E', 0, 321, 0]]);
   });
 
-  it('segments that would start at or beyond 386 px are fully clipped, so left out; huge amounts never give NaN', () => {
-    expectGrain(
-      [
-        { name: 'Canola', color: '#E3C341', segmentPx: 384 },
-        { name: 'Corn', color: '#E07B39', amountK: 10 },
-      ],
-      [['Canola', '#E3C341', 0, 384]],
-    );
+  it.each([-1, -0.5, 0.25, 1])('segmentTopPx %s (within −1 to 1) is kept', (segmentTopPx) => {
+    expectGrain([{ name: 'Wheat', color: '#C98F2E', segmentPx: 321, segmentTopPx }], [['Wheat', '#C98F2E', 0, 321, segmentTopPx]]);
+  });
+
+  it('no segment passes the track: one that would is left out, a later narrower one may still fit; huge amounts never give NaN', () => {
+    const items = [
+      { name: 'Canola', color: '#E3C341', segmentPx: 300 },
+      { name: 'Corn', color: '#E07B39', amountK: 314 },
+      { name: 'Oats', color: '#B9A47A', amountK: 50 },
+    ];
+    expectGrain(items, [
+      ['Canola', '#E3C341', 0, 300],
+      ['Oats', '#B9A47A', 303.83, 11.25],
+    ]);
+    for (const { left, width } of grainSegments(items).segments) expect(left + width).toBeLessThanOrEqual(GRAIN_TRACK.left);
     const huge = grainSegments([
       { name: 'Oats', color: '#B9A47A', amountK: Number.MAX_VALUE },
       { name: 'Corn', color: '#E07B39', amountK: 10 },
     ]);
-    expect(huge.segments).toHaveLength(1);
+    expect(huge.segments.map((s) => s.name)).toEqual(['Corn']);
     finiteEverywhere(huge);
+  });
+
+  it('at most 6 items (FR-87: 3 rows × 2), the first 6 usable ones in file order', () => {
+    const names = Object.keys(GRAIN_COMMODITIES);
+    const items = [{ name: 'Rye', color: '#000000', amountK: 1 }, ...names, ...names].map((name) =>
+      typeof name === 'string' ? { name, color: GRAIN_COMMODITIES[name].color, amountK: 10 } : name,
+    );
+    expect(GRAIN_MAX_ITEMS).toBe(6);
+    expect(grainSegments(items).segments.map((s) => s.name)).toEqual(names);
+    expect(grainItems(items)).toHaveLength(6);
   });
 
   it('is pure: the input is not changed and repeated calls are equal; the track is a fresh copy', () => {

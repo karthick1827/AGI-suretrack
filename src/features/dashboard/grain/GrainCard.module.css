@@ -69,10 +69,6 @@
   font-weight: 700;
 }
 
-.summaryRest {
-  font-weight: var(--font-weight-regular);
-}
-
 /* Right: `fillLabel`, SF stack 510, 16/1.5, #111827. */
 .fillLabel {
   flex: none;
@@ -116,8 +112,8 @@
   transform-origin: 0 0;
 }
 
-/* The box's paint layer (the colour: the inline Commodity map token; none
-   for an unknown or mismatched Commodity, FR-85). */
+/* The box's paint layer (the colour: the inline Commodity map token, FR-85;
+   the track's below). */
 .paint {
   position: absolute;
   inset: 0;
@@ -135,9 +131,10 @@
  * row gets a quarter of the colour instead of the half the 1× renders show
  * (Full Canola card y 111: #F8F0CF instead of #F1E1A0). The paint layer
  * reaches 1 px past that edge (the box itself stays 10 px), so only the clip
- * draws it, as in the frames. The Small and All-good Wheat segment (top
- * −0.5) ends inside the bar: its bottom edge (card y 121.0, a pixel
- * boundary) is its own, so it does not bleed there.
+ * draws it, as in the frames. A nudged segment (top ≠ 0, at most ±1 px)
+ * keeps its own edge on the side it moved away from: the Small and All-good
+ * Wheat segment (top −0.5) ends inside the bar at card y 121.0, a pixel
+ * boundary, so it bleeds only at the top.
  */
 .bleedTop {
   top: -1px;
@@ -177,9 +174,10 @@
  * bottom edge in every item: at the PRD's top 36 in the 45 px items (Full
  * Soybeans sub-label ink at card y 231–240, item top 200), and 3 px higher
  * in the 42 px Canola item (ink 170–179, item top 142: Δ 28 vs Δ 31). So
- * items are 45 high with the sub-label at top 36, and the Canola item (the
- * 42 px one in the frame, Corn being the 40 px scaled copy) is 42 high with
- * its sub-label at top 33.
+ * items are 45 high with the sub-label at top 36, and the Full layout's
+ * first item (.fullFirst: Canola's slot, the 42 px one in the frame; Corn's
+ * slot beside it is the 40 px scaled copy) is 42 high with its sub-label at
+ * top 33. These are frame positions (grain.js legendLayout), not names.
  */
 .item {
   position: relative;
@@ -189,7 +187,7 @@
   padding-left: 24px;
 }
 
-.canola {
+.fullFirst {
   height: 42px;
 }
 
@@ -240,12 +238,13 @@
   transform: translateY(-50%);
 }
 
-.canola .sub {
+.fullFirst .sub {
   top: 33px;
 }
 
 /*
- * Corn (Figma 6337:54860, Q-G2): a scaled copy kept as drawn: item height
+ * Corn (Figma 6337:54860, Q-G2; the Full layout's second slot, when it is
+ * Corn): a scaled copy kept as drawn: item height
  * 40, swatch 11.368 (radius 3.41, top 11.65), text at left 22, name 14.551
  * px, sub-label 10.913 px.
  *
@@ -273,9 +272,4 @@
   top: 32.74px;
   left: 22px;
   font-size: 10.913px;
-}
-
-/* .regular: the 45 px item above (no overrides). */
-.regular {
-  height: 45px;
 }

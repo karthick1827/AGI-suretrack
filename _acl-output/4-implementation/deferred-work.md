@@ -74,3 +74,6 @@ gate_signature: ACL-STUDIO-APPROVAL-APPROVED
 - source_spec: `_acl-output/4-implementation/spec-2-6-fan-activity-card-with-runtime-chart.md`
   summary: Audit unit tests from Stories 2.3–2.5 that assert `classList.contains(styles[x])`; Vitest's CSS-module proxy returns a class name for any key, so a missing CSS class still passes. Prefer data attributes or fidelity computed-style checks.
   evidence: Found in Story 2.6 review (`.full` class did not exist but its unit test passed).
+- source_spec: `_acl-output/4-implementation/spec-2-7-grain-on-hand-card.md`
+  summary: SCRUM-39 AC6 "Other" grouping when there are more than 6 Commodities, and a neutral colour for Commodities missing from the colour map (needs a design token).
+  evidence: Story 2.7 caps the Legend/bar at 6 items and drops unmapped Commodities; neither case occurs in the three state files.

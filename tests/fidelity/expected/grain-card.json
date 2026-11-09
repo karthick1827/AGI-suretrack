@@ -1,5 +1,5 @@
 {
-  "$comment": "Story 2.7 — Grain On Hand card 426 × 326 at page 470, 710 (Full) / 470, 506 (Small, All-good) (FR-83). Boxes are CARD coordinates (px, ±1 px, relative to the card slot) transcribed from PRD FR-83 to FR-87 and design spec Part B §8, §10, §12 to §14, with the offsets the PRD leaves open read off the 1× Figma renders (figma-reference/1x). Figma strokes take no layout, so the body is the frame's 386 px content box at x 20; the summary block (h 45: text row 25, gap 10, bar 10) is drawn at y 76.5 (the bar's top and bottom rows half covered at card y 111 and 121 in every render: bar 111.5–121.5), the Legend at 142 (77 + 45 + gap 20). Fill bar segments at bar x / width from FR-85 (±0.01 in unit tests; ±1 px here), 10 px high, at bar y + top (Small and All-good Wheat −0.5); the track at 321.33 + 81.25 (clipped at 386). Legend items 188 wide at x 20 / 218 (space-between in 386), rows 16 apart and bottom-aligned; the items are 45 high except Canola 42 and the scaled Corn 40 (swatch tops at item + 12.81 put the Full rows at 142, 200, 261); swatch 12.5 (Corn 11.368) at item y + 12.81 (Corn 11.65); name at item x + 24 (Corn 22), item top, one 1.5 line; sub-label centred at item y + 36 (Canola 33, Corn 32.74). Copy is transcribed from the PRD (FR-84, FR-87), not from the state JSON, so the two cross-check.",
+  "$comment": "Story 2.7 — Grain On Hand card 426 × 326 at page 470, 710 (Full) / 470, 506 (Small, All-good) (FR-83). Boxes are CARD coordinates (px, ±1 px, relative to the card slot) transcribed from PRD FR-83 to FR-87 and design spec Part B §8, §10, §12 to §14, with the offsets the PRD leaves open read off the 1× Figma renders (figma-reference/1x). Figma strokes take no layout, so the body is the frame's 386 px content box at x 20; the summary block (h 45: text row 25, gap 10, bar 10) is drawn at y 76.5 (the bar's top and bottom rows half covered at card y 111 and 121 in every render: bar 111.5–121.5), the Legend at 142 (77 + 45 + gap 20). Fill bar segments at bar x / width from FR-85 (±0.01 in unit tests; ±1 px here), 10 px high, at bar y + top (Small and All-good Wheat −0.5); the track at 321.33 + 81.25 (clipped at 386). Legend items 188 wide at x 20 / 218 (space-between in 386), rows 16 apart and bottom-aligned; the items are 45 high except, in the Full layout, the first-row item (Canola's slot) 42 and the scaled Corn in the second slot 40 (swatch tops at item + 12.81 put the Full rows at 142, 200, 261); swatch 12.5 (Corn 11.368) at item y + 12.81 (Corn 11.65); name at item x + 24 (Corn 22), item top, one 1.5 line; sub-label centred at item y + 36 (Full first item 33, Corn 32.74). Copy is transcribed from the PRD (FR-84, FR-87), not from the state JSON, so the two cross-check.",
   "card": {
     "x": 470,
     "w": 426,
@@ -48,7 +48,7 @@
     "xs": [20, 218],
     "layouts": {
       "regular": { "h": 45, "swatch": 12.5, "swatchTop": 12.81, "textLeft": 24, "nameH": 24, "subCentre": 36, "subH": 18 },
-      "canola": { "h": 42, "swatch": 12.5, "swatchTop": 12.81, "textLeft": 24, "nameH": 24, "subCentre": 33, "subH": 18 },
+      "fullFirst": { "h": 42, "swatch": 12.5, "swatchTop": 12.81, "textLeft": 24, "nameH": 24, "subCentre": 33, "subH": 18 },
       "corn": { "h": 40, "swatch": 11.368, "swatchTop": 11.65, "textLeft": 22, "nameH": 21.83, "subCentre": 32.74, "subH": 16.37 }
     }
   },
@@ -64,7 +64,7 @@
       ["#B9A47A", 293.83, 23.75, 0]
     ],
     "legend": [
-      ["Canola", "340k bu · 1 unit", "#E3C341", "canola", 142],
+      ["Canola", "340k bu · 1 unit", "#E3C341", "fullFirst", 142],
       ["Corn", "314k bu · 1 unit", "#E07B39", "corn", 144],
       ["Soybeans", "268k bu · 1 unit", "#6F8F4F", "regular", 200],
       ["Wheat", "224k bu · 1 unit", "#C98F2E", "regular", 200],
@@ -95,6 +95,7 @@
     "fillLabel": { "fontFamily": "-apple-system", "fontWeight": "510", "fontSize": "16px", "lineHeight": "24px", "color": "#111827" },
     "bar": { "radius": "8.75px", "overflow": "hidden" },
     "track": "#EEF1EF",
+    "bleedPx": "-1px",
     "name": { "fontFamily": "-apple-system", "fontWeight": "590", "fontSize": "16px", "lineHeight": "24px", "color": "#111827" },
     "sub": { "fontFamily": "-apple-system", "fontWeight": "400", "fontSize": "12px", "lineHeight": "18px", "color": "#000000cc" },
     "cornName": { "fontFamily": "-apple-system", "fontWeight": "590", "fontSize": "14.551px", "color": "#111827" },
